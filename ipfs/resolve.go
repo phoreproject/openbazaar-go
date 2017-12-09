@@ -1,18 +1,16 @@
 package ipfs
 
 import (
+	"time"
+
 	"github.com/ipfs/go-ipfs/commands"
 	coreCmds "github.com/ipfs/go-ipfs/core/commands"
-	"time"
 )
 
-// ResolveTimeout sets the timeout value for resolving the name of a signed IPNS record
-const ResolveTimeout = 30 * time.Second
-
-// Resolve function publishes a signed IPNS record to our Peer ID
-func Resolve(ctx commands.Context, hash string) (string, error) {
+// Publish a signed IPNS record to our Peer ID
+func Resolve(ctx commands.Context, hash string, timeout time.Duration) (string, error) {
 	args := []string{"name", "resolve", hash}
-	req, cmd, err := NewRequestWithTimeout(ctx, args, ResolveTimeout)
+	req, cmd, err := NewRequestWithTimeout(ctx, args, timeout)
 	if err != nil {
 		return "", err
 	}

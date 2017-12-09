@@ -52,12 +52,12 @@ func (n *OpenBazaarNode) FetchProfile(peerID string, useCache bool) (pb.Profile,
 		var profile []byte
 		var err error
 		if rootHash == "" {
-			profile, err = ipfs.ResolveThenCat(n.Context, ipnspath.FromString(path.Join(peerID, "profile.json")))
+			profile, err = ipfs.ResolveThenCat(n.Context, ipnspath.FromString(path.Join(peerID, "profile.json")), time.Minute)
 			if err != nil || len(profile) == 0 {
 				return pro, err
 			}
 		} else {
-			profile, err = ipfs.Cat(n.Context, path.Join(rootHash, "profile.json"))
+			profile, err = ipfs.Cat(n.Context, path.Join(rootHash, "profile.json"), time.Minute)
 			if err != nil || len(profile) == 0 {
 				return pro, err
 			}
