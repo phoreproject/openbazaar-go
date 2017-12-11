@@ -8,7 +8,7 @@ import (
 
 type ModeratedDB struct {
 	db   *sql.DB
-	lock sync.RWMutex
+	lock *sync.Mutex
 }
 
 func (m *ModeratedDB) Put(peerID string) error {
@@ -28,8 +28,8 @@ func (m *ModeratedDB) Put(peerID string) error {
 }
 
 func (m *ModeratedDB) Get(offsetID string, limit int) ([]string, error) {
-	m.lock.RLock()
-	defer m.lock.RUnlock()
+	m.lock.Lock()
+	defer m.lock.Unlock()
 	var stm string
 	if offsetID != "" {
 		stm = "select peerID from moderatedstores order by rowid desc limit " + strconv.Itoa(limit) + " offset ((select coalesce(max(rowid)+1, 0) from moderatedstores)-(select rowid from moderatedstores where peerID='" + offsetID + "'))"
