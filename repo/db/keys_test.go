@@ -8,6 +8,7 @@ import (
 	"github.com/phoreproject/btcd/btcec"
 	"github.com/phoreproject/wallet-interface"
 	"testing"
+	"sync"
 )
 
 var kdb KeysDB
@@ -17,6 +18,7 @@ func init() {
 	initDatabaseTables(conn, "")
 	kdb = KeysDB{
 		db: conn,
+		lock: new(sync.Mutex),
 	}
 }
 

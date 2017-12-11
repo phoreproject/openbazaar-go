@@ -6,6 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"sync"
+
 	"github.com/golang/protobuf/ptypes"
 	"github.com/phoreproject/btcd/chaincfg"
 	"github.com/phoreproject/btcutil"
@@ -20,7 +22,8 @@ func init() {
 	conn, _ := sql.Open("sqlite3", ":memory:")
 	initDatabaseTables(conn, "")
 	purdb = PurchasesDB{
-		db: conn,
+		db:   conn,
+		lock: new(sync.Mutex),
 	}
 	contract = new(pb.RicardianContract)
 	listing := new(pb.Listing)
