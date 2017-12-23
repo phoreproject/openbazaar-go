@@ -155,6 +155,7 @@ func (b CMCDecoder) decode(dat interface{}, cache map[string]float64) (err error
 	}
 
 	cache["PHR"] = priceUSD
+	cache["USD"] = priceUSD
 
 	return nil
 }
