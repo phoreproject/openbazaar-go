@@ -17,7 +17,7 @@ if [ ! -z "$TRAVIS_TAG" ] &&
   cp ../.travis/win64/libwinpthread-1.dll libwinpthread-1.win64.dll
 
   # Upload to GitHub Release page
-  ghr --username meyer9 -t $GITHUB_TOKEN --replace --prerelease --debug $TRAVIS_TAG .
+  ghr --username phoreproject -t $GITHUB_TOKEN --replace --prerelease --debug $TRAVIS_TAG .
 else
   echo "This will not deploy!"
 fi
