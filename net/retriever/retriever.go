@@ -5,6 +5,7 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/ipfs/go-ipfs/commands"
+	logging "github.com/op/go-logging"
 	"github.com/phoreproject/openbazaar-go/ipfs"
 	"github.com/phoreproject/openbazaar-go/net"
 	"github.com/phoreproject/openbazaar-go/pb"
@@ -15,6 +16,7 @@ import (
 
 	routing "gx/ipfs/QmUCS9EnqNq1kCnJds2eLDypBiS21aSiCf1MVzSUVB9TGA/go-libp2p-kad-dht"
 
+	"fmt"
 	"gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
 	ps "gx/ipfs/QmPgDWmTmuzvP7QE5zwo1TmjbJme9pmZHNujB2453jkCTr/go-libp2p-peerstore"
 	multihash "gx/ipfs/QmU9a9NV9RdPNwZQDYd5uKsm6N6LJLSvLbywDDYFbaaC6P/go-multihash"
@@ -26,8 +28,6 @@ import (
 	"net/http"
 	"sync"
 	"time"
-
-	"github.com/op/go-logging"
 )
 
 const DefaultPointerPrefixLength = 14
@@ -327,7 +327,10 @@ func (m *MessageRetriever) queueMessage(env pb.Envelope, addr string) {
 	case pb.Message_REFUND:
 		m.messageQueue[pb.Message_REFUND] = append(m.messageQueue[pb.Message_REFUND], offlineMessage{addr, env})
 	default:
-		m.handleMessage(env, nil)
+		err := m.handleMessage(env, nil)
+		if err != nil {
+			log.Errorf("Error processing message %s. Type %s: %s", addr, env.Message.MessageType, err.Error())
+		}
 	}
 }
 
@@ -338,8 +341,15 @@ func (m *MessageRetriever) processQueue() {
 			if err != nil && err == net.OutOfOrderMessage {
 				ser, err := proto.Marshal(&om.env)
 				if err == nil {
-					m.db.OfflineMessages().SetMessage(om.addr, ser)
+					err := m.db.OfflineMessages().SetMessage(om.addr, ser)
+					if err != nil {
+						log.Errorf("Error saving offline message %s to database: %s", om.addr, err.Error())
+					}
+				} else {
+					log.Errorf("Error serializing offline message %s for storage")
 				}
+			} else if err != nil {
+				log.Errorf("Error processing message %s. Type %s: %s", om.addr, om.env.Message.MessageType, err.Error())
 			}
 		}
 	}
@@ -397,6 +407,8 @@ func (m *MessageRetriever) processOldMessages() {
 		err := proto.Unmarshal(ser, env)
 		if err == nil {
 			m.queueMessage(*env, url)
+		} else {
+			log.Error("Error unmarshalling serialized offline message from database")
 		}
 		m.db.OfflineMessages().DeleteMessage(url)
 	}
@@ -420,14 +432,10 @@ func (m *MessageRetriever) handleMessage(env pb.Envelope, id *peer.ID) error {
 	// Get handler for this message type
 	handler := m.service.HandlerForMsgType(env.Message.MessageType)
 	if handler == nil {
-		log.Debug("Got back nil handler from HandlerForMsgType")
-		return nil
+		return fmt.Errorf("Nil handler for message type %s", env.Message.MessageType)
 	}
 
 	// Dispatch handler
 	_, err := handler(*id, env.Message, true)
-	if err != nil && err != net.OutOfOrderMessage {
-		log.Errorf("Handle message error: %s", err)
-	}
 	return err
 }
