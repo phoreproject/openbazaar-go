@@ -8,16 +8,16 @@ import (
 	"sync"
 	"time"
 
+	dht "gx/ipfs/QmT7PnPxYkeKPCG8pAnucfcjrXc15Q7FgvFv7YC24EPrw8/go-libp2p-kad-dht"
 	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
 	libp2p "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
-
-	dht "gx/ipfs/QmUCS9EnqNq1kCnJds2eLDypBiS21aSiCf1MVzSUVB9TGA/go-libp2p-kad-dht"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/phoreproject/btcutil"
 	hd "github.com/phoreproject/btcutil/hdkeychain"
 	"github.com/phoreproject/openbazaar-go/api/notifications"
+	"github.com/phoreproject/openbazaar-go/net"
 	"github.com/phoreproject/openbazaar-go/pb"
 	"github.com/phoreproject/wallet-interface"
 	"golang.org/x/net/context"
@@ -252,7 +252,7 @@ func (n *OpenBazaarNode) ProcessDisputeOpen(rc *pb.RicardianContract, peerID str
 		// Load out version of the contract from the db
 		myContract, state, _, records, _, err := n.Datastore.Sales().GetByOrderId(orderId)
 		if err != nil {
-			return err
+			return net.OutOfOrderMessage
 		}
 		// Check this order is currently in a state which can be disputed
 		if state == pb.OrderState_COMPLETED || state == pb.OrderState_DISPUTED || state == pb.OrderState_DECIDED || state == pb.OrderState_RESOLVED || state == pb.OrderState_REFUNDED || state == pb.OrderState_CANCELED || state == pb.OrderState_DECLINED {
@@ -307,6 +307,9 @@ func (n *OpenBazaarNode) ProcessDisputeOpen(rc *pb.RicardianContract, peerID str
 		myContract, state, _, records, _, err := n.Datastore.Purchases().GetByOrderId(orderId)
 		if err != nil {
 			return err
+		}
+		if state == pb.OrderState_AWAITING_PAYMENT || state == pb.OrderState_AWAITING_FULFILLMENT || state == pb.OrderState_PARTIALLY_FULFILLED || state == pb.OrderState_PENDING {
+			return net.OutOfOrderMessage
 		}
 		// Check this order is currently in a state which can be disputed
 		if state == pb.OrderState_COMPLETED || state == pb.OrderState_DISPUTED || state == pb.OrderState_DECIDED || state == pb.OrderState_RESOLVED || state == pb.OrderState_REFUNDED || state == pb.OrderState_CANCELED || state == pb.OrderState_DECLINED {
