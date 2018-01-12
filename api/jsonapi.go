@@ -3479,6 +3479,31 @@ func (i *jsonAPIHandler) GETResolve(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, pid.Pretty())
 }
 
+func (i *jsonAPIHandler) GETIPNS(w http.ResponseWriter, r *http.Request) {
+	_, peerId := path.Split(r.URL.Path)
+
+	val, err := i.node.IpfsNode.Repo.Datastore().Get(ds.NewKey(core.CachePrefix + peerId))
+	if err != nil { // No record in datastore
+		ErrorResponse(w, http.StatusNotFound, err.Error())
+		return
+	}
+
+	entry := new(ipnspb.IpnsEntry)
+	err = proto.Unmarshal(val.([]byte), entry)
+	if err != nil {
+		ErrorResponse(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	b, err := proto.Marshal(entry)
+	if err != nil {
+		ErrorResponse(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	w.Header().Add("Content-Transfer-Encoding", "binary")
+	go ipfs.Resolve(i.node.Context, peerId, time.Minute)
+	fmt.Fprint(w, b)
+}
+
 func (i *jsonAPIHandler) POSTTestEmailNotifications(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
 	var settings repo.SMTPSettings

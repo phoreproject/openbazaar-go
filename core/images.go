@@ -183,7 +183,7 @@ func (n *OpenBazaarNode) FetchImage(peerID string, imageType string, size string
 	var recordAvailable bool
 	var val interface{}
 	if useCache {
-		val, err = n.IpfsNode.Repo.Datastore().Get(ds.NewKey(cachePrefix + peerID))
+		val, err = n.IpfsNode.Repo.Datastore().Get(ds.NewKey(CachePrefix + peerID))
 		if err != nil { // No record in datastore
 			dr, err = fetch("")
 			if err != nil {
@@ -199,7 +199,7 @@ func (n *OpenBazaarNode) FetchImage(peerID string, imageType string, size string
 			if err != nil {
 				return dr, err
 			}
-			eol, ok := checkEOL(entry)
+			eol, ok := CheckEOL(entry)
 			if ok && eol.Before(time.Now()) { // Too old, fetch new profile
 				dr, err = fetch("")
 			} else { // Relatively new, we can do a standard IPFS query (which should be cached)
@@ -223,7 +223,7 @@ func (n *OpenBazaarNode) FetchImage(peerID string, imageType string, size string
 	// Update the record with a new EOL
 	go func() {
 		if !recordAvailable {
-			val, err = n.IpfsNode.Repo.Datastore().Get(ds.NewKey(cachePrefix + peerID))
+			val, err = n.IpfsNode.Repo.Datastore().Get(ds.NewKey(CachePrefix + peerID))
 			if err != nil {
 				return
 			}
@@ -238,7 +238,7 @@ func (n *OpenBazaarNode) FetchImage(peerID string, imageType string, size string
 		if err != nil {
 			return
 		}
-		n.IpfsNode.Repo.Datastore().Put(ds.NewKey(cachePrefix+peerID), v)
+		n.IpfsNode.Repo.Datastore().Put(ds.NewKey(CachePrefix+peerID), v)
 	}()
 	return dr, nil
 }
