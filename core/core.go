@@ -3,6 +3,7 @@ package core
 import (
 	"errors"
 	routing "gx/ipfs/QmPR2JzfKd9poHx9XBhzoFeBBC31ZM3W5iUPKJZWyaoZZm/go-libp2p-routing"
+	ds "gx/ipfs/QmVSase1JP7cq9QkPT46oNwdp9pT6kBkG3oqS14y3QcZjG/go-datastore"
 	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
 	libp2p "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 	"path"
@@ -220,10 +221,20 @@ func (n *OpenBazaarNode) EncryptMessage(peerID peer.ID, peerKey *libp2p.PubKey, 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	if peerKey == nil {
-		pubKey, err := routing.GetPublicKey(n.IpfsNode.Routing, ctx, []byte(peerID))
+		var pubKey libp2p.PubKey
+		keyval, err := n.IpfsNode.Repo.Datastore().Get(ds.NewKey(KeyCachePrefix + peerID.String()))
 		if err != nil {
-			log.Errorf("Failed to find public key for %s", peerID.Pretty())
-			return nil, err
+			pubKey, err = routing.GetPublicKey(n.IpfsNode.Routing, ctx, []byte(peerID))
+			if err != nil {
+				log.Errorf("Failed to find public key for %s", peerID.Pretty())
+				return nil, err
+			}
+		} else {
+			pubKey, err = libp2p.UnmarshalPublicKey(keyval.([]byte))
+			if err != nil {
+				log.Errorf("Failed to find public key for %s", peerID.Pretty())
+				return nil, err
+			}
 		}
 		peerKey = &pubKey
 	}
