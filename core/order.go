@@ -950,7 +950,7 @@ func verifySignaturesOnOrder(contract *pb.RicardianContract) error {
 	return nil
 }
 
-func (n *OpenBazaarNode) ValidateOrder(contract *pb.RicardianContract) error {
+func (n *OpenBazaarNode) ValidateOrder(contract *pb.RicardianContract, checkInventory bool) error {
 	listingMap := make(map[string]*pb.Listing)
 
 	// Check order contains all required fields
@@ -1150,13 +1150,15 @@ collectListings:
 	}
 
 	// Check we have enough inventory
-	for _, inv := range inventoryList {
-		amt, err := n.Datastore.Inventory().GetSpecific(inv.Slug, inv.Variant)
-		if err != nil {
-			return errors.New("Vendor has no inventory for the selected variant.")
-		}
-		if amt >= 0 && amt < inv.Count {
-			return fmt.Errorf("Not enough inventory for item %s:%d, only %d in stock", inv.Slug, inv.Variant, amt)
+	if checkInventory {
+		for _, inv := range inventoryList {
+			amt, err := n.Datastore.Inventory().GetSpecific(inv.Slug, inv.Variant)
+			if err != nil {
+				return errors.New("Vendor has no inventory for the selected variant.")
+			}
+			if amt >= 0 && amt < inv.Count {
+				return fmt.Errorf("Not enough inventory for item %s:%d, only %d in stock", inv.Slug, inv.Variant, amt)
+			}
 		}
 	}
 
