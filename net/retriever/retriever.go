@@ -50,6 +50,7 @@ type MessageRetriever struct {
 	dataPeers  []peer.ID
 	queueLock  *sync.Mutex
 	DoneChan   chan struct{}
+	inFlight   chan struct{}
 	*sync.WaitGroup
 }
 
@@ -65,7 +66,7 @@ func NewMessageRetriever(db repo.Datastore, ctx commands.Context, node *core.Ipf
 	}
 	tbTransport := &http.Transport{Dial: dial}
 	client := &http.Client{Transport: tbTransport, Timeout: time.Second * 30}
-	mr := MessageRetriever{db, node, bm, ctx, service, prefixLen, sendAck, client, pushNodes, new(sync.Mutex), make(chan struct{}), new(sync.WaitGroup)}
+	mr := MessageRetriever{db, node, bm, ctx, service, prefixLen, sendAck, client, pushNodes, new(sync.Mutex), make(chan struct{}), make(chan struct{}, 5), new(sync.WaitGroup)}
 	mr.Add(1)
 	return &mr
 }
@@ -195,7 +196,11 @@ func (m *MessageRetriever) getPointersFromDataPeersRoutine(peerOut chan ps.PeerI
 // fetchIPFS will attempt to download an encrypted message using IPFS. If the message downloads successfully, we save the
 // address to the database to prevent us from wasting bandwidth downloading it again.
 func (m *MessageRetriever) fetchIPFS(pid peer.ID, ctx commands.Context, addr ma.Multiaddr, wg *sync.WaitGroup) {
-	defer wg.Done()
+	m.inFlight <- struct{}{}
+	defer func() {
+		wg.Done()
+		<-m.inFlight
+	}()
 
 	c := make(chan struct{})
 	var ciphertext []byte
@@ -223,7 +228,11 @@ func (m *MessageRetriever) fetchIPFS(pid peer.ID, ctx commands.Context, addr ma.
 // fetchHTTPS will attempt to download an encrypted message from an HTTPS endpoint. If the message downloads successfully, we save the
 // address to the database to prevent us from wasting bandwidth downloading it again.
 func (m *MessageRetriever) fetchHTTPS(pid peer.ID, url string, addr ma.Multiaddr, wg *sync.WaitGroup) {
-	defer wg.Done()
+	m.inFlight <- struct{}{}
+	defer func() {
+		wg.Done()
+		<-m.inFlight
+	}()
 
 	c := make(chan struct{})
 	var ciphertext []byte
