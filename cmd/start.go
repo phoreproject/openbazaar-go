@@ -105,6 +105,7 @@ type Start struct {
 	Tor                  bool     `long:"tor" description:"Automatically configure the daemon to run as a Tor hidden service and use Tor exclusively. Requires Tor to be running."`
 	DualStack            bool     `long:"dualstack" description:"Automatically configure the daemon to run as a Tor hidden service IN ADDITION to using the clear internet. Requires Tor to be running. WARNING: this mode is not private"`
 	DisableWallet        bool     `long:"disablewallet" description:"disable the wallet functionality of the node"`
+	RunSeparateWallet    bool     `long:"runseparatewallet" description:"run a wallet along with openbazaar, instead of the system's default"`
 	DisableExchangeRates bool     `long:"disableexchangerates" description:"disable the exchange rate service to prevent api queries"`
 	Storage              string   `long:"storage" description:"set the outgoing message storage option [self-hosted, dropbox] default=self-hosted"`
 }
@@ -473,7 +474,7 @@ func (x *Start) Execute(args []string) error {
 		if usingTor && !usingClearnet {
 			usetor = true
 		}
-		cryptoWallet = bitcoind.NewBitcoindWallet(mn, &params, repoPath, walletCfg.TrustedPeer, walletCfg.Binary, walletCfg.RPCUser, walletCfg.RPCPassword, usetor, controlPort)
+		cryptoWallet = bitcoind.NewBitcoindWallet(mn, &params, repoPath, walletCfg.TrustedPeer, walletCfg.Binary, walletCfg.RPCUser, walletCfg.RPCPassword, usetor, controlPort, x.RunSeparateWallet)
 	default:
 		log.Fatal("Unknown wallet type. Valid wallet types: phored")
 	}
