@@ -108,11 +108,13 @@ func (w *BitcoindWallet) BuildArguments(rescan bool) []string {
 
 	walletPath := path.Join(w.repoPath, "wallet")
 	if _, err := os.Stat(walletPath); os.IsNotExist(err) {
-		os.Mkdir(walletPath, 0644)
+		os.Mkdir(walletPath, 0700)
 	}
 	if w.separateWallet {
-		args = append(args, "-listen=0", "-datadir="+walletPath, "-rpcuser="+connCfg.User, "-rpcpassword="+connCfg.Pass)
+		args = append(args, "-listen=0", "-datadir="+walletPath, "-rpcuser="+connCfg.User, "-rpcpassword="+connCfg.Pass, "-rpcport=11774")
 	}
+
+	log.Info(args)
 	return args
 }
 
@@ -121,6 +123,11 @@ func (w *BitcoindWallet) Start() {
 		w.shutdownIfActive()
 	}
 	args := w.BuildArguments(false)
+
+	if w.separateWallet {
+		connCfg.Host = "localhost:11774"
+	}
+
 	client, _ := rpcclient.New(connCfg, nil)
 	w.rpcClient = client
 	go startNotificationListener(client, w.listeners)
