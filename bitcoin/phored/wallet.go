@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math/rand"
 	"os"
 	"os/exec"
 	"path"
@@ -64,13 +65,27 @@ var connCfg = &rpcclient.ConnConfig{
 	DisableConnectOnNew:  false,
 }
 
+var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
+
+func randSeq(n int) string {
+	b := make([]rune, n)
+	for i := range b {
+		b[i] = letters[rand.Intn(len(letters))]
+	}
+	return string(b)
+}
+
 func NewBitcoindWallet(mnemonic string, params *chaincfg.Params, repoPath string, trustedPeer string, binary string, username string, password string, useTor bool, torControlPort int, separateWallet bool) *BitcoindWallet {
 	seed := b39.NewSeed(mnemonic, "")
 	mPrivKey, _ := hd.NewMaster(seed, params)
 	mPubKey, _ := mPrivKey.Neuter()
 
 	connCfg.User = username
-	connCfg.Pass = password
+	if separateWallet {
+		connCfg.Pass = randSeq(20) // generate a random sequence for client-only daemon
+	} else {
+		connCfg.Pass = password
+	}
 
 	if trustedPeer != "" {
 		trustedPeer = strings.Split(trustedPeer, ":")[0]
