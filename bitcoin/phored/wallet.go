@@ -114,7 +114,6 @@ func (w *BitcoindWallet) BuildArguments(rescan bool) []string {
 		args = append(args, "-listen=0", "-datadir="+walletPath, "-rpcuser="+connCfg.User, "-rpcpassword="+connCfg.Pass, "-rpcport=11774")
 	}
 
-	log.Info(args)
 	return args
 }
 
