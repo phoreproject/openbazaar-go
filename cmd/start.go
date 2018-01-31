@@ -470,7 +470,7 @@ func (x *Start) Execute(args []string) error {
 	case "phored":
 		binaryPath := walletCfg.Binary
 		if x.DaemonLocation != "" {
-			binaryPath = x.DaemonLocation
+			binaryPath = path.Clean(x.DaemonLocation)
 		} else if walletCfg.Binary == "" {
 			return errors.New("The path to the bitcoind binary must be specified in the config file when using phored. Try typing \"which phored\"")
 		}
