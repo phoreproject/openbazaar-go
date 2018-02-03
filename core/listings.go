@@ -106,15 +106,13 @@ func (n *OpenBazaarNode) SignListing(listing *pb.Listing) (*pb.SignedListing, er
 
 	sl := new(pb.SignedListing)
 
-	// Set hardcode escrow timeout. This may change in the future
-	var testnet bool
-	if n.Wallet.Params().Name == chaincfg.MainNetParams.Name {
-		listing.Metadata.EscrowTimeoutHours = EscrowTimeout
-	} else {
-		testnet = true
+	// Temporary hack to work around test env shortcomings
+	if n.TestNetworkEnabled() {
 		if listing.Metadata.EscrowTimeoutHours == 0 {
 			listing.Metadata.EscrowTimeoutHours = 1
 		}
+	} else {
+		listing.Metadata.EscrowTimeoutHours = EscrowTimeout
 	}
 
 	// Set crypto currency
@@ -139,7 +137,7 @@ func (n *OpenBazaarNode) SignListing(listing *pb.Listing) (*pb.SignedListing, er
 	}
 
 	// Check the listing data is correct for continuing
-	if err := validateListing(listing, testnet); err != nil {
+	if err := validateListing(listing, n.TestNetworkEnabled()); err != nil {
 		return sl, err
 	}
 

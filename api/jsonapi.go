@@ -902,22 +902,21 @@ func (i *jsonAPIHandler) POSTSpendCoins(w http.ResponseWriter, r *http.Request) 
 }
 
 func (i *jsonAPIHandler) GETConfig(w http.ResponseWriter, r *http.Request) {
-	type cfg struct {
-		PeerId         string `json:"peerID"`
-		CryptoCurrency string `json:"cryptoCurrency"`
-		Testnet        bool   `json:"testnet"`
-		Tor            bool   `json:"tor"`
-	}
-
-	testnet := false
-	if i.node.Wallet.Params().Name != chaincfg.MainNetParams.Name {
-		testnet = true
-	}
 	var usingTor bool
 	if i.node.TorDialer != nil {
 		usingTor = true
 	}
-	c := cfg{i.node.IpfsNode.Identity.Pretty(), strings.ToUpper(i.node.Wallet.CurrencyCode()), testnet, usingTor}
+	c := struct {
+		PeerId         string `json:"peerID"`
+		CryptoCurrency string `json:"cryptoCurrency"`
+		Testnet        bool   `json:"testnet"`
+		Tor            bool   `json:"tor"`
+	}{
+		PeerId:         i.node.IpfsNode.Identity.Pretty(),
+		CryptoCurrency: strings.ToUpper(i.node.Wallet.CurrencyCode()),
+		Testnet:        i.node.TestNetworkEnabled(),
+		Tor:            usingTor,
+	}
 	ser, err := json.MarshalIndent(c, "", "    ")
 	if err != nil {
 		ErrorResponse(w, http.StatusInternalServerError, err.Error())

@@ -528,11 +528,7 @@ func (n *OpenBazaarNode) createContractWithOrder(data *PurchaseData) (*pb.Ricard
 			if err := validateVendorID(sl.Listing); err != nil {
 				return nil, err
 			}
-			testnet := false
-			if n.Wallet.Params().Name != chaincfg.MainNetParams.Name {
-				testnet = true
-			}
-			if err := validateListing(sl.Listing, testnet); err != nil {
+			if err := validateListing(sl.Listing, n.TestNetworkEnabled()); err != nil {
 				return nil, fmt.Errorf("Listing failed to validate, reason: %q", err.Error())
 			}
 			if err := verifySignaturesOnListing(sl); err != nil {
