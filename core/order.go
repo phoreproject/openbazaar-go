@@ -66,6 +66,9 @@ type PurchaseData struct {
 // TODO: for now, this is probably OK as it's just an approximation.
 const EscrowReleaseSize = 337
 
+
+var UnknowListingError = errors.New("Order contains a hash of a listing that is not currently for sale")
+
 func (n *OpenBazaarNode) Purchase(data *PurchaseData) (orderId string, paymentAddress string, paymentAmount uint64, vendorOnline bool, err error) {
 	contract, err := n.createContractWithOrder(data)
 	if err != nil {
@@ -1028,9 +1031,10 @@ collectListings:
 	}
 
 	// Validate the each item in the order is for sale
+	knownListings := true
 	for _, listing := range contract.VendorListings {
 		if !n.IsItemForSale(listing) {
-			return errors.New("Contract contained item that is not for sale")
+			knownListings = false
 		}
 	}
 
@@ -1182,6 +1186,10 @@ collectListings:
 	err := verifySignaturesOnOrder(contract)
 	if err != nil {
 		return err
+	}
+
+	if !knownListings {
+		return UnknowListingError
 	}
 	return nil
 }
