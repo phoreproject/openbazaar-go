@@ -1,5 +1,5 @@
 # Build stage - Create static binary
-FROM golang:1.9.2-alpine3.6 AS build
+FROM golang:1.9
 RUN  mkdir -p /go/src \
   && mkdir -p /go/bin \
   && mkdir -p /go/pkg
