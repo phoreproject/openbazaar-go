@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"github.com/phoreproject/btcd/chaincfg/chainhash"
+	"github.com/phoreproject/openbazaar-go/repo"
 	"github.com/phoreproject/btcd/wire"
 	"github.com/phoreproject/wallet-interface"
 	"strconv"
@@ -12,8 +13,11 @@ import (
 )
 
 type UtxoDB struct {
-	db   *sql.DB
-	lock *sync.Mutex
+	modelStore
+}
+
+func NewUnspentTransactionStore(db *sql.DB, lock *sync.Mutex) repo.UnspentTransactionOutputStore {
+	return &UtxoDB{modelStore{db, lock}}
 }
 
 func (u *UtxoDB) Put(utxo wallet.Utxo) error {

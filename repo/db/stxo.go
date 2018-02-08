@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"github.com/phoreproject/btcd/chaincfg/chainhash"
+	"github.com/phoreproject/openbazaar-go/repo"
 	"github.com/phoreproject/btcd/wire"
 	"github.com/phoreproject/wallet-interface"
 	"strconv"
@@ -12,8 +13,11 @@ import (
 )
 
 type StxoDB struct {
-	db   *sql.DB
-	lock *sync.Mutex
+	modelStore
+}
+
+func NewSpentTransactionStore(db *sql.DB, lock *sync.Mutex) repo.SpentTransactionOutputStore {
+	return &StxoDB{modelStore{db, lock}}
 }
 
 func (s *StxoDB) Put(stxo wallet.Stxo) error {

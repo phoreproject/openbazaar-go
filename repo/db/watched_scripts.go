@@ -3,14 +3,18 @@ package db
 import (
 	"database/sql"
 	"encoding/hex"
+	"github.com/phoreproject/openbazaar-go/repo"
 	"sync"
 )
 
 // WatchScriptsDB type definition.
 // Sets a pointer to SQL database and syncs reader/writer mutex-based lock.
 type WatchedScriptsDB struct {
-	db   *sql.DB
-	lock *sync.Mutex
+	modelStore
+}
+
+func NewWatchedScriptStore(db *sql.DB, lock *sync.Mutex) repo.WatchedScriptStore {
+	return &WatchedScriptsDB{modelStore{db, lock}}
 }
 
 // WatchdScriptsDB Put method insert and replace operations based on watched script public keys.

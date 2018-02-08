@@ -3,6 +3,7 @@ package repo
 import (
 	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
 
+	"database/sql"
 	"time"
 
 	btc "github.com/phoreproject/btcutil"
@@ -14,22 +15,29 @@ import (
 
 type Datastore interface {
 	Config() Config
-	Followers() Followers
-	Following() Following
-	OfflineMessages() OfflineMessages
-	Pointers() Pointers
-	Settings() Settings
-	Inventory() Inventory
-	Purchases() Purchases
-	Sales() Sales
-	Cases() Cases
-	Chat() Chat
-	Notifications() Notifications
-	Coupons() Coupons
-	TxMetadata() TxMetadata
-	ModeratedStores() ModeratedStores
+	Followers() FollowerStore
+	Following() FollowingStore
+	OfflineMessages() OfflineMessageStore
+	Pointers() PointerStore
+	Settings() ConfigurationStore
+	Inventory() InventoryStore
+	Purchases() PurchaseStore
+	Sales() SaleStore
+	Cases() CaseStore
+	Chat() ChatStore
+	Notifications() NotificationStore
+	Coupons() CouponStore
+	TxMetadata() TransactionMetadataStore
+	ModeratedStores() ModeratedStore
 	Ping() error
 	Close()
+}
+
+type Queryable interface {
+	BeginTransaction() (*sql.Tx, error)
+	PrepareQuery(string) (*sql.Stmt, error)
+	PrepareAndExecuteQuery(string, ...interface{}) (*sql.Rows, error)
+	ExecuteQuery(string, ...interface{}) (sql.Result, error)
 }
 
 // Config interface defines basic database operations for configuration information
@@ -52,7 +60,9 @@ type Config interface {
 }
 
 // Followers interface defines basic database operations for followers of the user
-type Followers interface {
+type FollowerStore interface {
+	Queryable
+
 	// Put a B58 encoded follower ID and proof to the database
 	Put(follower string, proof []byte) error
 
@@ -71,7 +81,9 @@ type Followers interface {
 }
 
 // Following interface defines basic database operations for peers the user is following
-type Following interface {
+type FollowingStore interface {
+	Queryable
+
 	// Put a B58 encoded peer ID to the database
 	Put(peer string) error
 
@@ -90,7 +102,9 @@ type Following interface {
 }
 
 // OfflineMessages interface defines basic database operations for messages
-type OfflineMessages interface {
+type OfflineMessageStore interface {
+	Queryable
+
 	// Put a URL from a retrieved message
 	Put(url string) error
 
@@ -108,7 +122,9 @@ type OfflineMessages interface {
 }
 
 // Pointers interface defines basic database operations for pointers
-type Pointers interface {
+type PointerStore interface {
+	Queryable
+
 	// Put a pointer to the database
 	Put(p ipfs.Pointer) error
 
@@ -129,7 +145,9 @@ type Pointers interface {
 }
 
 // Settings interface defines basic database operations for settings information
-type Settings interface {
+type ConfigurationStore interface {
+	Queryable
+
 	// Put settings to the database, overriding all fields
 	Put(settings SettingsData) error
 
@@ -144,7 +162,9 @@ type Settings interface {
 }
 
 // Inventory interface defines basic database operations for inventory information
-type Inventory interface {
+type InventoryStore interface {
+	Queryable
+
 	/* Put an inventory count for a listing
 	   Override the existing count if it exists */
 	Put(slug string, variantIndex int, count int) error
@@ -166,7 +186,9 @@ type Inventory interface {
 }
 
 // Purchases interface defines basic database operations for purchase information
-type Purchases interface {
+type PurchaseStore interface {
+	Queryable
+
 	// Save or update an order
 	Put(orderID string, contract pb.RicardianContract, state pb.OrderState, read bool) error
 
@@ -196,7 +218,9 @@ type Purchases interface {
 }
 
 // Sales interface defines basic database operations for order/sale information
-type Sales interface {
+type SaleStore interface {
+	Queryable
+
 	// Save or update a sale
 	Put(orderID string, contract pb.RicardianContract, state pb.OrderState, read bool) error
 
@@ -232,7 +256,9 @@ type Sales interface {
 }
 
 // Cases interface saves/updates/deletes cases, marks them read/unread, counts them and returns metadata and other case details.
-type Cases interface {
+type CaseStore interface {
+	Queryable
+
 	// Save a new case
 	Put(caseID string, state pb.OrderState, buyerOpened bool, claim string) error
 
@@ -268,7 +294,8 @@ type Cases interface {
 }
 
 // Chat interface defines basic database operations for chat information
-type Chat interface {
+type ChatStore interface {
+	Queryable
 
 	// Put a new chat message to the database
 	Put(messageId string, peerID string, subject string, message string, timestamp time.Time, read bool, outgoing bool) error
@@ -295,7 +322,8 @@ type Chat interface {
 }
 
 // Notifications interface defines basic database operations for notification information
-type Notifications interface {
+type NotificationStore interface {
+	Queryable
 
 	// Put a new notification to the database
 	Put(notifID string, notification notif.Data, notifType string, timestamp time.Time) error
@@ -317,7 +345,8 @@ type Notifications interface {
 }
 
 // Coupons interface defines basic database operations for coupon information
-type Coupons interface {
+type CouponStore interface {
+	Queryable
 
 	// Put a list of coupons to the db
 	Put(coupons []Coupon) error
@@ -330,7 +359,8 @@ type Coupons interface {
 }
 
 // TxMetadata interface defines basic database operations for transaction metadata
-type TxMetadata interface {
+type TransactionMetadataStore interface {
+	Queryable
 
 	// Put metadata for a transaction to the db
 	Put(m Metadata) error
@@ -346,7 +376,9 @@ type TxMetadata interface {
 }
 
 // ModeratedStores interface defines basic database operations for moderated stores
-type ModeratedStores interface {
+type ModeratedStore interface {
+	Queryable
+
 	// Put a B58 encoded peer ID to the database
 	Put(peerID string) error
 
@@ -356,4 +388,29 @@ type ModeratedStores interface {
 
 	// Delete a moderated store from the database
 	Delete(peerID string) error
+}
+
+type KeyStore interface {
+	Queryable
+	wallet.Keys
+}
+
+type SpentTransactionOutputStore interface {
+	Queryable
+	wallet.Stxos
+}
+
+type TransactionStore interface {
+	Queryable
+	wallet.Txns
+}
+
+type UnspentTransactionOutputStore interface {
+	Queryable
+	wallet.Utxos
+}
+
+type WatchedScriptStore interface {
+	Queryable
+	wallet.WatchedScripts
 }

@@ -6,11 +6,15 @@ import (
 	"encoding/hex"
 	"strconv"
 	"sync"
+	"github.com/phoreproject/openbazaar-go/repo"
 )
 
 type InventoryDB struct {
-	db   *sql.DB
-	lock *sync.Mutex
+	modelStore
+}
+
+func NewInventoryStore(db *sql.DB, lock *sync.Mutex) repo.InventoryStore {
+	return &InventoryDB{modelStore{db, lock}}
 }
 
 func (i *InventoryDB) Put(slug string, variantIndex int, count int) error {

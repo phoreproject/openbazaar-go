@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/phoreproject/openbazaar-go/repo"
 	"sync"
 
 	"github.com/golang/protobuf/ptypes"
@@ -15,16 +16,13 @@ import (
 	"github.com/phoreproject/wallet-interface"
 )
 
-var purdb PurchasesDB
+var purdb repo.PurchaseStore
 var contract *pb.RicardianContract
 
 func init() {
 	conn, _ := sql.Open("sqlite3", ":memory:")
 	initDatabaseTables(conn, "")
-	purdb = PurchasesDB{
-		db:   conn,
-		lock: new(sync.Mutex),
-	}
+	purdb = NewPurchaseStore(conn, new(sync.Mutex))
 	contract = new(pb.RicardianContract)
 	listing := new(pb.Listing)
 	item := new(pb.Listing_Item)
@@ -76,7 +74,7 @@ func TestPutPurchase(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	stmt, _ := purdb.db.Prepare("select orderID, contract, state, read, timestamp, total, thumbnail, vendorID, vendorHandle, title, shippingName, shippingAddress from purchases where orderID=?")
+	stmt, _ := purdb.PrepareQuery("select orderID, contract, state, read, timestamp, total, thumbnail, vendorID, vendorHandle, title, shippingName, shippingAddress from purchases where orderID=?")
 	defer stmt.Close()
 
 	var orderID string
@@ -137,7 +135,7 @@ func TestDeletePurchase(t *testing.T) {
 		t.Error("Purchase delete failed")
 	}
 
-	stmt, _ := purdb.db.Prepare("select orderID, contract, state, read from purchases where orderID=?")
+	stmt, _ := purdb.PrepareQuery("select orderID, contract, state, read from purchases where orderID=?")
 	defer stmt.Close()
 
 	var orderID string
@@ -156,7 +154,7 @@ func TestMarkPurchaseAsRead(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	stmt, _ := purdb.db.Prepare("select read from purchases where orderID=?")
+	stmt, _ := purdb.PrepareQuery("select read from purchases where orderID=?")
 	defer stmt.Close()
 
 	var read int
@@ -180,7 +178,7 @@ func TestMarkPurchaseAsUnread(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	stmt, _ := purdb.db.Prepare("select read from purchases where orderID=?")
+	stmt, _ := purdb.PrepareQuery("select read from purchases where orderID=?")
 	defer stmt.Close()
 
 	var read int

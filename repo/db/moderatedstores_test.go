@@ -2,20 +2,18 @@ package db
 
 import (
 	"database/sql"
+	"github.com/phoreproject/openbazaar-go/repo"
 	"strconv"
 	"testing"
 	"sync"
 )
 
-var modDB ModeratedDB
+var modDB repo.ModeratedStore
 
 func init() {
 	conn, _ := sql.Open("sqlite3", ":memory:")
 	initDatabaseTables(conn, "")
-	modDB = ModeratedDB{
-		db: conn,
-		lock: new(sync.Mutex),
-	}
+	modDB = NewModeratedStore(conn, new(sync.Mutex))
 }
 
 func TestModeratedDB_Put(t *testing.T) {
@@ -23,7 +21,7 @@ func TestModeratedDB_Put(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	stmt, err := modDB.db.Prepare("select peerID from moderatedstores where peerID=?")
+	stmt, err := modDB.PrepareQuery("select peerID from moderatedstores where peerID=?")
 	defer stmt.Close()
 	var peerID string
 	err = stmt.QueryRow("abc").Scan(&peerID)
@@ -49,7 +47,7 @@ func TestModeratedDB_Delete(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	stmt, _ := modDB.db.Prepare("select peerID from moderatedstores where peerID=?")
+	stmt, _ := modDB.PrepareQuery("select peerID from moderatedstores where peerID=?")
 	defer stmt.Close()
 	var peerID string
 	stmt.QueryRow("abc").Scan(&peerID)

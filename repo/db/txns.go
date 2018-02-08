@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"database/sql"
 	"github.com/phoreproject/btcd/chaincfg/chainhash"
+	"github.com/phoreproject/openbazaar-go/repo"
 	"github.com/phoreproject/btcd/wire"
 	"github.com/phoreproject/wallet-interface"
 	"sync"
@@ -11,8 +12,11 @@ import (
 )
 
 type TxnsDB struct {
-	db   *sql.DB
-	lock *sync.Mutex
+	modelStore
+}
+
+func NewTransactionStore(db *sql.DB, lock *sync.Mutex) repo.TransactionStore {
+	return &TxnsDB{modelStore{db, lock}}
 }
 
 func (t *TxnsDB) Put(txn *wire.MsgTx, value, height int, timestamp time.Time, watchOnly bool) error {

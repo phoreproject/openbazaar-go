@@ -4,15 +4,19 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"errors"
-	"github.com/phoreproject/btcd/btcec"
+    "github.com/phoreproject/btcd/btcec"
+	"github.com/phoreproject/openbazaar-go/repo"
 	"github.com/phoreproject/wallet-interface"
 	"strconv"
 	"sync"
 )
 
 type KeysDB struct {
-	db   *sql.DB
-	lock *sync.Mutex
+	modelStore
+}
+
+func NewKeyStore(db *sql.DB, lock *sync.Mutex) repo.KeyStore {
+	return &KeysDB{modelStore{db, lock}}
 }
 
 func (k *KeysDB) Put(scriptAddress []byte, keyPath wallet.KeyPath) error {
