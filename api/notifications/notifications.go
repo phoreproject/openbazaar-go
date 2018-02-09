@@ -6,7 +6,6 @@ import (
 	"fmt"
 	mh "gx/ipfs/QmU9a9NV9RdPNwZQDYd5uKsm6N6LJLSvLbywDDYFbaaC6P/go-multihash"
 	"time"
-	"gx/ipfs/Qmc5do1bC3JH73MThEgKgKkgNKLmqrvh2uaE6919yDmUaa/procfs"
 )
 
 // Notification is a single notification to send a user.
@@ -298,7 +297,7 @@ func wrap(i interface{}) interface{} {
 		n.Type = "fulfillment"
 		return notificationWrapper{n}
 	case ProcessingErrorNotification:
-		n := i.(FulfillmentNotification)
+		n := i.(ProcessingErrorNotification)
 		n.Type = "processingError"
 		return notificationWrapper{n}
 	case CompletionNotification:
