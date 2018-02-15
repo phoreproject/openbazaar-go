@@ -32,7 +32,7 @@ var ErrRepoExists = errors.New("IPFS configuration file exists. Reinitializing w
 // DoInit sets up the Phore Marketplace repository directories
 func DoInit(repoRoot string, nBitsForKeypair int, testnet bool, password string, mnemonic string, creationDate time.Time, dbInit func(string, []byte, string, time.Time) error) error {
 	paths, err := util.NewCustomSchemaManager(util.SchemaContext{
-		RootPath:        repoRoot,
+		DataPath:        repoRoot,
 		TestModeEnabled: testnet,
 	})
 	if err := paths.BuildSchemaDirectories(); err != nil {
@@ -253,5 +253,5 @@ func GetRepoPath(isTestnet bool) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return paths.RootPath(), nil
+	return paths.DataPath(), nil
 }
