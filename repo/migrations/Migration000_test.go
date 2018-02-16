@@ -7,18 +7,29 @@ import (
 	"testing"
 )
 
-var testConfig3 = `{
-    "RepublishInterval": "24h"
+var testConfig string = `{
+    "Wallet": {
+	    "Binary": "",
+	    "FeeAPI": "https://bitcoinfees.21.co/api/v1/fees/recommended",
+	    "HighFeeDefault": 160,
+	    "LowFeeDefault": 120,
+	    "MaxFee": 2000,
+	    "MediumFeeDefault": 140,
+	    "RPCPassword": "",
+	    "RPCUser": "",
+	    "TrustedPeer": "",
+	    "Type": "spvwallet"
+  }
 }`
 
-func TestMigration003(t *testing.T) {
+func TestMigration000(t *testing.T) {
 	f, err := os.Create("./config")
 	if err != nil {
 		t.Error(err)
 	}
-	f.Write([]byte(testConfig3))
+	f.Write([]byte(testConfig))
 	f.Close()
-	var m Migration003
+	var m Migration000
 
 	// Up
 	err = m.Up("./", "", false)
@@ -29,14 +40,14 @@ func TestMigration003(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if !strings.Contains(string(newConfig), `"RepublishInterval": "24h"`) {
-		t.Error("Failed to write new RepublishInterval object")
+	if !strings.Contains(string(newConfig), `"FeeAPI": "https://btc.fees.openbazaar.org"`) {
+		t.Error("Failed to write new feeAPI")
 	}
 	repoVer, err := ioutil.ReadFile("./repover")
 	if err != nil {
 		t.Error(err)
 	}
-	if string(repoVer) != "3" {
+	if string(repoVer) != "1" {
 		t.Error("Failed to write new repo version")
 	}
 
@@ -49,14 +60,14 @@ func TestMigration003(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if strings.Contains(string(newConfig), `RepublishInterval`) {
-		t.Error("Failed to delete RepublishInterval")
+	if !strings.Contains(string(newConfig), `"FeeAPI": "https://bitcoinfees.21.co/api/v1/fees/recommended"`) {
+		t.Error("Failed to write new feeAPI")
 	}
 	repoVer, err = ioutil.ReadFile("./repover")
 	if err != nil {
 		t.Error(err)
 	}
-	if string(repoVer) != "2" {
+	if string(repoVer) != "0" {
 		t.Error("Failed to write new repo version")
 	}
 

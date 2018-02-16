@@ -10,11 +10,9 @@ import (
 )
 
 // Migration004 variable is used in one of several repo version migrations
-var Migration004 migration004
+type Migration004 struct{}
 
-type migration004 struct{}
-
-func (migration004) Up(repoPath string, dbPassword string, testnet bool) error {
+func (Migration004) Up(repoPath string, dbPassword string, testnet bool) error {
 	var dbPath string
 	if testnet {
 		dbPath = path.Join(repoPath, "datastore", "testnet.db")
@@ -57,7 +55,7 @@ func (migration004) Up(repoPath string, dbPassword string, testnet bool) error {
 	return nil
 }
 
-func (migration004) Down(repoPath string, dbPassword string, testnet bool) error {
+func (Migration004) Down(repoPath string, dbPassword string, testnet bool) error {
 	var dbPath string
 	if testnet {
 		dbPath = path.Join(repoPath, "datastore", "testnet.db")

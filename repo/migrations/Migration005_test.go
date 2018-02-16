@@ -1,15 +1,15 @@
 package migrations
 
 import (
-	"errors"
 	"io/ioutil"
 	"os"
+	"strings"
 	"testing"
 )
 
 func TestMigration005(t *testing.T) {
 	os.Mkdir("./datastore", os.ModePerm)
-	var m migration005
+	var m Migration005
 	err := m.Up("./", "letmein", false)
 	if err != nil {
 		t.Error(err)
