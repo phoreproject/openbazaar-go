@@ -22,7 +22,7 @@ import (
 )
 
 // RepoVersion is the default version of new installations.
-const RepoVersion = "6"
+const RepoVersion = "7"
 
 var log = logging.MustGetLogger("repo")
 
