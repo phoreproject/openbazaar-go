@@ -468,17 +468,7 @@ func (x *Start) Execute(args []string) error {
 	var cryptoWallet wallet.Wallet
 	switch strings.ToLower(walletCfg.Type) {
 	case "phored":
-		binaryPath := walletCfg.Binary
-		if x.DaemonLocation != "" {
-			binaryPath = path.Clean(x.DaemonLocation)
-		} else if walletCfg.Binary == "" {
-			return errors.New("The path to the bitcoind binary must be specified in the config file when using phored. Try typing \"which phored\"")
-		}
-		usetor := false
-		if usingTor && !usingClearnet {
-			usetor = true
-		}
-		cryptoWallet = bitcoind.NewBitcoindWallet(mn, &params, repoPath, walletCfg.TrustedPeer, binaryPath, walletCfg.RPCUser, walletCfg.RPCPassword, usetor, controlPort, x.RunSeparateWallet)
+		cryptoWallet = phored.NewRPCWallet(mn, &params, repoPath, sqliteDB, "https://rpc.phore.io")
 	default:
 		log.Fatal("Unknown wallet type. Valid wallet types: phored")
 	}

@@ -1,15 +1,19 @@
-package bitcoind
+package phored
 
 import (
 	"io/ioutil"
 	"net/http"
 	"time"
 
-	"github.com/phoreproject/wallet-interface"
+	logging "github.com/op/go-logging"
 	"github.com/phoreproject/btcd/chaincfg/chainhash"
 	"github.com/phoreproject/btcd/rpcclient"
+	"github.com/phoreproject/wallet-interface"
 )
 
+var log = logging.MustGetLogger("bitcoind")
+
+// NotificationListener listens for any transactions
 type NotificationListener struct {
 	client    *rpcclient.Client
 	listeners []func(wallet.TransactionCallback)

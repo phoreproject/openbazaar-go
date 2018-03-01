@@ -1,20 +1,26 @@
-package spvwallet
+// Copyright (C) 2015-2016 The Lightning Network Developers
+// Copyright (c) 2016-2017 The OpenBazaar Developers
+
+package phored
 
 import (
 	"bytes"
 	"errors"
-	"github.com/OpenBazaar/wallet-interface"
-	"github.com/btcsuite/btcd/blockchain"
-	"github.com/btcsuite/btcd/chaincfg"
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
-	"github.com/btcsuite/btcd/txscript"
-	"github.com/btcsuite/btcd/wire"
-	"github.com/btcsuite/btcutil"
-	"github.com/btcsuite/btcutil/bloom"
 	"sync"
 	"time"
+
+	"github.com/phoreproject/btcd/blockchain"
+	"github.com/phoreproject/btcd/chaincfg"
+	"github.com/phoreproject/btcd/chaincfg/chainhash"
+	"github.com/phoreproject/btcd/txscript"
+	"github.com/phoreproject/btcd/wire"
+	"github.com/phoreproject/btcutil"
+	"github.com/phoreproject/btcutil/bloom"
+	"github.com/phoreproject/spvwallet"
+	wallet "github.com/phoreproject/wallet-interface"
 )
 
+// TxStore handles transactions we've sent and our addresses
 type TxStore struct {
 	adrs           []btcutil.Address
 	watchedScripts [][]byte
@@ -22,7 +28,7 @@ type TxStore struct {
 	addrMutex      *sync.Mutex
 	cbMutex        *sync.Mutex
 
-	keyManager *KeyManager
+	keyManager *spvwallet.KeyManager
 
 	params *chaincfg.Params
 
@@ -31,7 +37,8 @@ type TxStore struct {
 	wallet.Datastore
 }
 
-func NewTxStore(p *chaincfg.Params, db wallet.Datastore, keyManager *KeyManager) (*TxStore, error) {
+// NewTxStore creates a new tx store from the given chain parameters, database, and key manager
+func NewTxStore(p *chaincfg.Params, db wallet.Datastore, keyManager *spvwallet.KeyManager) (*TxStore, error) {
 	txs := &TxStore{
 		params:     p,
 		keyManager: keyManager,
@@ -47,7 +54,7 @@ func NewTxStore(p *chaincfg.Params, db wallet.Datastore, keyManager *KeyManager)
 	return txs, nil
 }
 
-// ... or I'm gonna fade away
+// GimmeFilter generates a filter from our current used addresses
 func (ts *TxStore) GimmeFilter() (*bloom.Filter, error) {
 	ts.PopulateAdrs()
 
@@ -89,7 +96,7 @@ func (ts *TxStore) GimmeFilter() (*bloom.Filter, error) {
 	return f, nil
 }
 
-// GetDoubleSpends takes a transaction and compares it with
+// CheckDoubleSpends takes a transaction and compares it with
 // all transactions in the db.  It returns a slice of all txids in the db
 // which are double spent by the received tx.
 func (ts *TxStore) CheckDoubleSpends(argTx *wire.MsgTx) ([]*chainhash.Hash, error) {
@@ -212,11 +219,10 @@ func (ts *TxStore) Ingest(tx *wire.MsgTx, height int32) (uint32, error) {
 		// First seen rule
 		if height == 0 {
 			return 0, nil
-		} else {
-			// Mark any unconfirmed doubles as dead
-			for _, double := range doubleSpends {
-				ts.markAsDead(*double)
-			}
+		}
+		// Mark any unconfirmed doubles as dead
+		for _, double := range doubleSpends {
+			ts.markAsDead(*double)
 		}
 	}
 
