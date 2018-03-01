@@ -309,7 +309,7 @@ func (w *RPCWallet) AddWatchedScript(script []byte) error {
 	err := w.DB.WatchedScripts().Put(script)
 	w.DB.PopulateAdrs()
 
-	// TODO: update for websockets
+	w.notifications.updateFilterAndSend()
 	return err
 }
 
@@ -327,6 +327,7 @@ func (w *RPCWallet) ReSyncBlockchain(fromDate time.Time) {
 	w.DB.PopulateAdrs()
 }
 
+// SweepAddress sweeps any UTXOs from an address in a single transaction
 func (w *RPCWallet) SweepAddress(utxos []wallet.Utxo, address *btc.Address, key *hd.ExtendedKey, redeemScript *[]byte, feeLevel wallet.FeeLevel) (*chainhash.Hash, error) {
 	var internalAddr btc.Address
 	if address != nil {
@@ -460,10 +461,10 @@ func (w *RPCWallet) GetFeePerByte(feeLevel wallet.FeeLevel) uint64 {
 	return 10
 }
 
-func (s *RPCWallet) Broadcast(tx *wire.MsgTx) error {
-
+// Broadcast a transaction to the network
+func (w *RPCWallet) Broadcast(tx *wire.MsgTx) error {
 	// Our own tx; don't keep track of false positives
-	_, err := s.DB.Ingest(tx, 0)
+	_, err := w.DB.Ingest(tx, 0)
 	if err != nil {
 		return err
 	}
@@ -477,24 +478,32 @@ func (s *RPCWallet) Broadcast(tx *wire.MsgTx) error {
 		return err
 	}
 
-	s.rpcClient.SendRawTransaction(tx, false)
+	w.rpcClient.SendRawTransaction(tx, false)
+
+	w.notifications.updateFilterAndSend()
 	return nil
 }
 
-var BumpFeeAlreadyConfirmedError = errors.New("Transaction is confirmed, cannot bump fee")
-var BumpFeeTransactionDeadError = errors.New("Cannot bump fee of dead transaction")
-var BumpFeeNotFoundError = errors.New("Transaction either doesn't exist or has already been spent")
+// ErrBumpFeeAlreadyConfirmed throws when a transaction is already confirmed and the fee cannot be bumped
+var ErrBumpFeeAlreadyConfirmed = errors.New("Transaction is confirmed, cannot bump fee")
 
+// ErrBumpFeeTransactionDead throws when a transaction is dead and the fee cannot be dumped
+var ErrBumpFeeTransactionDead = errors.New("Cannot bump fee of dead transaction")
+
+// ErrBumpFeeNotFound throws when a transaction has been spent or doesn't exist
+var ErrBumpFeeNotFound = errors.New("Transaction either doesn't exist or has already been spent")
+
+// BumpFee attempts to bump the fee for a transaction
 func (w *RPCWallet) BumpFee(txid chainhash.Hash) (*chainhash.Hash, error) {
 	_, txn, err := w.DB.Txns().Get(txid)
 	if err != nil {
 		return nil, err
 	}
 	if txn.Height > 0 {
-		return nil, BumpFeeAlreadyConfirmedError
+		return nil, ErrBumpFeeAlreadyConfirmed
 	}
 	if txn.Height < 0 {
-		return nil, BumpFeeTransactionDeadError
+		return nil, ErrBumpFeeTransactionDead
 	}
 	utxos, _ := w.DB.Utxos().GetAll()
 	for _, u := range utxos {
@@ -514,7 +523,7 @@ func (w *RPCWallet) BumpFee(txid chainhash.Hash) (*chainhash.Hash, error) {
 			return transactionID, nil
 		}
 	}
-	return nil, BumpFeeNotFoundError
+	return nil, ErrBumpFeeNotFound
 }
 
 // CreateMultisigSignature creates a multisig signature given the transaction inputs and outputs and the keys
@@ -739,6 +748,7 @@ func (w *RPCWallet) buildTx(amount int64, addr btc.Address, feeLevel wallet.FeeL
 	return authoredTx.Tx, nil
 }
 
+// GenerateMultisigScript generates a script representing a multisig wallet
 func (w *RPCWallet) GenerateMultisigScript(keys []hd.ExtendedKey, threshold int, timeout time.Duration, timeoutKey *hd.ExtendedKey) (addr btc.Address, redeemScript []byte, err error) {
 	if uint32(timeout.Hours()) > 0 && timeoutKey == nil {
 		return nil, nil, errors.New("Timeout key must be non nil when using an escrow timeout")
@@ -804,6 +814,7 @@ func (w *RPCWallet) GenerateMultisigScript(keys []hd.ExtendedKey, threshold int,
 	return addr, redeemScript, nil
 }
 
+// Multisign signs a multisig transaction
 func (w *RPCWallet) Multisign(ins []wallet.TransactionInput, outs []wallet.TransactionOutput, sigs1 []wallet.Signature, sigs2 []wallet.Signature, redeemScript []byte, feePerByte uint64, broadcast bool) ([]byte, error) {
 	tx := wire.NewMsgTx(1)
 	for _, in := range ins {
@@ -877,6 +888,7 @@ func (w *RPCWallet) Multisign(ins []wallet.TransactionInput, outs []wallet.Trans
 	return buf.Bytes(), nil
 }
 
+// Spend spends an amount from an address with a given fee level
 func (w *RPCWallet) Spend(amount int64, addr btc.Address, feeLevel wallet.FeeLevel) (*chainhash.Hash, error) {
 	tx, err := w.buildTx(amount, addr, feeLevel, nil)
 	if err != nil {

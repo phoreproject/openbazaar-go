@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"net/url"
 
 	"github.com/gorilla/websocket"
@@ -22,6 +23,19 @@ type NotificationListener struct {
 
 	// websocket connection
 	conn *websocket.Conn
+}
+
+func (n *NotificationListener) updateFilterAndSend() {
+	filt, err := n.wallet.DB.GimmeFilter()
+
+	if err != nil {
+		log.Error(err)
+		return
+	}
+
+	message := filt.MsgFilterLoad()
+
+	n.conn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("subscribeFilter %s %d %d 0", hex.EncodeToString(message.Filter), message.HashFuncs, message.Tweak)))
 }
 
 func startNotificationListener(wallet *RPCWallet) error {
@@ -77,65 +91,19 @@ func startNotificationListener(wallet *RPCWallet) error {
 					continue
 				}
 
-				wallet.DB.Ingest(transaction, int32(block.Height))
+				hits, err := wallet.DB.Ingest(transaction, int32(block.Height))
+				if err != nil {
+					log.Errorf("Error ingesting tx: %s\n", err.Error())
+					continue
+				}
+				if hits == 0 {
+					log.Debugf("Tx %s from Peer%d had no hits, filter false positive.", transaction.TxHash().String())
+					continue
+				}
+				notificationListener.updateFilterAndSend()
+				log.Infof("Tx %s ingested at height %d", transaction.TxHash().String(), block.Height)
 			}
 		}
 	}()
 	return nil
 }
-
-// if err != nil {
-// 	log.Error(err)
-// 	return
-// }
-// tx, err := l.client.GetRawTransaction(hash)
-// if err != nil {
-// 	log.Error(err)
-// 	return
-// }
-// includeWatchOnly := true
-// txInfo, err := l.client.GetTransaction(hash, &includeWatchOnly)
-// var outputs []wallet.TransactionOutput
-// for i, txout := range tx.MsgTx().TxOut {
-// 	out := wallet.TransactionOutput{ScriptPubKey: txout.PkScript, Value: txout.Value, Index: uint32(i)}
-// 	outputs = append(outputs, out)
-// }
-// var inputs []wallet.TransactionInput
-// for _, txin := range tx.MsgTx().TxIn {
-// 	in := wallet.TransactionInput{OutpointHash: txin.PreviousOutPoint.Hash.CloneBytes(), OutpointIndex: txin.PreviousOutPoint.Index}
-// 	prev, err := l.client.GetRawTransaction(&txin.PreviousOutPoint.Hash)
-// 	if err != nil {
-// 		inputs = append(inputs, in)
-// 		continue
-// 	}
-// 	in.LinkedScriptPubKey = prev.MsgTx().TxOut[txin.PreviousOutPoint.Index].PkScript
-// 	in.Value = prev.MsgTx().TxOut[txin.PreviousOutPoint.Index].Value
-// 	inputs = append(inputs, in)
-// }
-
-// height := int32(0)
-// if txInfo.Confirmations > 0 {
-// 	h, err := chainhash.NewHashFromStr(txInfo.BlockHash)
-// 	if err != nil {
-// 		log.Error(err)
-// 		return
-// 	}
-// 	blockinfo, err := l.client.GetBlockHeaderVerbose(h)
-// 	if err != nil {
-// 		log.Error(err)
-// 		return
-// 	}
-// 	height = blockinfo.Height
-// }
-// cb := wallet.TransactionCallback{
-// 	Txid:      tx.Hash().CloneBytes(),
-// 	Inputs:    inputs,
-// 	Outputs:   outputs,
-// 	Value:     int64(txInfo.Amount * 100000000),
-// 	Timestamp: time.Unix(txInfo.TimeReceived, 0),
-// 	Height:    height,
-// }
-// for _, lis := range l.listeners {
-// 	lis(cb)
-// }
-// }
