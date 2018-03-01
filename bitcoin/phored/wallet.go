@@ -42,6 +42,7 @@ type RPCWallet struct {
 	mnemonic         string
 	DB               *TxStore
 	connCfg          *rpcclient.ConnConfig
+	notifications    *NotificationListener
 }
 
 // NewRPCWallet creates a new wallet given
@@ -102,6 +103,9 @@ func (w *RPCWallet) Start() {
 		time.Sleep(time.Second)
 	}
 	ticker.Stop()
+
+	startNotificationListener(w)
+
 	log.Info("Connected to phored")
 	w.started = true
 }
