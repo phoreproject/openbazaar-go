@@ -7,27 +7,21 @@ import (
 	"os"
 	"path"
 
-	"github.com/phoreproject/openbazaar-go/repo/migrations"
-	"github.com/phoreproject/openbazaar-go/util"
-	"time"
-
+	"github.com/OpenBazaar/openbazaar-go/ipfs"
+	"github.com/OpenBazaar/openbazaar-go/util"
 	"github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/namesys"
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
 	"github.com/op/go-logging"
-	"github.com/phoreproject/openbazaar-go/ipfs"
 	"github.com/tyler-smith/go-bip39"
+	"time"
 )
 
-// RepoVersion is the default version of new installations.
-const RepoVersion = "7"
+const RepoVersion = "8"
 
 var log = logging.MustGetLogger("repo")
-
-// ErrRepoExists is thrown when trying to initialize a repo that already exists.
 var ErrRepoExists = errors.New("IPFS configuration file exists. Reinitializing would overwrite your keys. Use -f to force overwrite.")
 
-// DoInit sets up the Phore Marketplace repository directories
 func DoInit(repoRoot string, nBitsForKeypair int, testnet bool, password string, mnemonic string, creationDate time.Time, dbInit func(string, []byte, string, time.Time) error) error {
 	paths, err := util.NewCustomSchemaManager(util.SchemaContext{
 		DataPath:        repoRoot,
@@ -92,16 +86,6 @@ func DoInit(repoRoot string, nBitsForKeypair int, testnet bool, password string,
 		return err
 	}
 	_, werr := f.Write([]byte(RepoVersion))
-	if werr != nil {
-		return werr
-	}
-	f.Close()
-
-	f, err = os.Create(path.Join(repoRoot, "swarm.key"))
-	if err != nil {
-		return err
-	}
-	_, werr = f.Write(migrations.SwarmKeyData)
 	if werr != nil {
 		return werr
 	}
@@ -177,12 +161,13 @@ func addConfigExtensions(repoRoot string, testnet bool) error {
 		return err
 	}
 	var w WalletConfig = WalletConfig{
-		Type:             "phored",
+		Type:             "spvwallet",
 		MaxFee:           2000,
+		FeeAPI:           "https://btc.fees.openbazaar.org",
 		HighFeeDefault:   160,
 		MediumFeeDefault: 60,
 		LowFeeDefault:    20,
-		RPCLocation:      "rpc.phore.io",
+		TrustedPeer:      "",
 	}
 
 	var a APIConfig = APIConfig{
@@ -242,7 +227,7 @@ func createMnemonic(newEntropy func(int) ([]byte, error), newMnemonic func([]byt
 	return mnemonic, nil
 }
 
-/* GetRepoPath Returns the directory to store repo data in.
+/* Returns the directory to store repo data in.
    It depends on the OS and whether or not we are on testnet. */
 func GetRepoPath(isTestnet bool) (string, error) {
 	paths, err := util.NewCustomSchemaManager(util.SchemaContext{
