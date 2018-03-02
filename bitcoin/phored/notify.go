@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
+	"time"
 
 	"github.com/gorilla/websocket"
 	logging "github.com/op/go-logging"
@@ -35,7 +36,9 @@ func (n *NotificationListener) updateFilterAndSend() {
 
 	message := filt.MsgFilterLoad()
 
-	n.conn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("subscribeFilter %s %d %d 0", hex.EncodeToString(message.Filter), message.HashFuncs, message.Tweak)))
+	toSend := []byte(fmt.Sprintf("subscribeFilter %s %d %d 0", hex.EncodeToString(message.Filter), message.HashFuncs, message.Tweak))
+
+	n.conn.WriteMessage(websocket.TextMessage, toSend)
 }
 
 func startNotificationListener(wallet *RPCWallet) error {
@@ -50,9 +53,15 @@ func startNotificationListener(wallet *RPCWallet) error {
 		return err
 	}
 
-	defer notificationListener.conn.Close()
-
 	wallet.notifications = &notificationListener
+
+	ticker := time.NewTicker(10 * time.Second)
+
+	go func() {
+		for range ticker.C {
+			notificationListener.conn.WriteMessage(websocket.TextMessage, []byte("ping"))
+		}
+	}()
 
 	go func() {
 		for {

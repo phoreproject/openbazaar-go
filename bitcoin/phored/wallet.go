@@ -104,7 +104,15 @@ func (w *RPCWallet) Start() {
 	}
 	ticker.Stop()
 
-	startNotificationListener(w)
+	go startNotificationListener(w)
+
+	go func() {
+		err := w.RetrieveTransactions()
+		if err != nil {
+			log.Error(err)
+		}
+		w.notifications.updateFilterAndSend()
+	}()
 
 	log.Info("Connected to phored")
 	w.started = true
@@ -901,4 +909,68 @@ func (w *RPCWallet) Spend(amount int64, addr btc.Address, feeLevel wallet.FeeLev
 	}
 	ch := tx.TxHash()
 	return &ch, nil
+}
+
+// LookAheadDistance is the number of addresses to look for transactions before assuming the rest are unused
+var LookAheadDistance = 5
+
+// RetrieveTransactions fetches transactions from the rpc server and stores them into the database
+func (w *RPCWallet) RetrieveTransactions() error {
+	w.DB.addrMutex.Lock()
+
+	addrs := make([]btc.Address, len(w.DB.adrs))
+
+	copy(addrs, w.DB.adrs)
+
+	w.DB.addrMutex.Unlock()
+
+	numEmptyAddrs := 0
+
+	for i := range addrs {
+		log.Debugf("fetching transactions for address %s", addrs[i].String())
+		txs, err := w.rpcClient.SearchRawTransactionsVerbose(addrs[i], 0, 1000000, false, false, []string{})
+		if err != nil {
+			return err
+		}
+
+		if len(txs) == 0 {
+			numEmptyAddrs++
+		}
+
+		if numEmptyAddrs >= LookAheadDistance {
+			return nil
+		}
+
+		for t := range txs {
+			log.Debug(txs[t].BlockHash)
+
+			hash, err := chainhash.NewHashFromStr(txs[t].BlockHash)
+
+			if err != nil {
+				return err
+			}
+
+			block, err := w.rpcClient.GetBlockVerbose(hash)
+
+			if err != nil {
+				return err
+			}
+
+			transactionBytes, err := hex.DecodeString(txs[t].Hex)
+			if err != nil {
+				return err
+			}
+
+			transaction := wire.MsgTx{}
+			err = transaction.BtcDecode(bytes.NewReader(transactionBytes), 1, wire.BaseEncoding)
+			if err != nil {
+				return err
+			}
+
+			w.DB.Ingest(&transaction, int32(block.Height))
+
+			log.Debugf("ingested tx hash %s", transaction.TxHash().String())
+		}
+	}
+	return nil
 }
