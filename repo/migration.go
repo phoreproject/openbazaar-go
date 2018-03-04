@@ -15,7 +15,6 @@ type Migration interface {
 }
 
 var Migrations = []Migration{
-	migrations.Migration000,
 	migrations.Migration001,
 	migrations.Migration002,
 	migrations.Migration003,

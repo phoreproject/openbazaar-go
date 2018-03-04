@@ -32,6 +32,8 @@ dist
 .ackrc
 .tags*
 *.sw?
+debug
+.vscode
 
 # macOS
 .DS_Store

@@ -214,10 +214,7 @@ func addConfigExtensions(repoRoot string, testnet bool) error {
 		HighFeeDefault:   160,
 		MediumFeeDefault: 60,
 		LowFeeDefault:    20,
-		TrustedPeer:      "",
-		RPCUser:          "phorerpc",
-		RPCPassword:      "rpcpassword",
-		Binary:           "/usr/local/bin/phored",
+		RPCLocation:      "rpc.phore.io",
 	}
 
 	var a APIConfig = APIConfig{

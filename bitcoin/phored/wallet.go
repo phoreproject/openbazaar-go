@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"path"
 	"time"
 
 	"github.com/phoreproject/btcd/blockchain"
@@ -43,6 +44,7 @@ type RPCWallet struct {
 	DB               *TxStore
 	connCfg          *rpcclient.ConnConfig
 	notifications    *NotificationListener
+	rpcBasePath      string
 }
 
 // NewRPCWallet creates a new wallet given
@@ -53,14 +55,11 @@ func NewRPCWallet(mnemonic string, params *chaincfg.Params, repoPath string, DB 
 	}
 
 	connCfg := &rpcclient.ConnConfig{
-		Host:                 host,
+		Host:                 path.Join(host, "rpc"),
 		HTTPPostMode:         true,
 		DisableTLS:           false,
 		DisableAutoReconnect: false,
 		DisableConnectOnNew:  false,
-	}
-	if connCfg.Host == "" {
-		connCfg.Host = "rpc.phore.io/rpc"
 	}
 
 	seed := b39.NewSeed(mnemonic, "")
@@ -80,6 +79,7 @@ func NewRPCWallet(mnemonic string, params *chaincfg.Params, repoPath string, DB 
 		keyManager:       keyManager,
 		DB:               txstore,
 		connCfg:          connCfg,
+		rpcBasePath:      host,
 	}
 	return &w
 }
@@ -104,15 +104,20 @@ func (w *RPCWallet) Start() {
 	}
 	ticker.Stop()
 
-	go startNotificationListener(w)
+	n, err := startNotificationListener(w)
+	if err != nil {
+		log.Error(err)
+		return
+	}
+	w.notifications = n
 
-	go func() {
-		err := w.RetrieveTransactions()
-		if err != nil {
-			log.Error(err)
-		}
-		w.notifications.updateFilterAndSend()
-	}()
+	err = w.RetrieveTransactions()
+	if err != nil {
+		log.Error(err)
+		return
+	}
+
+	w.notifications.updateFilterAndSend()
 
 	log.Info("Connected to phored")
 	w.started = true
@@ -486,7 +491,10 @@ func (w *RPCWallet) Broadcast(tx *wire.MsgTx) error {
 		return err
 	}
 
-	w.rpcClient.SendRawTransaction(tx, false)
+	_, err = w.rpcClient.SendRawTransaction(tx, false)
+	if err != nil {
+		log.Error(err)
+	}
 
 	w.notifications.updateFilterAndSend()
 	return nil

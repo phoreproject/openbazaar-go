@@ -43,15 +43,11 @@ type ResolverConfig struct {
 
 type WalletConfig struct {
 	Type             string
-	Binary           string
 	MaxFee           int
-	FeeAPI           string
 	HighFeeDefault   int
 	MediumFeeDefault int
 	LowFeeDefault    int
-	TrustedPeer      string
-	RPCUser          string
-	RPCPassword      string
+	RPCLocation      string
 }
 
 type DataSharing struct {
@@ -211,22 +207,6 @@ func GetWalletConfig(cfgBytes []byte) (*WalletConfig, error) {
 	if !ok {
 		return nil, MalformedConfigError
 	}
-	feeAPI, ok := wallet["FeeAPI"]
-	if !ok {
-		return nil, MalformedConfigError
-	}
-	feeAPIstr, ok := feeAPI.(string)
-	if !ok {
-		return nil, MalformedConfigError
-	}
-	trustedPeer, ok := wallet["TrustedPeer"]
-	if !ok {
-		return nil, MalformedConfigError
-	}
-	trustedPeerStr, ok := trustedPeer.(string)
-	if !ok {
-		return nil, MalformedConfigError
-	}
 	low, ok := wallet["LowFeeDefault"]
 	if !ok {
 		return nil, MalformedConfigError
@@ -267,41 +247,22 @@ func GetWalletConfig(cfgBytes []byte) (*WalletConfig, error) {
 	if !ok {
 		return nil, MalformedConfigError
 	}
-	binary, ok := wallet["Binary"]
+	rpcLocation, ok := wallet["RPCLocation"]
 	if !ok {
 		return nil, MalformedConfigError
 	}
-	binaryStr, ok := binary.(string)
+	rpcLocationStr, ok := rpcLocation.(string)
 	if !ok {
 		return nil, MalformedConfigError
 	}
-	rpcUser, ok := wallet["RPCUser"]
-	if !ok {
-		return nil, MalformedConfigError
-	}
-	rpcUserStr, ok := rpcUser.(string)
-	if !ok {
-		return nil, MalformedConfigError
-	}
-	rpcPassword, ok := wallet["RPCPassword"]
-	if !ok {
-		return nil, MalformedConfigError
-	}
-	rpcPasswordStr, ok := rpcPassword.(string)
-	if !ok {
-		return nil, MalformedConfigError
-	}
+
 	wCfg := &WalletConfig{
 		Type:             walletTypeStr,
-		Binary:           binaryStr,
 		MaxFee:           int(maxFeeFloat),
-		FeeAPI:           feeAPIstr,
 		HighFeeDefault:   int(highFloat),
 		MediumFeeDefault: int(mediumFloat),
 		LowFeeDefault:    int(lowFloat),
-		TrustedPeer:      trustedPeerStr,
-		RPCUser:          rpcUserStr,
-		RPCPassword:      rpcPasswordStr,
+		RPCLocation:      rpcLocationStr,
 	}
 	return wCfg, nil
 }

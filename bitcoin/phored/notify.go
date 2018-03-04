@@ -11,12 +11,10 @@ import (
 	"github.com/gorilla/websocket"
 	logging "github.com/op/go-logging"
 	"github.com/phoreproject/btcd/btcjson"
-	"github.com/phoreproject/btcd/chaincfg/chainhash"
 	"github.com/phoreproject/btcd/wire"
 )
 
-var log = logging.MustGetLogger("bitcoind")
-var baseURL = "rpc.phore.io"
+var log = logging.MustGetLogger("phored")
 
 // NotificationListener listens for any transactions
 type NotificationListener struct {
@@ -36,29 +34,30 @@ func (n *NotificationListener) updateFilterAndSend() {
 
 	message := filt.MsgFilterLoad()
 
-	toSend := []byte(fmt.Sprintf("subscribeFilter %s %d %d 0", hex.EncodeToString(message.Filter), message.HashFuncs, message.Tweak))
+	toSend := []byte(fmt.Sprintf("subscribeBloom %s %d %d 0", hex.EncodeToString(message.Filter), message.HashFuncs, message.Tweak))
+
+	// log.Debugf("<- %s", toSend)
 
 	n.conn.WriteMessage(websocket.TextMessage, toSend)
 }
 
-func startNotificationListener(wallet *RPCWallet) error {
-	notificationListener := NotificationListener{wallet: wallet}
-	u := url.URL{Scheme: "wss", Host: baseURL, Path: "/ws"}
+func startNotificationListener(wallet *RPCWallet) (*NotificationListener, error) {
+	notificationListener := &NotificationListener{wallet: wallet}
+	u := url.URL{Scheme: "wss", Host: wallet.rpcBasePath, Path: "/ws"}
 
 	log.Infof("Connecting to %s", u.String())
 	conn, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
 	notificationListener.conn = conn
 
 	if err != nil {
-		return err
+		return nil, err
 	}
-
-	wallet.notifications = &notificationListener
 
 	ticker := time.NewTicker(10 * time.Second)
 
 	go func() {
 		for range ticker.C {
+			// log.Debugf("<- ping")
 			notificationListener.conn.WriteMessage(websocket.TextMessage, []byte("ping"))
 		}
 	}()
@@ -71,12 +70,14 @@ func startNotificationListener(wallet *RPCWallet) error {
 				return
 			}
 
+			// log.Debugf("-> %s", message)
+
 			if string(message) == "pong" {
 				continue
 			}
 
 			var getTx btcjson.GetTransactionResult
-			err = json.Unmarshal(message, getTx)
+			err = json.Unmarshal(message, &getTx)
 
 			if err == nil {
 				txBytes, err := hex.DecodeString(getTx.Hex)
@@ -88,19 +89,7 @@ func startNotificationListener(wallet *RPCWallet) error {
 				transaction := wire.NewMsgTx(1)
 				transaction.BtcDecode(bytes.NewReader(txBytes), 1, wire.BaseEncoding)
 
-				hash, err := chainhash.NewHash([]byte(getTx.BlockHash))
-				if err != nil {
-					log.Error(err)
-					continue
-				}
-
-				block, err := wallet.rpcClient.GetBlockVerbose(hash)
-				if err != nil {
-					log.Error(err)
-					continue
-				}
-
-				hits, err := wallet.DB.Ingest(transaction, int32(block.Height))
+				hits, err := wallet.DB.Ingest(transaction, 0)
 				if err != nil {
 					log.Errorf("Error ingesting tx: %s\n", err.Error())
 					continue
@@ -110,9 +99,11 @@ func startNotificationListener(wallet *RPCWallet) error {
 					continue
 				}
 				notificationListener.updateFilterAndSend()
-				log.Infof("Tx %s ingested at height %d", transaction.TxHash().String(), block.Height)
+				log.Infof("Tx %s ingested", transaction.TxHash().String())
+			} else {
+				fmt.Println(err)
 			}
 		}
 	}()
-	return nil
+	return notificationListener, nil
 }

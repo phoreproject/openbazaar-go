@@ -468,7 +468,7 @@ func (x *Start) Execute(args []string) error {
 	var cryptoWallet wallet.Wallet
 	switch strings.ToLower(walletCfg.Type) {
 	case "phored":
-		cryptoWallet = phored.NewRPCWallet(mn, &params, repoPath, sqliteDB, "rpc.phore.io/rpc")
+		cryptoWallet = phored.NewRPCWallet(mn, &params, repoPath, sqliteDB, walletCfg.RPCLocation)
 	default:
 		log.Fatal("Unknown wallet type. Valid wallet types: phored")
 	}
