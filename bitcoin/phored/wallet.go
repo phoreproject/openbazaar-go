@@ -310,7 +310,7 @@ func (w *RPCWallet) AddTransactionListener(callback func(wallet.TransactionCallb
 func (w *RPCWallet) ChainTip() (uint32, chainhash.Hash) {
 	ch, err := w.rpcClient.GetBestBlockHash()
 	if err != nil {
-		return 0, *ch
+		return 0, chainhash.Hash{}
 	}
 
 	height, err := w.rpcClient.GetBlockCount()
