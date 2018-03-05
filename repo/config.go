@@ -10,8 +10,9 @@ import (
 )
 
 var DefaultBootstrapAddresses = []string{
-	"/ip4/165.227.57.116/tcp/5001/ipfs/QmPPvtsXZamRR9Ck8K9hkr87CuuCfG5cUaYueKYBHkZkZG",
+	"/ip4/159.203.115.78/tcp/5001/ipfs/QmPJuP4Myo8pGL1k56b85Q4rpaoSnmn5L3wLjYHTzbBrk1",
 	"/ip4/104.131.19.44/tcp/5001/ipfs/QmZobfuuBvzQUA6xxuES63rpjQtGx3JbUbWxe7p3f7nQTM",
+	"/ip4/45.32.171.119/tcp/5001/ipfs/QmbkmTrfSjniyMUfYt9tVUcfZC8yeshVFYsnJ4kuzveYWc",
 }
 
 var TestnetBootstrapAddresses = []string{}
