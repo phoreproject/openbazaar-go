@@ -436,3 +436,59 @@ func (c *CasesDB) Count() int {
 	row.Scan(&count)
 	return count
 }
+
+// GetDisputesForNotification returns []*repo.DisputeCaseRecord including
+// each record which needs Notifications to be generated. Currently,
+// notifications are generated at 0, 15, 30, 44, and 45 days after opening.
+func (c *CasesDB) GetDisputesForNotification() ([]*repo.DisputeCaseRecord, error) {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
+	fourtyFiveDays := time.Duration(45*24) * time.Hour
+	rows, err := c.db.Query("select caseID, timestamp, lastNotifiedAt from cases where (lastNotifiedAt - timestamp) < ?", int(fourtyFiveDays.Seconds()))
+	if err != nil {
+		return nil, fmt.Errorf("selecting cases: %s", err.Error())
+	}
+	result := make([]*repo.DisputeCaseRecord, 0)
+	for rows.Next() {
+		var (
+			r         = &repo.DisputeCaseRecord{}
+			timestamp = sql.NullInt64{}
+		)
+		if err := rows.Scan(&r.CaseID, &timestamp, &r.LastNotifiedAt); err != nil {
+			return nil, fmt.Errorf("scanning case: %s", err.Error())
+		}
+		if timestamp.Valid {
+			r.Timestamp = timestamp.Int64
+		} else {
+			r.Timestamp = time.Now().Unix()
+		}
+		result = append(result, r)
+	}
+	return result, nil
+}
+
+// UpdateDisputesLastNotifiedAt accepts []*repo.DisputeCaseRecord and updates
+// each DisputeCaseRecord by their CaseID to the set LastNotifiedAt value. The
+// update will be attempted atomically with a rollback attempted in the event of
+// an error.
+func (c *CasesDB) UpdateDisputesLastNotifiedAt(disputeCases []*repo.DisputeCaseRecord) error {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
+	tx, err := c.db.Begin()
+	if err != nil {
+		return fmt.Errorf("begin update disputes transaction: %s", err.Error())
+	}
+	for _, d := range disputeCases {
+		_, err = tx.Exec("update cases set lastNotifiedAt = ? where caseID = ?", d.LastNotifiedAt, d.CaseID)
+		if err != nil {
+			return fmt.Errorf("update dispute case: %s", err.Error())
+		}
+	}
+	if err = tx.Commit(); err != nil {
+		return fmt.Errorf("commit update disputes transaction: %s", err.Error())
+	}
+
+	return nil
+}

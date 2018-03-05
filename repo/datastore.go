@@ -295,6 +295,9 @@ type CaseStore interface {
 	// GetDisputesForNotification returns []*DisputeCaseRecord including
 	// each record which needs Notifications to be generated.
 	GetDisputesForNotification() ([]*DisputeCaseRecord, error)
+
+	// UpdateDisputes accepts []*DisputeCaseRecord and updates each records lastNotifiedAt by its CaseID
+	UpdateDisputesLastNotifiedAt([]*DisputeCaseRecord) error
 }
 
 // Chat interface defines basic database operations for chat information
