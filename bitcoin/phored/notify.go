@@ -47,11 +47,12 @@ func startNotificationListener(wallet *RPCWallet) (*NotificationListener, error)
 
 	log.Infof("Connecting to %s", u.String())
 	conn, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
-	notificationListener.conn = conn
 
 	if err != nil {
 		return nil, err
 	}
+
+	notificationListener.conn = conn
 
 	ticker := time.NewTicker(10 * time.Second)
 
@@ -66,8 +67,18 @@ func startNotificationListener(wallet *RPCWallet) (*NotificationListener, error)
 		for {
 			_, message, err := conn.ReadMessage()
 			if err != nil {
-				log.Error(err)
-				return
+				if websocket.IsCloseError(err) {
+					log.Infof("Reconnecting to %s", u.String())
+					conn, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
+					if err != nil {
+						log.Error(err)
+						return
+					}
+					notificationListener.conn = conn
+				} else {
+					log.Error(err)
+					return
+				}
 			}
 
 			// log.Debugf("-> %s", message)
