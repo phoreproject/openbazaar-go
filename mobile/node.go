@@ -97,6 +97,11 @@ func NewNode(config NodeConfig) (*Node, error) {
 		return nil, err
 	}
 
+	walletCfg, err := repo.GetWalletConfig(configFile)
+	if err != nil {
+		return nil, err
+	}
+
 	resolverConfig, err := repo.GetResolverConfig(configFile)
 	if err != nil {
 		return nil, err
@@ -303,7 +308,19 @@ func (n *Node) Start() error {
 	go func() {
 		<-dht.DefaultBootstrapConfig.DoneChan
 		n.node.Service = service.New(n.node, n.node.Context, n.node.Datastore)
-		MR := ret.NewMessageRetriever(n.node.Datastore, n.node.Context, n.node.IpfsNode, n.node.BanManager, n.node.Service, 14, n.node.PushNodes, nil, n.node.SendOfflineAck)
+		mrCfg := ret.MRConfig{
+			Db:        n.node.Datastore,
+			Ctx:       n.node.Context,
+			IPFSNode:  n.node.IpfsNode,
+			BanManger: n.node.BanManager,
+			Service:   core.Node.Service,
+			PrefixLen: 14,
+			PushNodes: core.Node.PushNodes,
+			Dialer:    nil,
+			SendAck:   n.node.SendOfflineAck,
+			SendError: n.node.SendError,
+		}
+		MR := ret.NewMessageRetriever(mrCfg)
 		go MR.Run()
 		n.node.MessageRetriever = MR
 		PR := rep.NewPointerRepublisher(n.node.IpfsNode, n.node.Datastore, n.node.PushNodes, n.node.IsModerator)
