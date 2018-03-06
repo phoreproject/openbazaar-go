@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"errors"
-
 	"github.com/phoreproject/openbazaar-go/api/notifications"
 	"github.com/phoreproject/openbazaar-go/core"
 	"github.com/phoreproject/openbazaar-go/repo"

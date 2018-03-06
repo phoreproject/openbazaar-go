@@ -5,15 +5,17 @@ import (
 	"sync"
 	"time"
 
-	"github.com/golang/protobuf/proto"
-	"github.com/golang/protobuf/ptypes"
-	"github.com/op/go-logging"
-	"github.com/phoreproject/btcd/chaincfg/chainhash"
-	"github.com/phoreproject/openbazaar-go/api/notifications"
 	"github.com/phoreproject/openbazaar-go/core"
 	"github.com/phoreproject/openbazaar-go/pb"
 	"github.com/phoreproject/openbazaar-go/repo"
 	"github.com/phoreproject/wallet-interface"
+	"github.com/phoreproject/btcd/chaincfg/chainhash"
+	"github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/ptypes"
+	"github.com/op/go-logging"
+	"github.com/phoreproject/openbazaar-go/api/notifications"
+
+
 )
 
 var log = logging.MustGetLogger("transaction-listener")
@@ -50,6 +52,10 @@ func (l *TransactionListener) OnTransactionReceived(cb wallet.TransactionCallbac
 		}
 	}
 	for _, input := range cb.Inputs {
+		chainHash, err := chainhash.NewHash(cb.Txid)
+		if err != nil {
+			continue
+		}
 		addr, err := l.wallet.ScriptToAddress(input.LinkedScriptPubKey)
 		if err != nil {
 			continue
@@ -67,7 +73,7 @@ func (l *TransactionListener) OnTransactionReceived(cb wallet.TransactionCallbac
 			continue
 		}
 
-		orderId, err := calcOrderID(contract.BuyerOrder)
+		orderId, err := calcOrderId(contract.BuyerOrder)
 		if err != nil {
 			continue
 		}
@@ -89,7 +95,7 @@ func (l *TransactionListener) OnTransactionReceived(cb wallet.TransactionCallbac
 
 		record := &wallet.TransactionRecord{
 			Timestamp:    time.Now(),
-			Txid:         cb.Txid,
+			Txid:         chainHash.String(),
 			Index:        input.OutpointIndex,
 			Value:        -input.Value,
 			ScriptPubKey: hex.EncodeToString(input.LinkedScriptPubKey),
@@ -157,16 +163,20 @@ func (l *TransactionListener) OnTransactionReceived(cb wallet.TransactionCallbac
 
 }
 
-func (l *TransactionListener) processSalePayment(txid string, output wallet.TransactionOutput, contract *pb.RicardianContract, state pb.OrderState, funded bool, records []*wallet.TransactionRecord) {
+func (l *TransactionListener) processSalePayment(txid []byte, output wallet.TransactionOutput, contract *pb.RicardianContract, state pb.OrderState, funded bool, records []*wallet.TransactionRecord) {
+	chainHash, err := chainhash.NewHash(txid)
+	if err != nil {
+		return
+	}
 	funding := output.Value
 	for _, r := range records {
 		funding += r.Value
 		// If we have already seen this transaction for some reason, just return
-		if r.Txid == txid {
+		if r.Txid == chainHash.String() {
 			return
 		}
 	}
-	orderId, err := calcOrderID(contract.BuyerOrder)
+	orderId, err := calcOrderId(contract.BuyerOrder)
 	if err != nil {
 		return
 	}
@@ -201,7 +211,7 @@ func (l *TransactionListener) processSalePayment(txid string, output wallet.Tran
 
 	record := &wallet.TransactionRecord{
 		Timestamp:    time.Now(),
-		Txid:         txid,
+		Txid:         chainHash.String(),
 		Index:        output.Index,
 		Value:        output.Value,
 		ScriptPubKey: hex.EncodeToString(output.ScriptPubKey),
@@ -220,19 +230,23 @@ func (l *TransactionListener) processSalePayment(txid string, output wallet.Tran
 	if contract.BuyerOrder.Payment.Method != pb.Order_Payment_MODERATED {
 		bumpable = true
 	}
-	l.db.TxMetadata().Put(repo.Metadata{txid, "", title, orderId, thumbnail, bumpable})
+	l.db.TxMetadata().Put(repo.Metadata{chainHash.String(), "", title, orderId, thumbnail, bumpable})
 }
 
-func (l *TransactionListener) processPurchasePayment(txid string, output wallet.TransactionOutput, contract *pb.RicardianContract, state pb.OrderState, funded bool, records []*wallet.TransactionRecord) {
+func (l *TransactionListener) processPurchasePayment(txid []byte, output wallet.TransactionOutput, contract *pb.RicardianContract, state pb.OrderState, funded bool, records []*wallet.TransactionRecord) {
+	chainHash, err := chainhash.NewHash(txid)
+	if err != nil {
+		return
+	}
 	funding := output.Value
 	for _, r := range records {
 		funding += r.Value
 		// If we have already seen this transaction for some reason, just return
-		if r.Txid == txid {
+		if r.Txid == chainHash.String() {
 			return
 		}
 	}
-	orderId, err := calcOrderID(contract.BuyerOrder)
+	orderId, err := calcOrderId(contract.BuyerOrder)
 	if err != nil {
 		return
 	}
@@ -258,7 +272,7 @@ func (l *TransactionListener) processPurchasePayment(txid string, output wallet.
 	}
 
 	record := &wallet.TransactionRecord{
-		Txid:         txid,
+		Txid:         chainHash.String(),
 		Index:        output.Index,
 		Value:        output.Value,
 		ScriptPubKey: hex.EncodeToString(output.ScriptPubKey),
@@ -269,7 +283,6 @@ func (l *TransactionListener) processPurchasePayment(txid string, output wallet.
 }
 
 func (l *TransactionListener) adjustInventory(contract *pb.RicardianContract) {
-	inventoryUpdated := false
 	for _, item := range contract.BuyerOrder.Items {
 		listing, err := core.ParseContractForListing(item.ListingHash, contract)
 		if err != nil {
@@ -283,7 +296,7 @@ func (l *TransactionListener) adjustInventory(contract *pb.RicardianContract) {
 		if err != nil {
 			continue
 		}
-		q := int64(core.GetOrderQuantity(listing, item))
+		q := int(item.Quantity)
 		newCount := c - q
 		if c < 0 {
 			newCount = -1
@@ -291,7 +304,7 @@ func (l *TransactionListener) adjustInventory(contract *pb.RicardianContract) {
 			newCount = 0
 		}
 		if (c == 0) || (c > 0 && c-q < 0) {
-			orderId, err := calcOrderID(contract.BuyerOrder)
+			orderId, err := calcOrderId(contract.BuyerOrder)
 			if err != nil {
 				continue
 			}
@@ -299,18 +312,13 @@ func (l *TransactionListener) adjustInventory(contract *pb.RicardianContract) {
 			l.broadcast <- []byte(`{"warning": "order ` + orderId + ` exceeded on hand inventory for ` + listing.Slug + `"`)
 		}
 		l.db.Inventory().Put(listing.Slug, variant, newCount)
-		inventoryUpdated = true
 		if newCount >= 0 {
 			log.Debugf("Adjusting inventory for %s:%d to %d\n", listing.Slug, variant, newCount)
 		}
 	}
-
-	if inventoryUpdated && core.Node != nil {
-		core.Node.PublishInventory()
-	}
 }
 
-func calcOrderID(order *pb.Order) (string, error) {
+func calcOrderId(order *pb.Order) (string, error) {
 	ser, err := proto.Marshal(order)
 	if err != nil {
 		return "", err

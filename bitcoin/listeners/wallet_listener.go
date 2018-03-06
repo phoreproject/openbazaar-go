@@ -1,9 +1,11 @@
 package bitcoin
 
 import (
-	"github.com/phoreproject/openbazaar-go/api/notifications"
+	"encoding/hex"
 	"github.com/phoreproject/openbazaar-go/repo"
 	"github.com/phoreproject/wallet-interface"
+	"github.com/phoreproject/btcd/chaincfg/chainhash"
+
 )
 
 type WalletListener struct {
@@ -25,15 +27,19 @@ func (l *WalletListener) OnTransactionReceived(cb wallet.TransactionCallback) {
 			status = "PENDING"
 			confirmations = 1
 		}
-		n := notifications.IncomingTransaction{
-			Txid:          cb.Txid,
+		ch, err := chainhash.NewHash(cb.Txid)
+		if err != nil {
+			return
+		}
+		n := repo.IncomingTransaction{
+			Txid:          ch.String(),
 			Value:         cb.Value,
 			Address:       metadata.Address,
 			Status:        status,
 			Memo:          metadata.Memo,
 			Timestamp:     cb.Timestamp,
 			Confirmations: int32(confirmations),
-			OrderID:       metadata.OrderID,
+			OrderId:       metadata.OrderId,
 			Thumbnail:     metadata.Thumbnail,
 			Height:        cb.Height,
 			CanBumpFee:    cb.Value > 0,

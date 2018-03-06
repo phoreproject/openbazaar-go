@@ -8,19 +8,19 @@ import (
 	"sync"
 	"time"
 
-	dht "gx/ipfs/QmT7PnPxYkeKPCG8pAnucfcjrXc15Q7FgvFv7YC24EPrw8/go-libp2p-kad-dht"
 	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
 	libp2p "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 
-	"github.com/golang/protobuf/proto"
-	"github.com/golang/protobuf/ptypes"
-	"github.com/phoreproject/btcutil"
-	hd "github.com/phoreproject/btcutil/hdkeychain"
-	"github.com/phoreproject/openbazaar-go/api/notifications"
 	"github.com/phoreproject/openbazaar-go/net"
 	"github.com/phoreproject/openbazaar-go/pb"
+	"github.com/phoreproject/openbazaar-go/repo"
 	"github.com/phoreproject/wallet-interface"
+	"github.com/phoreproject/btcutil"
+	hd "github.com/phoreproject/btcutil/hdkeychain"
+	"github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/ptypes"
 	"golang.org/x/net/context"
+	dht "gx/ipfs/QmUCS9EnqNq1kCnJds2eLDypBiS21aSiCf1MVzSUVB9TGA/go-libp2p-kad-dht"
 )
 
 var DisputeWg = new(sync.WaitGroup)
@@ -188,7 +188,7 @@ func (n *OpenBazaarNode) ProcessDisputeOpen(rc *pb.RicardianContract, peerID str
 		return errors.New("Serialized contract is malformatted")
 	}
 
-	orderId, err := n.CalcOrderID(contract.BuyerOrder)
+	orderId, err := n.CalcOrderId(contract.BuyerOrder)
 	if err != nil {
 		return err
 	}
@@ -926,11 +926,6 @@ func (n *OpenBazaarNode) ValidateCaseContract(contract *pb.RicardianContract) []
 		timeout, _ := time.ParseDuration(strconv.Itoa(int(contract.VendorListings[0].Metadata.EscrowTimeoutHours)) + "h")
 		addr, redeemScript, err := n.Wallet.GenerateMultisigScript([]hd.ExtendedKey{*buyerKey, *vendorKey, *moderatorKey}, 2, timeout, vendorKey)
 
-		if err != nil {
-			validationErrors = append(validationErrors, "Error generating a multisig wallet")
-			return validationErrors
-		}
-
 		if contract.BuyerOrder.Payment.Address != addr.EncodeAddress() {
 			validationErrors = append(validationErrors, "The calculated bitcoin address doesn't match the address in the order")
 		}
@@ -1126,7 +1121,7 @@ func (n *OpenBazaarNode) ReleaseFunds(contract *pb.RicardianContract, records []
 	accept.ClosedBy = n.IpfsNode.Identity.Pretty()
 	contract.DisputeAcceptance = accept
 
-	orderId, err := n.CalcOrderID(contract.BuyerOrder)
+	orderId, err := n.CalcOrderId(contract.BuyerOrder)
 	if err != nil {
 		return err
 	}

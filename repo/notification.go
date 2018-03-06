@@ -221,15 +221,6 @@ type StatusNotification struct {
 	Status string `json:"status"`
 }
 
-// ChatMessage is sent when you receive a chat message.
-type ChatMessage struct {
-	MessageID string    `json:"messageId"`
-	PeerID    string    `json:"peerId"`
-	Subject   string    `json:"subject"`
-	Message   string    `json:"message"`
-	Timestamp time.Time `json:"timestamp"`
-}
-
 // ChatRead is sent when someone reads a chat message.
 type ChatRead struct {
 	MessageID string `json:"messageId"`

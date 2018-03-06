@@ -4,13 +4,11 @@ import (
 	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
 
 	"database/sql"
-	"time"
-
-	btc "github.com/phoreproject/btcutil"
-	notif "github.com/phoreproject/openbazaar-go/api/notifications"
 	"github.com/phoreproject/openbazaar-go/ipfs"
 	"github.com/phoreproject/openbazaar-go/pb"
 	"github.com/phoreproject/wallet-interface"
+	btc "github.com/phoreproject/btcutil"
+	"time"
 )
 
 type Datastore interface {
@@ -167,16 +165,16 @@ type InventoryStore interface {
 
 	/* Put an inventory count for a listing
 	   Override the existing count if it exists */
-	Put(slug string, variantIndex int, count int64) error
+	Put(slug string, variantIndex int, count int) error
 
 	// Return the count for a specific listing including variants
-	GetSpecific(slug string, variantIndex int) (int64, error)
+	GetSpecific(slug string, variantIndex int) (int, error)
 
 	// Get the count for all variants of a given listing
-	Get(slug string) (map[int]int64, error)
+	Get(slug string) (map[int]int, error)
 
 	// Fetch all inventory maps for each slug
-	GetAll() (map[string]map[int]int64, error)
+	GetAll() (map[string]map[int]int, error)
 
 	// Delete a listing and related count
 	Delete(slug string, variant int) error
@@ -300,12 +298,11 @@ type CaseStore interface {
 	UpdateDisputesLastNotifiedAt([]*DisputeCaseRecord) error
 }
 
-// Chat interface defines basic database operations for chat information
 type ChatStore interface {
 	Queryable
 
 	// Put a new chat message to the database
-	Put(messageId string, peerID string, subject string, message string, timestamp time.Time, read bool, outgoing bool) error
+	Put(messageId string, peerId string, subject string, message string, timestamp time.Time, read bool, outgoing bool) error
 
 	// Returns a list of open conversations
 	GetConversations() []ChatConversation
