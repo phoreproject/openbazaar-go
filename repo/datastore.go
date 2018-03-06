@@ -38,7 +38,6 @@ type Queryable interface {
 	ExecuteQuery(string, ...interface{}) (sql.Result, error)
 }
 
-// Config interface defines basic database operations for configuration information
 type Config interface {
 	/* Initialize the database with the node's mnemonic seed and
 	   identity key. This will be called during repo init. */
@@ -57,7 +56,6 @@ type Config interface {
 	IsEncrypted() bool
 }
 
-// Followers interface defines basic database operations for followers of the user
 type FollowerStore interface {
 	Queryable
 
@@ -66,7 +64,7 @@ type FollowerStore interface {
 
 	/* Get followers from the database.
 	   The offset and limit arguments can be used to for lazy loading. */
-	Get(offsetID string, limit int) ([]Follower, error)
+	Get(offsetId string, limit int) ([]Follower, error)
 
 	// Delete a follower from the database
 	Delete(follower string) error
@@ -75,10 +73,9 @@ type FollowerStore interface {
 	Count() int
 
 	// Are we followed by this peer?
-	FollowsMe(peerID string) bool
+	FollowsMe(peerId string) bool
 }
 
-// Following interface defines basic database operations for peers the user is following
 type FollowingStore interface {
 	Queryable
 
@@ -87,7 +84,7 @@ type FollowingStore interface {
 
 	/* Get a list of following peers from the database.
 	   The offset and limit arguments can be used to for lazy loading. */
-	Get(offsetID string, limit int) ([]string, error)
+	Get(offsetId string, limit int) ([]string, error)
 
 	// Delete a peer from the database
 	Delete(peer string) error
@@ -96,10 +93,9 @@ type FollowingStore interface {
 	Count() int
 
 	// Am I following this peer?
-	IsFollowing(peerID string) bool
+	IsFollowing(peerId string) bool
 }
 
-// OfflineMessages interface defines basic database operations for messages
 type OfflineMessageStore interface {
 	Queryable
 
@@ -119,7 +115,6 @@ type OfflineMessageStore interface {
 	DeleteMessage(url string) error
 }
 
-// Pointers interface defines basic database operations for pointers
 type PointerStore interface {
 	Queryable
 
@@ -142,7 +137,6 @@ type PointerStore interface {
 	GetAll() ([]ipfs.Pointer, error)
 }
 
-// Settings interface defines basic database operations for settings information
 type ConfigurationStore interface {
 	Queryable
 
@@ -159,7 +153,6 @@ type ConfigurationStore interface {
 	Delete() error
 }
 
-// Inventory interface defines basic database operations for inventory information
 type InventoryStore interface {
 	Queryable
 
@@ -183,7 +176,6 @@ type InventoryStore interface {
 	DeleteAll(slug string) error
 }
 
-// Purchases interface defines basic database operations for purchase information
 type PurchaseStore interface {
 	Queryable
 
@@ -215,7 +207,6 @@ type PurchaseStore interface {
 	Count() int
 }
 
-// Sales interface defines basic database operations for order/sale information
 type SaleStore interface {
 	Queryable
 
@@ -253,7 +244,6 @@ type SaleStore interface {
 	Count() int
 }
 
-// Cases interface saves/updates/deletes cases, marks them read/unread, counts them and returns metadata and other case details.
 type CaseStore interface {
 	Queryable
 
@@ -330,7 +320,7 @@ type NotificationStore interface {
 	Queryable
 
 	// Put a new notification to the database
-	Put(notifID string, notification notif.Data, notifType string, timestamp time.Time) error
+	Put(notifID string, notification Data, notifType string, timestamp time.Time) error
 
 	// Mark notification as read
 	MarkAsRead(notifID string) error
@@ -339,7 +329,7 @@ type NotificationStore interface {
 	MarkAllAsRead() error
 
 	// Fetch notifications from database
-	GetAll(offsetID string, limit int, typeFilter []string) ([]notif.Notification, int, error)
+	GetAll(offsetID string, limit int, typeFilter []string) ([]Notification, int, error)
 
 	// Returns the unread count for all notifications
 	GetUnreadCount() (int, error)

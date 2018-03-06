@@ -30,7 +30,6 @@ import (
 	"io/ioutil"
 
 	"github.com/OpenBazaar/jsonpb"
-	"github.com/phoreproject/openbazaar-go/api/notifications"
 	"github.com/phoreproject/openbazaar-go/bitcoin/phored"
 	"github.com/phoreproject/openbazaar-go/core"
 	"github.com/phoreproject/openbazaar-go/ipfs"
@@ -45,6 +44,7 @@ import (
 	ipnspb "github.com/ipfs/go-ipfs/namesys/pb"
 	ipnspath "github.com/ipfs/go-ipfs/path"
 	lockfile "github.com/ipfs/go-ipfs/repo/fsrepo/lock"
+	ds "gx/ipfs/QmVSase1JP7cq9QkPT46oNwdp9pT6kBkG3oqS14y3QcZjG/go-datastore"
 )
 
 type JsonAPIConfig struct {
@@ -2476,9 +2476,9 @@ func (i *jsonAPIHandler) GETNotifications(w http.ResponseWriter, r *http.Request
 	}
 
 	type notifData struct {
-		Unread        int                          `json:"unread"`
-		Total         int                          `json:"total"`
-		Notifications []notifications.Notification `json:"notifications"`
+		Unread        int                 `json:"unread"`
+		Total         int                 `json:"total"`
+		Notifications []repo.Notification `json:"notifications"`
 	}
 	notifs, total, err := i.node.Datastore.Notifications().GetAll(offsetId, int(l), filters)
 	if err != nil {
@@ -3627,7 +3627,7 @@ func (i *jsonAPIHandler) POSTTestEmailNotifications(w http.ResponseWriter, r *ht
 		return
 	}
 	notifier := smtpNotifier{&settings}
-	err = notifier.notify(notifications.TestNotification{})
+	err = notifier.notify(repo.TestNotification{})
 	if err != nil {
 		ErrorResponse(w, http.StatusInternalServerError, err.Error())
 		return

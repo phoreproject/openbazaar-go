@@ -5,7 +5,6 @@ import (
 	"github.com/phoreproject/openbazaar-go/repo"
 	"github.com/phoreproject/wallet-interface"
 	"github.com/phoreproject/btcd/chaincfg/chainhash"
-
 )
 
 type WalletListener struct {

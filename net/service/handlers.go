@@ -4,7 +4,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/phoreproject/openbazaar-go/repo"
 	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
 	libp2p "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 	"time"
@@ -12,6 +11,7 @@ import (
 	"github.com/phoreproject/openbazaar-go/core"
 	"github.com/phoreproject/openbazaar-go/net"
 	"github.com/phoreproject/openbazaar-go/pb"
+	"github.com/phoreproject/openbazaar-go/repo"
 	"github.com/phoreproject/wallet-interface"
 	"github.com/phoreproject/btcd/chaincfg/chainhash"
 	"github.com/phoreproject/btcd/wire"
@@ -117,7 +117,7 @@ func (service *OpenBazaarService) handleFollow(pid peer.ID, pmes *pb.Message, op
 	if err != nil {
 		return nil, err
 	}
-	n := notifications.FollowNotification{notifications.NewID(), "follow", id.Pretty()}
+	n := repo.FollowNotification{repo.NewID(), "follow", id.Pretty()}
 	service.broadcast <- n
 	service.datastore.Notifications().Put(n.ID, n, n.Type, time.Now())
 	log.Debugf("Received FOLLOW message from %s", id.Pretty())

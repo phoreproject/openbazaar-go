@@ -149,7 +149,7 @@ func (n *OpenBazaarNode) publish(hash string) {
 	}
 
 	if inflightPublishRequests == 0 {
-		n.Broadcast <- notifications.StatusNotification{"publishing"}
+		n.Broadcast <- repo.StatusNotification{"publishing"}
 	}
 
 	id, err := cid.Decode(hash)
