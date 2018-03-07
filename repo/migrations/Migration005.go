@@ -3,9 +3,10 @@ package migrations
 import (
 	"path"
 
-	_ "github.com/mutecomm/go-sqlcipher"
 	"io/ioutil"
 	"os"
+
+	_ "github.com/mutecomm/go-sqlcipher"
 )
 
 var Migration005 migration005
@@ -24,7 +25,7 @@ func (migration005) Up(repoPath string, dbPassword string, testnet bool) error {
 		return err
 	}
 
-	_, err = f1.Write([]byte("6"))
+	_, err = f1.Write([]byte("5"))
 	if err != nil {
 		return err
 	}
@@ -42,7 +43,7 @@ func (migration005) Down(repoPath string, dbPassword string, testnet bool) error
 		return err
 	}
 
-	_, err = f1.Write([]byte("5"))
+	_, err = f1.Write([]byte("4"))
 	if err != nil {
 		return err
 	}

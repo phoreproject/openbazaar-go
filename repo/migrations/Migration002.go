@@ -55,7 +55,7 @@ func (migration002) Up(repoPath string, dbPassword string, testnet bool) error {
 	if err != nil {
 		return err
 	}
-	_, err = f1.Write([]byte("3"))
+	_, err = f1.Write([]byte("2"))
 	if err != nil {
 		return err
 	}
@@ -97,7 +97,7 @@ func (migration002) Down(repoPath string, dbPassword string, testnet bool) error
 	if err != nil {
 		return err
 	}
-	_, err = f1.Write([]byte("2"))
+	_, err = f1.Write([]byte("1"))
 	if err != nil {
 		return err
 	}

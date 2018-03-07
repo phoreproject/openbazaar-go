@@ -4,8 +4,9 @@ import (
 	"database/sql"
 	"path"
 
-	_ "github.com/mutecomm/go-sqlcipher"
 	"os"
+
+	_ "github.com/mutecomm/go-sqlcipher"
 )
 
 // Migration004 variable is used in one of several repo version migrations
@@ -48,7 +49,7 @@ func (migration004) Up(repoPath string, dbPassword string, testnet bool) error {
 	if err != nil {
 		return err
 	}
-	_, err = f1.Write([]byte("5"))
+	_, err = f1.Write([]byte("4"))
 	if err != nil {
 		return err
 	}
@@ -120,7 +121,7 @@ func (migration004) Down(repoPath string, dbPassword string, testnet bool) error
 	if err != nil {
 		return err
 	}
-	_, err = f1.Write([]byte("4"))
+	_, err = f1.Write([]byte("3"))
 	if err != nil {
 		return err
 	}
