@@ -8,12 +8,12 @@ import (
 	"testing"
 	"time"
 
-
-	"sync"
-
-	"github.com/golang/protobuf/ptypes"
 	"github.com/phoreproject/openbazaar-go/pb"
 	"github.com/phoreproject/openbazaar-go/repo"
+	"github.com/phoreproject/openbazaar-go/schema"
+	"github.com/golang/protobuf/ptypes"
+	"sync"
+
 )
 
 var casesdb repo.CaseStore
@@ -55,7 +55,7 @@ func init() {
 	payment := new(pb.Order_Payment)
 	payment.Amount = 10
 	payment.Method = pb.Order_Payment_DIRECT
-	payment.Address = "PK5fSKzv5nGqzFT1mbEK21U8wf2Sj8QqQd"
+	payment.Address = "3BDbGsH5h5ctDiFtWMmZawcf3E7iWirVms"
 	order.Payment = payment
 	contract.BuyerOrder = order
 }
@@ -119,9 +119,6 @@ func TestUpdateWithNil(t *testing.T) {
 		t.Error(err)
 	}
 	buyerContract, _, _, _, _, _, _, _, _, _, err := casesdb.GetCaseMetadata("caseID")
-	if err != nil {
-		t.Error(err)
-	}
 	if buyerContract != nil {
 		t.Error("Vendor contract was not nil")
 	}
@@ -307,13 +304,13 @@ func TestCasesGetCaseMetaData(t *testing.T) {
 		t.Errorf("Expected state %s got %s", pb.OrderState_DISPUTED, state)
 	}
 	if read != false {
-		t.Errorf("Expected read=%v got %v", false, read)
+		t.Errorf("Expected read=%s got %s", false, read)
 	}
 	if date.After(time.Now()) || date.Equal(time.Time{}) {
 		t.Error("Case timestamp invalid")
 	}
 	if !buyerOpened {
-		t.Errorf("Expected buyerOpened=%v got %v", true, buyerOpened)
+		t.Errorf("Expected buyerOpened=%s got %s", true, buyerOpened)
 	}
 	if claim != "blah" {
 		t.Errorf("Expected claim=%s got %s", "blah", claim)
@@ -366,10 +363,10 @@ func TestGetPayoutDetails(t *testing.T) {
 			t.Errorf("Expected outpoint hash %s got %s", o.Hash, buyerTestOutpoints[i].Hash)
 		}
 		if o.Index != buyerTestOutpoints[i].Index {
-			t.Errorf("Expected outpoint index %v got %v", o.Index, buyerTestOutpoints[i].Index)
+			t.Errorf("Expected outpoint index %s got %s", o.Index, buyerTestOutpoints[i].Index)
 		}
 		if o.Value != buyerTestOutpoints[i].Value {
-			t.Errorf("Expected outpoint value %v got %v", o.Value, buyerTestOutpoints[i].Value)
+			t.Errorf("Expected outpoint value %s got %s", o.Value, buyerTestOutpoints[i].Value)
 		}
 	}
 	if len(vendorOutpoints) != len(vendorTestOutpoints) {
@@ -380,10 +377,10 @@ func TestGetPayoutDetails(t *testing.T) {
 			t.Errorf("Expected outpoint hash %s got %s", o.Hash, vendorTestOutpoints[i].Hash)
 		}
 		if o.Index != vendorTestOutpoints[i].Index {
-			t.Errorf("Expected outpoint index %v got %v", o.Index, vendorTestOutpoints[i].Index)
+			t.Errorf("Expected outpoint index %s got %s", o.Index, vendorTestOutpoints[i].Index)
 		}
 		if o.Value != vendorTestOutpoints[i].Value {
-			t.Errorf("Expected outpoint value %v got %v", o.Value, vendorTestOutpoints[i].Value)
+			t.Errorf("Expected outpoint value %s got %s", o.Value, vendorTestOutpoints[i].Value)
 		}
 	}
 	if state != pb.OrderState_DISPUTED {
@@ -523,8 +520,8 @@ func TestCasesDB_GetAll(t *testing.T) {
 func TestGetDisputesForNotificationReturnsRelevantRecords(t *testing.T) {
 	database, _ := sql.Open("sqlite3", ":memory:")
 	setupSQL := []string{
-		PragmaKey(""),
-		CreateTableDisputedCasesSQL,
+		schema.PragmaKey(""),
+		schema.CreateTableDisputedCasesSQL,
 	}
 	_, err := database.Exec(strings.Join(setupSQL, " "))
 	if err != nil {
@@ -594,8 +591,8 @@ func TestGetDisputesForNotificationReturnsRelevantRecords(t *testing.T) {
 func TestUpdateDisputeLastNotifiedAt(t *testing.T) {
 	database, _ := sql.Open("sqlite3", ":memory:")
 	setupSQL := []string{
-		PragmaKey(""),
-		CreateTableDisputedCasesSQL,
+		schema.PragmaKey(""),
+		schema.CreateTableDisputedCasesSQL,
 	}
 	_, err := database.Exec(strings.Join(setupSQL, " "))
 	if err != nil {
