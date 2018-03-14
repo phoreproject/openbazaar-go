@@ -9,16 +9,20 @@ import (
 	"github.com/ipfs/go-ipfs/repo/config"
 )
 
+// DefaultBootstrapAddresses defines the addresses that are initially added to the OB node as peers
 var DefaultBootstrapAddresses = []string{
 	"/ip4/159.203.115.78/tcp/5001/ipfs/QmPJuP4Myo8pGL1k56b85Q4rpaoSnmn5L3wLjYHTzbBrk1",
 	"/ip4/104.131.19.44/tcp/5001/ipfs/QmZobfuuBvzQUA6xxuES63rpjQtGx3JbUbWxe7p3f7nQTM",
 	"/ip4/45.32.171.119/tcp/5001/ipfs/QmbkmTrfSjniyMUfYt9tVUcfZC8yeshVFYsnJ4kuzveYWc",
 }
 
+// TestnetBootstrapAddresses defines the addresses that the client connects to initially
 var TestnetBootstrapAddresses = []string{}
 
+// DataPushNodes define certain nodes that are open to store requests
 var DataPushNodes = []string{}
 
+// APIConfig represents the configuration for hosting a server.
 type APIConfig struct {
 	Authenticated bool
 	AllowedIPs    []string

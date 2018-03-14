@@ -7,6 +7,8 @@ import (
 	"os"
 	"path"
 
+	"github.com/phoreproject/openbazaar-go/repo/migrations"
+
 	"path/filepath"
 	"runtime"
 	"time"
@@ -20,11 +22,15 @@ import (
 	"github.com/tyler-smith/go-bip39"
 )
 
+// RepoVersion is the default version of new installations.
 const RepoVersion = "5"
 
 var log = logging.MustGetLogger("repo")
+
+// ErrRepoExists is thrown when trying to initialize a repo that already exists.
 var ErrRepoExists = errors.New("IPFS configuration file exists. Reinitializing would overwrite your keys. Use -f to force overwrite.")
 
+// DoInit sets up the Phore Marketplace repository directories
 func DoInit(repoRoot string, nBitsForKeypair int, testnet bool, password string, mnemonic string, creationDate time.Time, dbInit func(string, []byte, string, time.Time) error) error {
 	if err := maybeCreateOBDirectories(repoRoot); err != nil {
 		return err
@@ -85,6 +91,16 @@ func DoInit(repoRoot string, nBitsForKeypair int, testnet bool, password string,
 		return err
 	}
 	_, werr := f.Write([]byte(RepoVersion))
+	if werr != nil {
+		return werr
+	}
+	f.Close()
+
+	f, err = os.Create(path.Join(repoRoot, "swarm.key"))
+	if err != nil {
+		return err
+	}
+	_, werr = f.Write(migrations.SwarmKeyData)
 	if werr != nil {
 		return werr
 	}
