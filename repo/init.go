@@ -274,17 +274,17 @@ func createMnemonic(newEntropy func(int) ([]byte, error), newMnemonic func([]byt
 	return mnemonic, nil
 }
 
-/* Returns the directory to store repo data in.
+/* GetRepoPath Returns the directory to store repo data in.
    It depends on the OS and whether or not we are on testnet. */
 func GetRepoPath(isTestnet bool) (string, error) {
 	// Set default base path and directory name
 	path := "~"
-	directoryName := "OpenBazaar2.0"
+	directoryName := "PhoreMarketplace"
 
 	// Override OS-specific names
 	switch runtime.GOOS {
 	case "linux":
-		directoryName = ".openbazaar2.0"
+		directoryName = ".phoremarketplace"
 	case "darwin":
 		path = "~/Library/Application Support"
 	}

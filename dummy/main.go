@@ -21,7 +21,6 @@ import (
 
 	"github.com/OpenBazaar/jsonpb"
 	"github.com/OpenBazaar/spvwallet"
-	"github.com/phoreproject/btcd/chaincfg"
 	"github.com/gogo/protobuf/proto"
 	"github.com/ipfs/go-ipfs/commands"
 	ipfscore "github.com/ipfs/go-ipfs/core"
@@ -29,6 +28,7 @@ import (
 	dshelp "github.com/ipfs/go-ipfs/thirdparty/ds-help"
 	"github.com/natefinch/lumberjack"
 	logging "github.com/op/go-logging"
+	"github.com/phoreproject/btcd/chaincfg"
 	"github.com/phoreproject/openbazaar-go/bitcoin/exchange"
 	"github.com/phoreproject/openbazaar-go/core"
 	"github.com/phoreproject/openbazaar-go/ipfs"
@@ -154,12 +154,12 @@ func main() {
 func getRepoPath(isTestnet bool) (string, error) {
 	// Set default base path and directory name
 	path := "~"
-	directoryName := "OpenBazaar2.0"
+	directoryName := "PhoreMarketplace"
 
 	// Override OS-specific names
 	switch runtime.GOOS {
 	case "linux":
-		directoryName = ".openbazaar2.0"
+		directoryName = ".phoremarketplace"
 	case "darwin":
 		path = "~/Library/Application Support"
 	}
