@@ -3,10 +3,8 @@ package repo
 import (
 	"encoding/json"
 	"errors"
-	"time"
-
 	"github.com/ipfs/go-ipfs/repo"
-	"github.com/ipfs/go-ipfs/repo/config"
+	"time"
 )
 
 // DefaultBootstrapAddresses defines the addresses that are initially added to the OB node as peers
@@ -18,7 +16,10 @@ var DefaultBootstrapAddresses = []string{
 }
 
 // TestnetBootstrapAddresses defines the addresses that the client connects to initially
-var TestnetBootstrapAddresses = []string{}
+var TestnetBootstrapAddresses = []string{
+	"/ip4/165.227.117.91/tcp/4001/ipfs/Qmaa6De5QYNqShzPb9SGSo8vLmoUte8mnWgzn4GYwzuUYA", // Brooklyn Flea
+	"/ip4/46.101.221.165/tcp/4001/ipfs/QmVAQYg7ygAWTWegs8HSV2kdW1MqW8WMrmpqKG1PQtkgTC", // Shipshewana
+}
 
 // DataPushNodes define certain nodes that are open to store requests
 var DataPushNodes = []string{
@@ -51,11 +52,13 @@ type ResolverConfig struct {
 
 type WalletConfig struct {
 	Type             string
+	Binary           string
 	MaxFee           int
+	FeeAPI           string
 	HighFeeDefault   int
 	MediumFeeDefault int
 	LowFeeDefault    int
-	RPCLocation      string
+	TrustedPeer      string
 }
 
 type DataSharing struct {
@@ -215,6 +218,22 @@ func GetWalletConfig(cfgBytes []byte) (*WalletConfig, error) {
 	if !ok {
 		return nil, MalformedConfigError
 	}
+	feeAPI, ok := wallet["FeeAPI"]
+	if !ok {
+		return nil, MalformedConfigError
+	}
+	feeAPIstr, ok := feeAPI.(string)
+	if !ok {
+		return nil, MalformedConfigError
+	}
+	trustedPeer, ok := wallet["TrustedPeer"]
+	if !ok {
+		return nil, MalformedConfigError
+	}
+	trustedPeerStr, ok := trustedPeer.(string)
+	if !ok {
+		return nil, MalformedConfigError
+	}
 	low, ok := wallet["LowFeeDefault"]
 	if !ok {
 		return nil, MalformedConfigError
@@ -255,22 +274,23 @@ func GetWalletConfig(cfgBytes []byte) (*WalletConfig, error) {
 	if !ok {
 		return nil, MalformedConfigError
 	}
-	rpcLocation, ok := wallet["RPCLocation"]
+	binary, ok := wallet["Binary"]
 	if !ok {
 		return nil, MalformedConfigError
 	}
-	rpcLocationStr, ok := rpcLocation.(string)
+	binaryStr, ok := binary.(string)
 	if !ok {
 		return nil, MalformedConfigError
 	}
-
 	wCfg := &WalletConfig{
 		Type:             walletTypeStr,
+		Binary:           binaryStr,
 		MaxFee:           int(maxFeeFloat),
+		FeeAPI:           feeAPIstr,
 		HighFeeDefault:   int(highFloat),
 		MediumFeeDefault: int(mediumFloat),
 		LowFeeDefault:    int(lowFloat),
-		RPCLocation:      rpcLocationStr,
+		TrustedPeer:      trustedPeerStr,
 	}
 	return wCfg, nil
 }
@@ -475,94 +495,4 @@ func extendConfigFile(r repo.Repo, key string, value interface{}) error {
 		return err
 	}
 	return nil
-}
-
-func InitConfig(repoRoot string) (*config.Config, error) {
-	bootstrapPeers, err := config.ParseBootstrapPeers(DefaultBootstrapAddresses)
-	if err != nil {
-		return nil, err
-	}
-
-	datastore := datastoreConfig(repoRoot)
-
-	conf := &config.Config{
-
-		// Setup the node's default addresses.
-		// NOTE: two swarm listen addrs, one TCP, one UTP.
-		Addresses: config.Addresses{
-			Swarm: []string{
-				"/ip4/0.0.0.0/tcp/5001",
-				"/ip6/::/tcp/5001",
-				"/ip4/0.0.0.0/tcp/10005/ws",
-				"/ip6/::/tcp/10005/ws",
-			},
-			API:     "",
-			Gateway: "/ip4/127.0.0.1/tcp/5002",
-		},
-
-		Datastore: datastore,
-		Bootstrap: config.BootstrapPeerStrings(bootstrapPeers),
-		Discovery: config.Discovery{config.MDNS{
-			Enabled:  false,
-			Interval: 10,
-		}},
-
-		// Setup the node mount points
-		Mounts: config.Mounts{
-			IPFS: "/ipfs",
-			IPNS: "/ipns",
-		},
-
-		Ipns: config.Ipns{
-			ResolveCacheSize:   128,
-			RecordLifetime:     "7d",
-			RepublishPeriod:    "24h",
-			QuerySize:          1,
-			UsePersistentCache: true,
-		},
-
-		Gateway: config.Gateway{
-			RootRedirect: "",
-			Writable:     false,
-			PathPrefixes: []string{},
-		},
-	}
-
-	return conf, nil
-}
-
-func datastoreConfig(repoRoot string) config.Datastore {
-	return config.Datastore{
-		StorageMax:         "10GB",
-		StorageGCWatermark: 90, // 90%
-		GCPeriod:           "1h",
-		BloomFilterSize:    0,
-		HashOnRead:         false,
-		Spec: map[string]interface{}{
-			"type": "mount",
-			"mounts": []interface{}{
-				map[string]interface{}{
-					"mountpoint": "/blocks",
-					"type":       "measure",
-					"prefix":     "flatfs.datastore",
-					"child": map[string]interface{}{
-						"type":      "flatfs",
-						"path":      "blocks",
-						"sync":      true,
-						"shardFunc": "/repo/flatfs/shard/v1/next-to-last/2",
-					},
-				},
-				map[string]interface{}{
-					"mountpoint": "/",
-					"type":       "measure",
-					"prefix":     "leveldb.datastore",
-					"child": map[string]interface{}{
-						"type":        "levelds",
-						"path":        "datastore",
-						"compression": "none",
-					},
-				},
-			},
-		},
-	}
 }
