@@ -20,6 +20,9 @@ WORKDIR /go/src/github.com/OpenBazaar/openbazaar-go
 RUN go get -u github.com/gogo/protobuf/proto \
               github.com/icrowley/fake
 
+RUN useradd -ms /bin/bash ob_user
+USER ob_user
+
 COPY . .
 
 ENTRYPOINT ["/bin/bash"]
