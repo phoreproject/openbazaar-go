@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"path"
+	"sync"
 	"time"
 
 	"github.com/phoreproject/btcd/blockchain"
@@ -45,6 +46,7 @@ type RPCWallet struct {
 	connCfg          *rpcclient.ConnConfig
 	notifications    *NotificationListener
 	rpcBasePath      string
+	rpcLock          *sync.Mutex
 }
 
 // NewRPCWallet creates a new wallet given
@@ -80,6 +82,7 @@ func NewRPCWallet(mnemonic string, params *chaincfg.Params, repoPath string, DB 
 		DB:               txstore,
 		connCfg:          connCfg,
 		rpcBasePath:      host,
+		rpcLock:          new(sync.Mutex),
 	}
 	return &w
 }
@@ -308,12 +311,14 @@ func (w *RPCWallet) AddTransactionListener(callback func(wallet.TransactionCallb
 
 // ChainTip returns the tip of the active blockchain
 func (w *RPCWallet) ChainTip() (uint32, chainhash.Hash) {
+	w.rpcLock.Lock()
 	ch, err := w.rpcClient.GetBestBlockHash()
 	if err != nil {
 		return 0, chainhash.Hash{}
 	}
 
 	height, err := w.rpcClient.GetBlockCount()
+	w.rpcLock.Unlock()
 	return uint32(height), *ch
 }
 
@@ -330,7 +335,9 @@ func (w *RPCWallet) AddWatchedScript(script []byte) error {
 func (w *RPCWallet) Close() {
 	if w.started {
 		log.Info("Disconnecting from peers and shutting down")
+		w.rpcLock.Lock()
 		w.rpcClient.Shutdown()
+		w.rpcLock.Unlock()
 		w.started = false
 	}
 }
@@ -338,6 +345,7 @@ func (w *RPCWallet) Close() {
 // ReSyncBlockchain resyncs the addresses used by the SPV wallet
 func (w *RPCWallet) ReSyncBlockchain(fromDate time.Time) {
 	w.DB.PopulateAdrs()
+	w.RetrieveTransactions()
 }
 
 // SweepAddress sweeps any UTXOs from an address in a single transaction
@@ -491,7 +499,9 @@ func (w *RPCWallet) Broadcast(tx *wire.MsgTx) error {
 		return err
 	}
 
+	w.rpcLock.Lock()
 	_, err = w.rpcClient.SendRawTransaction(tx, false)
+	w.rpcLock.Unlock()
 	if err != nil {
 		log.Error(err)
 	}
@@ -642,7 +652,9 @@ func (w *RPCWallet) EstimateSpendFee(amount int64, feeLevel wallet.FeeLevel) (ui
 }
 
 func (w *RPCWallet) gatherCoins() map[coinset.Coin]*hd.ExtendedKey {
+	w.rpcLock.Lock()
 	height, _ := w.rpcClient.GetBlockCount()
+	w.rpcLock.Unlock()
 	utxos, _ := w.DB.Utxos().GetAll()
 	m := make(map[coinset.Coin]*hd.ExtendedKey)
 	for _, u := range utxos {
@@ -936,7 +948,9 @@ func (w *RPCWallet) RetrieveTransactions() error {
 
 	for i := range addrs {
 		log.Debugf("fetching transactions for address %s", addrs[i].String())
+		w.rpcLock.Lock()
 		txs, err := w.rpcClient.SearchRawTransactionsVerbose(addrs[i], 0, 1000000, false, false, []string{})
+		w.rpcLock.Unlock()
 		if err != nil {
 			return err
 		}
@@ -958,7 +972,9 @@ func (w *RPCWallet) RetrieveTransactions() error {
 				return err
 			}
 
+			w.rpcLock.Lock()
 			block, err := w.rpcClient.GetBlockVerbose(hash)
+			w.rpcLock.Unlock()
 
 			if err != nil {
 				return err
