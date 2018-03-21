@@ -20,7 +20,11 @@ var DefaultBootstrapAddresses = []string{
 var TestnetBootstrapAddresses = []string{}
 
 // DataPushNodes define certain nodes that are open to store requests
-var DataPushNodes = []string{}
+var DataPushNodes = []string{
+	"QmPJuP4Myo8pGL1k56b85Q4rpaoSnmn5L3wLjYHTzbBrk1",
+	"QmRvbZttqh6CPFiMKWa1jPfRR9JxagYRv4wsvMAG4ADUTj",
+	"QmbkmTrfSjniyMUfYt9tVUcfZC8yeshVFYsnJ4kuzveYWc",
+}
 
 // APIConfig represents the configuration for hosting a server.
 type APIConfig struct {
