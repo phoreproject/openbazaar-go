@@ -4,6 +4,11 @@ import (
 	"net/http"
 	"os"
 	"testing"
+
+	"github.com/OpenBazaar/jsonpb"
+	"github.com/phoreproject/openbazaar-go/pb"
+	"github.com/phoreproject/openbazaar-go/test/factory"
+	"github.com/golang/protobuf/proto"
 )
 
 func TestMain(m *testing.M) {
@@ -127,6 +132,18 @@ func TestModerator(t *testing.T) {
 }
 
 func TestListings(t *testing.T) {
+	goodListingJSON := jsonFor(t, factory.NewListing("ron-swanson-tshirt"))
+	updatedListing := factory.NewListing("ron-swanson-tshirt")
+	updatedListing.Taxes = []*pb.Listing_Tax{
+		{
+			Percentage:  17,
+			TaxShipping: true,
+			TaxType:     "Sales tax",
+			TaxRegions:  []pb.CountryCode{pb.CountryCode_UNITED_STATES},
+		},
+	}
+	updatedListingJSON := jsonFor(t, updatedListing)
+
 	runAPITests(t, apiTests{
 		{"GET", "/ob/listings", "", 200, `[]`},
 		{"GET", "/ob/inventory", "", 200, `[]`},
@@ -142,9 +159,9 @@ func TestListings(t *testing.T) {
 
 		// Create/Get
 		{"GET", "/ob/listing/ron-swanson-tshirt", "", 404, NotFoundJSON("Listing")},
-		{"POST", "/ob/listing", listingJSON, 200, listingJSONResponse},
+		{"POST", "/ob/listing", goodListingJSON, 200, `{"slug": "ron-swanson-tshirt"}`},
 		{"GET", "/ob/listing/ron-swanson-tshirt", "", 200, anyResponseJSON},
-		{"POST", "/ob/listing", listingUpdateJSON, 409, AlreadyExistsUsePUTJSON("Listing")},
+		{"POST", "/ob/listing", updatedListingJSON, 409, AlreadyExistsUsePUTJSON("Listing")},
 
 		// TODO: Add support for improved JSON matching to since contracts
 		// change each test run due to signatures
@@ -158,7 +175,7 @@ func TestListings(t *testing.T) {
 		{"POST", "/ob/inventory", inventoryUpdateJSON, 200, `{}`},
 
 		// Update/Get Listing
-		{"PUT", "/ob/listing", listingUpdateJSON, 200, `{}`},
+		{"PUT", "/ob/listing", updatedListingJSON, 200, `{}`},
 		{"GET", "/ob/listing/ron-swanson-tshirt", "", 200, anyResponseJSON},
 
 		// Delete/Get
@@ -167,7 +184,7 @@ func TestListings(t *testing.T) {
 		{"GET", "/ob/listing/ron-swanson-tshirt", "", 404, NotFoundJSON("Listing")},
 
 		// Mutate non-existing listings
-		{"PUT", "/ob/listing", listingUpdateJSON, 404, NotFoundJSON("Listing")},
+		{"PUT", "/ob/listing", updatedListingJSON, 404, NotFoundJSON("Listing")},
 		{"DELETE", "/ob/listing/ron-swanson-tshirt", "", 404, NotFoundJSON("Listing")},
 	})
 }
@@ -245,4 +262,14 @@ func TestPosts(t *testing.T) {
 		{"PUT", "/ob/post", postUpdateJSON, 404, NotFoundJSON("Post")},
 		{"DELETE", "/ob/post/test1", "", 404, NotFoundJSON("Post")},
 	})
+}
+
+func jsonFor(t *testing.T, fixture proto.Message) string {
+	m := jsonpb.Marshaler{}
+
+	json, err := m.MarshalToString(fixture)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return json
 }
