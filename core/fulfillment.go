@@ -4,19 +4,20 @@ import (
 	"bytes"
 	"encoding/hex"
 	"errors"
-	"gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
+	crypto "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 
 	"time"
 
-	"github.com/golang/protobuf/proto"
-	"github.com/golang/protobuf/ptypes"
-	hd "github.com/phoreproject/btcutil/hdkeychain"
 	"github.com/phoreproject/openbazaar-go/pb"
 	"github.com/phoreproject/wallet-interface"
+	hd "github.com/phoreproject/btcutil/hdkeychain"
+	"github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/ptypes"
 )
 
 var (
-	MaxTXIDSize = 512
+	ErrFulfillIncorrectDeliveryType      = errors.New("Incorrect delivery type for order")
+	ErrFulfillCryptocurrencyTXIDNotFound = errors.New("A transactionID is required to fulfill crypto listings")
 )
 
 func (n *OpenBazaarNode) FulfillOrder(fulfillment *pb.OrderFulfillment, contract *pb.RicardianContract, records []*wallet.TransactionRecord) error {
@@ -121,6 +122,20 @@ func (n *OpenBazaarNode) FulfillOrder(fulfillment *pb.OrderFulfillment, contract
 	metadata := new(pb.RatingSignature_TransactionMetadata)
 	metadata.RatingKey = contract.BuyerOrder.RatingKeys[keyIndex]
 	metadata.ListingSlug = fulfillment.Slug
+
+	if contract.BuyerOrder.Version > 0 {
+		metadata.ListingTitle = listing.Item.Title
+		if len(listing.Item.Images) > 0 {
+			metadata.Thumbnail = &pb.RatingSignature_TransactionMetadata_Image{
+				Tiny:     listing.Item.Images[0].Tiny,
+				Small:    listing.Item.Images[0].Small,
+				Medium:   listing.Item.Images[0].Medium,
+				Large:    listing.Item.Images[0].Large,
+				Original: listing.Item.Images[0].Original,
+			}
+		}
+	}
+
 	ser, err := proto.Marshal(metadata)
 	if err != nil {
 		return err
@@ -297,9 +312,6 @@ func validateCryptocurrencyFulfillment(fulfillment *pb.OrderFulfillment) error {
 	for _, delivery := range fulfillment.CryptocurrencyDelivery {
 		if delivery.TransactionID == "" {
 			return ErrFulfillCryptocurrencyTXIDNotFound
-		}
-		if len(delivery.TransactionID) > MaxTXIDSize {
-			return ErrFulfillCryptocurrencyTXIDTooLong
 		}
 	}
 
