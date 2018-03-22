@@ -3,7 +3,6 @@ package core
 import (
 	"crypto/rand"
 	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"fmt"
 	mh "gx/ipfs/QmU9a9NV9RdPNwZQDYd5uKsm6N6LJLSvLbywDDYFbaaC6P/go-multihash"
@@ -16,15 +15,15 @@ import (
 	"strconv"
 
 	"github.com/OpenBazaar/jsonpb"
-	"github.com/golang/protobuf/proto"
-	"github.com/golang/protobuf/ptypes"
-	ipfspath "github.com/ipfs/go-ipfs/path"
-	"github.com/phoreproject/btcd/chaincfg/chainhash"
-	"github.com/phoreproject/btcd/wire"
-	hd "github.com/phoreproject/btcutil/hdkeychain"
 	"github.com/phoreproject/openbazaar-go/ipfs"
 	"github.com/phoreproject/openbazaar-go/pb"
 	"github.com/phoreproject/wallet-interface"
+	"github.com/phoreproject/btcd/chaincfg/chainhash"
+	"github.com/phoreproject/btcd/wire"
+	hd "github.com/phoreproject/btcutil/hdkeychain"
+	"github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/ptypes"
+	ipfspath "github.com/ipfs/go-ipfs/path"
 )
 
 type option struct {
@@ -39,7 +38,7 @@ type shippingOption struct {
 
 type item struct {
 	ListingHash    string         `json:"listingHash"`
-	Quantity       uint64         `json:"quantity"`
+	Quantity       int            `json:"quantity"`
 	Options        []option       `json:"options"`
 	Shipping       shippingOption `json:"shipping"`
 	Memo           string         `json:"memo"`
@@ -61,13 +60,18 @@ type PurchaseData struct {
 	RefundAddress        *string `json:"refundAddress"` //optional, can be left out of json
 }
 
-const (
-	// We use this to check to see if the approximate fee to release funds from escrow is greater than 1/4th of the amount
-	// being released. If so, we prevent the purchase from being made as it severely cuts into the vendor's profits.
-	// TODO: this probably should not be hardcoded but making it adaptive requires all wallet implementations to provide this data.
-	// TODO: for now, this is probably OK as it's just an approximation.
-	EscrowReleaseSize                             = 337
-	CryptocurrencyPurchasePaymentAddressMaxLength = 512
+// We use this to check to see if the approximate fee to release funds from escrow is greater than 1/4th of the amount
+// being released. If so, we prevent the purchase from being made as it severely cuts into the vendor's profits.
+// TODO: this probably should not be hardcoded but making it adaptive requires all wallet implementations to provide this data.
+// TODO: for now, this is probably OK as it's just an approximation.
+const EscrowReleaseSize = 337
+
+var UnknownListingError = errors.New("Order contains a hash of a listing that is not currently for sale")
+
+var (
+	ErrCryptocurrencyPurchasePaymentAddressRequired = errors.New("paymentAddress required for cryptocurrency items")
+	ErrCryptocurrencyPurchaseIllegalField           = errors.New("Illegal cryptocurrency purchase field")
+	ErrMarketPriceRequiresExchangeRates             = errors.New("Can't purchase market price listings with exchange rates disabled")
 )
 
 func (n *OpenBazaarNode) Purchase(data *PurchaseData) (orderId string, paymentAddress string, paymentAmount uint64, vendorOnline bool, err error) {
@@ -235,7 +239,8 @@ func (n *OpenBazaarNode) Purchase(data *PurchaseData) (orderId string, paymentAd
 			return orderId, contract.BuyerOrder.Payment.Address, contract.BuyerOrder.Payment.Amount, false, err
 		} else { // Vendor responded
 			if resp.MessageType == pb.Message_ERROR {
-				return "", "", 0, false, extractErrorMessage(resp)
+				errStr := extractErrorMessage(resp)
+				return "", "", 0, false, fmt.Errorf("Vendor rejected order, reason: %s", errStr)
 			}
 			if resp.MessageType != pb.Message_ORDER_CONFIRMATION {
 				return "", "", 0, false, errors.New("Vendor responded to the order with an incorrect message type")
@@ -385,7 +390,8 @@ func (n *OpenBazaarNode) Purchase(data *PurchaseData) (orderId string, paymentAd
 			return orderId, contract.BuyerOrder.Payment.Address, contract.BuyerOrder.Payment.Amount, false, err
 		} else { // Vendor responded
 			if resp.MessageType == pb.Message_ERROR {
-				return "", "", 0, false, extractErrorMessage(resp)
+				errStr := extractErrorMessage(resp)
+				return "", "", 0, false, fmt.Errorf("Vendor rejected order, reason: %s", errStr)
 			}
 			if resp.MessageType != pb.Message_ORDER_CONFIRMATION {
 				return "", "", 0, false, errors.New("Vendor responded to the order with an incorrect message type")
@@ -433,19 +439,13 @@ func (n *OpenBazaarNode) Purchase(data *PurchaseData) (orderId string, paymentAd
 	}
 }
 
-func extractErrorMessage(m *pb.Message) error {
+func extractErrorMessage(m *pb.Message) string {
 	errMsg := new(pb.Error)
 	err := ptypes.UnmarshalAny(m.Payload, errMsg)
 	if err == nil {
-		// if the server sends back JSON don't format it
-		var jsonObj map[string]interface{}
-		if json.Unmarshal([]byte(errMsg.ErrorMessage), &jsonObj) == nil {
-			return errors.New(errMsg.ErrorMessage)
-		}
-
-		return fmt.Errorf("Vendor rejected order, reason: %s", errMsg.ErrorMessage)
+		return errMsg.ErrorMessage
 	} else { // For backwards compatibility check for a string payload
-		return errors.New(string(m.Payload.Value))
+		return string(m.Payload.Value)
 	}
 }
 
@@ -652,6 +652,7 @@ func (n *OpenBazaarNode) createContractWithOrder(data *PurchaseData) (*pb.Ricard
 		order.Items = append(order.Items, i)
 	}
 
+	// Make sure shipping fields are filled if the order contains a physical good
 	if containsPhysicalGood(addedListings) && !(n.TestNetworkEnabled() || n.RegressionNetworkEnabled()) {
 		err := validatePhysicalPurchaseOrder(contract)
 		if err != nil {
@@ -687,10 +688,10 @@ func validatePhysicalPurchaseOrder(contract *pb.RicardianContract) error {
 
 func validateCryptocurrencyOrderItem(item *pb.Order_Item) error {
 	if len(item.Options) > 0 {
-		return ErrCryptocurrencyPurchaseIllegalField("item.options")
+		return ErrCryptocurrencyPurchaseIllegalField
 	}
 	if len(item.CouponCodes) > 0 {
-		return ErrCryptocurrencyPurchaseIllegalField("item.couponCodes")
+		return ErrCryptocurrencyPurchaseIllegalField
 	}
 	if item.PaymentAddress == "" {
 		return ErrCryptocurrencyPurchasePaymentAddressRequired
@@ -795,6 +796,19 @@ func (n *OpenBazaarNode) CalcOrderID(order *pb.Order) (string, error) {
 	return id.B58String(), nil
 }
 
+func (n *OpenBazaarNode) getMarketPriceInSatoshis(symbol string, quantity uint32) (uint64, error) {
+	if n.ExchangeRates == nil {
+		return 0, ErrMarketPriceRequiresExchangeRates
+	}
+
+	rate, err := n.ExchangeRates.GetExchangeRate(strings.ToUpper(symbol))
+	if err != nil {
+		return 0, err
+	}
+
+	return uint64(float64(quantity) / rate), nil
+}
+
 func (n *OpenBazaarNode) CalculateOrderTotal(contract *pb.RicardianContract) (uint64, error) {
 	if n.ExchangeRates != nil {
 		n.ExchangeRates.GetLatestRate("") // Refresh the exchange rates
@@ -805,27 +819,21 @@ func (n *OpenBazaarNode) CalculateOrderTotal(contract *pb.RicardianContract) (ui
 
 	// Calculate the price of each item
 	for _, item := range contract.BuyerOrder.Items {
-		var (
-			satoshis     uint64
-			itemTotal    uint64
-			itemQuantity uint64
-		)
+		var itemTotal uint64
+		var itemQuantity uint32 = item.Quantity
 
 		l, err := ParseContractForListing(item.ListingHash, contract)
 		if err != nil {
 			return 0, fmt.Errorf("Listing not found in contract for item %s", item.ListingHash)
 		}
-
-		// Continue using the old 32-bit quantity field for all listings less than version 3
-		itemQuantity = GetOrderQuantity(l, item)
-
 		if l.Metadata.ContractType == pb.Listing_Metadata_PHYSICAL_GOOD {
 			physicalGoods[item.ListingHash] = l
 		}
 
+		var satoshis uint64
 		if l.Metadata.Format == pb.Listing_Metadata_MARKET_PRICE {
-			satoshis, err = n.getMarketPriceInSatoshis(l.Metadata.CoinType, itemQuantity)
 			itemQuantity = 1
+			satoshis, err = n.getMarketPriceInSatoshis(l.Metadata.CoinType, item.Quantity)
 		} else {
 			satoshis, err = n.getPriceInSatoshi(l.Metadata.PricingCurrency, l.Item.Price)
 		}
@@ -895,16 +903,10 @@ func (n *OpenBazaarNode) CalculateOrderTotal(contract *pb.RicardianContract) (ui
 		total += itemTotal
 	}
 
-	shippingTotal, err := n.calculateShippingTotalForListings(contract, physicalGoods)
-	if err != nil {
-		return 0, err
+	// Add in shipping costs for physical items
+	if len(physicalGoods) == 0 {
+		return total, nil
 	}
-	total += shippingTotal
-
-	return total, nil
-}
-
-func (n *OpenBazaarNode) calculateShippingTotalForListings(contract *pb.RicardianContract, listings map[string]*pb.Listing) (uint64, error) {
 	type itemShipping struct {
 		primary               uint64
 		secondary             uint64
@@ -912,15 +914,12 @@ func (n *OpenBazaarNode) calculateShippingTotalForListings(contract *pb.Ricardia
 		shippingTaxPercentage float32
 		version               uint32
 	}
-	var (
-		is            []itemShipping
-		shippingTotal uint64
-	)
+	var is []itemShipping
 
 	// First loop through to validate and filter out non-physical items
 	for _, item := range contract.BuyerOrder.Items {
-		listing, ok := listings[item.ListingHash]
-		if !ok {
+		listing, ok := physicalGoods[item.ListingHash]
+		if !ok { // Not physical good no need to calculate shipping
 			continue
 		}
 
@@ -993,10 +992,7 @@ func (n *OpenBazaarNode) calculateShippingTotalForListings(contract *pb.Ricardia
 		})
 	}
 
-	if len(is) == 0 {
-		return 0, nil
-	}
-
+	var shippingTotal uint64
 	if len(is) == 1 {
 		shippingTotal = (is[0].primary * uint64(((1+is[0].shippingTaxPercentage)*100)+.5) / 100)
 		if is[0].quantity > 1 {
@@ -1008,31 +1004,25 @@ func (n *OpenBazaarNode) calculateShippingTotalForListings(contract *pb.Ricardia
 				return 0, errors.New("Unknown listing version")
 			}
 		}
-		return shippingTotal, nil
-	}
-
-	var highest uint64
-	var i int
-	for x, s := range is {
-		if s.primary > highest {
-			highest = s.primary
-			i = x
+	} else if len(is) > 1 {
+		var highest uint64
+		var i int
+		for x, s := range is {
+			if s.primary > highest {
+				highest = s.primary
+				i = x
+			}
+			shippingTotal += (s.secondary * uint64(((1+s.shippingTaxPercentage)*100)+.5) / 100) * uint64(s.quantity)
 		}
-		shippingTotal += (s.secondary * uint64(((1+s.shippingTaxPercentage)*100)+.5) / 100) * uint64(s.quantity)
+		shippingTotal -= (is[i].primary * uint64(((1+is[i].shippingTaxPercentage)*100)+.5) / 100)
+		shippingTotal += (is[i].secondary * uint64(((1+is[i].shippingTaxPercentage)*100)+.5) / 100)
 	}
-	shippingTotal -= (is[i].primary * uint64(((1+is[i].shippingTaxPercentage)*100)+.5) / 100)
-	shippingTotal += (is[i].secondary * uint64(((1+is[i].shippingTaxPercentage)*100)+.5) / 100)
-
-	return shippingTotal, nil
+	return total + shippingTotal, nil
 }
 
 func (n *OpenBazaarNode) getPriceInSatoshi(currencyCode string, amount uint64) (uint64, error) {
 	if strings.ToLower(currencyCode) == strings.ToLower(n.Wallet.CurrencyCode()) || "t"+strings.ToLower(currencyCode) == strings.ToLower(n.Wallet.CurrencyCode()) {
 		return amount, nil
-	}
-
-	if n.ExchangeRates == nil {
-		return 0, ErrPriceCalculationRequiresExchangeRates
 	}
 	exchangeRate, err := n.ExchangeRates.GetExchangeRate(currencyCode)
 	if err != nil {
@@ -1043,19 +1033,6 @@ func (n *OpenBazaarNode) getPriceInSatoshi(currencyCode string, amount uint64) (
 	btc := formatedAmount / exchangeRate
 	satoshis := btc * float64(n.ExchangeRates.UnitsPerCoin())
 	return uint64(satoshis), nil
-}
-
-func (n *OpenBazaarNode) getMarketPriceInSatoshis(currencyCode string, amount uint64) (uint64, error) {
-	if n.ExchangeRates == nil {
-		return 0, ErrPriceCalculationRequiresExchangeRates
-	}
-
-	rate, err := n.ExchangeRates.GetExchangeRate(currencyCode)
-	if err != nil {
-		return 0, err
-	}
-
-	return uint64(float64(amount) / rate), nil
 }
 
 func verifySignaturesOnOrder(contract *pb.RicardianContract) error {
@@ -1189,7 +1166,7 @@ collectListings:
 	type inventory struct {
 		Slug    string
 		Variant int
-		Count   int64
+		Count   int
 	}
 	var inventoryList []inventory
 	for _, item := range contract.BuyerOrder.Items {
@@ -1233,7 +1210,7 @@ collectListings:
 			return errors.New("Not all options were selected")
 		}
 		// Create inventory paths to check later
-		inv.Count = int64(GetOrderQuantity(listingMap[item.ListingHash], item))
+		inv.Count = int(item.Quantity)
 		inventoryList = append(inventoryList, inv)
 	}
 
@@ -1293,7 +1270,7 @@ collectListings:
 				return errors.New("Vendor has no inventory for the selected variant.")
 			}
 			if amt >= 0 && amt < inv.Count {
-				return NewErrOutOfInventory(amt)
+				return fmt.Errorf("Not enough inventory for item %s:%d, only %d in stock", inv.Slug, inv.Variant, amt)
 			}
 		}
 	}
@@ -1326,7 +1303,7 @@ collectListings:
 
 	// Validate the each item in the order is for sale
 	if !n.hasKnownListings(contract) {
-		return ErrPurchaseUnknownListing
+		return UnknownListingError
 	}
 	return nil
 }
@@ -1377,9 +1354,6 @@ func (n *OpenBazaarNode) ValidateDirectPaymentAddress(order *pb.Order) error {
 		return err
 	}
 	addr, redeemScript, err := n.Wallet.GenerateMultisigScript([]hd.ExtendedKey{*buyerKey, *vendorKey}, 1, time.Duration(0), nil)
-	if err != nil {
-		return errors.New("Cannot generate multisig script.")
-	}
 	if order.Payment.Address != addr.EncodeAddress() {
 		return errors.New("Invalid payment address")
 	}
@@ -1461,9 +1435,6 @@ func (n *OpenBazaarNode) ValidateModeratedPaymentAddress(order *pb.Order, timeou
 		return errors.New("Invalid moderator key")
 	}
 	addr, redeemScript, err := n.Wallet.GenerateMultisigScript([]hd.ExtendedKey{*buyerKey, *vendorKey, *ModeratorKey}, 2, timeout, vendorKey)
-	if err != nil {
-		return errors.New("Error generating multisig script")
-	}
 	if order.Payment.Address != addr.EncodeAddress() {
 		return errors.New("Invalid payment address")
 	}
@@ -1602,11 +1573,4 @@ func SameSku(selectedVariants []int, sku *pb.Listing_Item_Sku) bool {
 		}
 	}
 	return true
-}
-
-func GetOrderQuantity(l *pb.Listing, item *pb.Order_Item) uint64 {
-	if l.Metadata.Version < 3 {
-		return uint64(item.Quantity)
-	}
-	return item.Quantity64
 }
