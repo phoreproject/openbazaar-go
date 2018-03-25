@@ -14,6 +14,7 @@ var DefaultBootstrapAddresses = []string{
 	"/ip4/159.203.115.78/tcp/5001/ipfs/QmPJuP4Myo8pGL1k56b85Q4rpaoSnmn5L3wLjYHTzbBrk1",
 	"/ip4/104.131.19.44/tcp/5001/ipfs/QmRvbZttqh6CPFiMKWa1jPfRR9JxagYRv4wsvMAG4ADUTj",
 	"/ip4/45.32.171.119/tcp/5001/ipfs/QmbkmTrfSjniyMUfYt9tVUcfZC8yeshVFYsnJ4kuzveYWc",
+	"/ip4/54.227.172.110/tcp/5001/ipfs/QmWbi8z4uPkEdrWHtgxCkQGE5vxJnrStXAeEQnupmQnKRh",
 }
 
 // TestnetBootstrapAddresses defines the addresses that the client connects to initially
@@ -21,9 +22,7 @@ var TestnetBootstrapAddresses = []string{}
 
 // DataPushNodes define certain nodes that are open to store requests
 var DataPushNodes = []string{
-	"QmPJuP4Myo8pGL1k56b85Q4rpaoSnmn5L3wLjYHTzbBrk1",
-	"QmRvbZttqh6CPFiMKWa1jPfRR9JxagYRv4wsvMAG4ADUTj",
-	"QmbkmTrfSjniyMUfYt9tVUcfZC8yeshVFYsnJ4kuzveYWc",
+	"QmWbi8z4uPkEdrWHtgxCkQGE5vxJnrStXAeEQnupmQnKRh",
 }
 
 // APIConfig represents the configuration for hosting a server.
