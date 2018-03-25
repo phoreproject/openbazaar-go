@@ -1,7 +1,7 @@
 {
   "name": "openbazaar-go",
   "author": "phore <admin@phore.io>",
-  "version": "v1.1.5",
+  "version": "v1.1.6",
   "releaseCmd": "git commit -a -m \"gx publish $VERSION\"",
   "language": "english",
   "license": "",
