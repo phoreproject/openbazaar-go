@@ -1024,12 +1024,12 @@ func (n *OpenBazaarNode) calculateShippingTotalForListings(contract *pb.Ricardia
 }
 
 func (n *OpenBazaarNode) getPriceInSatoshi(currencyCode string, amount uint64) (uint64, error) {
-	if n.ExchangeRates == nil {
-		return 0, ErrPriceCalculationRequiresExchangeRates
-	}
-
 	if strings.ToLower(currencyCode) == strings.ToLower(n.Wallet.CurrencyCode()) || "t"+strings.ToLower(currencyCode) == strings.ToLower(n.Wallet.CurrencyCode()) {
 		return amount, nil
+	}
+
+	if n.ExchangeRates == nil {
+		return 0, ErrPriceCalculationRequiresExchangeRates
 	}
 	exchangeRate, err := n.ExchangeRates.GetExchangeRate(currencyCode)
 	if err != nil {
