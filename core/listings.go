@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
+	cid "gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
 	mh "gx/ipfs/QmU9a9NV9RdPNwZQDYd5uKsm6N6LJLSvLbywDDYFbaaC6P/go-multihash"
 	"io/ioutil"
 	"net/url"
@@ -16,12 +16,12 @@ import (
 	"time"
 
 	"github.com/OpenBazaar/jsonpb"
-	"github.com/golang/protobuf/proto"
-	"github.com/kennygrant/sanitize"
-	"github.com/microcosm-cc/bluemonday"
 	"github.com/phoreproject/openbazaar-go/ipfs"
 	"github.com/phoreproject/openbazaar-go/pb"
 	"github.com/phoreproject/openbazaar-go/repo"
+	"github.com/golang/protobuf/proto"
+	"github.com/kennygrant/sanitize"
+	"github.com/microcosm-cc/bluemonday"
 )
 
 const (
@@ -45,6 +45,15 @@ const (
 	SlugBuffer               = 5
 
 	DefaultCoinDivisibility uint32 = 1e8
+)
+
+var (
+	ErrListingDoesNotExist                   = errors.New("Listing doesn't exist")
+	ErrListingAlreadyExists                  = errors.New("Listing already exists")
+	ErrListingCoinDivisibilityIncorrect      = errors.New("Incorrect coinDivisibility")
+	ErrMarketPriceListingIllegalField        = errors.New("Illegal market price listing field")
+	ErrCryptocurrencyListingIllegalField     = errors.New("Illegal cryptocurrency listing field")
+	ErrCryptocurrencyListingCoinTypeRequired = errors.New("Cryptocurrency listings require a coinType")
 )
 
 type price struct {
@@ -229,7 +238,7 @@ func (n *OpenBazaarNode) SetListingInventory(listing *pb.Listing) error {
 	}
 	// Update inventory
 	for i, s := range listing.Item.Skus {
-		err = n.Datastore.Inventory().Put(listing.Slug, i, int64(s.Quantity))
+		err = n.Datastore.Inventory().Put(listing.Slug, i, int(s.Quantity))
 		if err != nil {
 			return err
 		}
@@ -1217,18 +1226,15 @@ func validatePhysicalListing(listing *pb.Listing) error {
 }
 
 func validateCryptocurrencyListing(listing *pb.Listing) error {
-	switch {
-	case len(listing.Coupons) > 0:
-		return ErrCryptocurrencyListingIllegalField("coupons")
-	case len(listing.Item.Options) > 0:
-		return ErrCryptocurrencyListingIllegalField("item.options")
-	case len(listing.ShippingOptions) > 0:
-		return ErrCryptocurrencyListingIllegalField("shippingOptions")
-	case len(listing.Item.Condition) > 0:
-		return ErrCryptocurrencyListingIllegalField("item.condition")
-	case len(listing.Metadata.PricingCurrency) > 0:
-		return ErrCryptocurrencyListingIllegalField("metadata.pricingCurrency")
-	case listing.Metadata.CoinType == "":
+	if len(listing.Coupons) > 0 ||
+		len(listing.Item.Options) > 0 ||
+		len(listing.ShippingOptions) > 0 ||
+		listing.Item.Condition != "" ||
+		listing.Metadata.PricingCurrency != "" {
+		return ErrCryptocurrencyListingIllegalField
+	}
+
+	if listing.Metadata.CoinType == "" {
 		return ErrCryptocurrencyListingCoinTypeRequired
 	}
 
@@ -1241,11 +1247,8 @@ func validateCryptocurrencyListing(listing *pb.Listing) error {
 
 func validateMarketPriceListing(listing *pb.Listing) error {
 	if listing.Item.Price > 0 {
-		return ErrMarketPriceListingIllegalField("item.price")
+		return ErrMarketPriceListingIllegalField
 	}
-
-	return nil
-}
 
 func validateListingSkus(listing *pb.Listing) error {
 	if listing.Metadata.ContractType == pb.Listing_Metadata_CRYPTOCURRENCY {
