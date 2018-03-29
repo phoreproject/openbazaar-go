@@ -184,6 +184,10 @@ func buildRequest(method string, path string, body string) (*http.Request, error
 	return req, nil
 }
 
+func errorResponseJSON(err error) string {
+	return `{"success": false, "reason": "` + err.Error() + `"}`
+}
+
 func jsonFor(t *testing.T, fixture proto.Message) string {
 	m := jsonpb.Marshaler{}
 
