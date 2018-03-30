@@ -170,11 +170,11 @@ func (n *OpenBazaarNode) UpdateProfile(profile *pb.Profile) error {
 	}
 
 	if profile.Currencies == nil {
-		profile.Currencies = []string{strings.ToUpper(n.Wallet.CurrencyCode())}
+		profile.Currencies = []string{NormalizeCurrencyCode(n.Wallet.CurrencyCode())}
 	}
 
 	if profile.ModeratorInfo != nil {
-		profile.ModeratorInfo.AcceptedCurrencies = []string{strings.ToUpper(n.Wallet.CurrencyCode())}
+		profile.ModeratorInfo.AcceptedCurrencies = []string{NormalizeCurrencyCode(n.Wallet.CurrencyCode())}
 	}
 	profile.PeerID = n.IpfsNode.Identity.Pretty()
 	ts, err := ptypes.TimestampProto(time.Now())

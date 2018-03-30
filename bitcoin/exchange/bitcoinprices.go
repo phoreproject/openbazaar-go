@@ -5,10 +5,12 @@ import (
 	"errors"
 	"net"
 	"net/http"
-	"strings"
+	"reflect"
+	"strconv"
 	"sync"
 	"time"
 
+	"github.com/phoreproject/openbazaar-go/core"
 	"github.com/op/go-logging"
 	"golang.org/x/net/proxy"
 )
@@ -56,7 +58,7 @@ func NewBitcoinPriceFetcher(dialer proxy.Dialer) *BitcoinPriceFetcher {
 }
 
 func (b *BitcoinPriceFetcher) GetExchangeRate(currencyCode string) (float64, error) {
-	currencyCode = normalizeCurrencyCode(currencyCode)
+	currencyCode = core.NormalizeCurrencyCode(currencyCode)
 
 	b.Lock()
 	defer b.Unlock()
@@ -68,7 +70,7 @@ func (b *BitcoinPriceFetcher) GetExchangeRate(currencyCode string) (float64, err
 }
 
 func (b *BitcoinPriceFetcher) GetLatestRate(currencyCode string) (float64, error) {
-	currencyCode = normalizeCurrencyCode(currencyCode)
+	currencyCode = core.NormalizeCurrencyCode(currencyCode)
 
 	b.fetchCurrentRates()
 	b.Lock()
@@ -170,8 +172,4 @@ func (b CMCDecoder) decode(dat interface{}, cache map[string]float64) (err error
 		}
 	}
 	return nil
-}
-
-func normalizeCurrencyCode(currencyCode string) string {
-	return strings.ToUpper(currencyCode)
 }
