@@ -3,14 +3,15 @@ package exchange
 import (
 	"encoding/json"
 	"errors"
-	"net"
-	"net/http"
-	"sync"
-	"time"
-
-	"github.com/phoreproject/openbazaar-go/core"
 	"github.com/op/go-logging"
 	"golang.org/x/net/proxy"
+	"net"
+	"net/http"
+	"reflect"
+	"strconv"
+	"strings"
+	"sync"
+	"time"
 )
 
 const SatoshiPerBTC = 100000000
@@ -29,7 +30,10 @@ type ExchangeRateDecoder interface {
 }
 
 // empty structs to tag the different ExchangeRateDecoder implementations
-type CMCDecoder struct{}
+type BitcoinAverageDecoder struct{}
+type BitPayDecoder struct{}
+type BlockchainInfoDecoder struct{}
+type BitcoinChartsDecoder struct{}
 
 type BitcoinPriceFetcher struct {
 	sync.Mutex
@@ -56,7 +60,7 @@ func NewBitcoinPriceFetcher(dialer proxy.Dialer) *BitcoinPriceFetcher {
 }
 
 func (b *BitcoinPriceFetcher) GetExchangeRate(currencyCode string) (float64, error) {
-	currencyCode = core.NormalizeCurrencyCode(currencyCode)
+	currencyCode = normalizeCurrentCode(currencyCode)
 
 	b.Lock()
 	defer b.Unlock()
@@ -68,7 +72,7 @@ func (b *BitcoinPriceFetcher) GetExchangeRate(currencyCode string) (float64, err
 }
 
 func (b *BitcoinPriceFetcher) GetLatestRate(currencyCode string) (float64, error) {
-	currencyCode = core.NormalizeCurrencyCode(currencyCode)
+	currencyCode = normalizeCurrentCode(currencyCode)
 
 	b.fetchCurrentRates()
 	b.Lock()
@@ -136,7 +140,7 @@ func (provider *ExchangeRateProvider) fetch() (err error) {
 			return err
 		}
 	}
-	return nil
+	return provider.decoder.decode(dataMap, provider.cache)
 }
 
 func (b *BitcoinPriceFetcher) run() {
@@ -182,4 +186,8 @@ func (b CMCDecoder) decode(dat interface{}, cache map[string]float64) (err error
 	}
 
 	return nil
+}
+
+func normalizeCurrentCode(currencyCode string) string {
+	return strings.ToUpper(currencyCode)
 }
