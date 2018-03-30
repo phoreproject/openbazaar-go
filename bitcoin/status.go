@@ -3,15 +3,14 @@ package bitcoin
 import (
 	"context"
 	"encoding/json"
-	"github.com/phoreproject/wallet-interface"
 	"time"
 
-	"github.com/OpenBazaar/openbazaar-go/repo"
+	"github.com/phoreproject/wallet-interface"
 )
 
 type StatusUpdater struct {
 	w   wallet.Wallet
-	c   chan repo.Notifier
+	c   chan interface{}
 	ctx context.Context
 }
 
@@ -25,7 +24,7 @@ type walletUpdate struct {
 	Confirmed   int64  `json:"confirmed"`
 }
 
-func NewStatusUpdater(w wallet.Wallet, c chan repo.Notifier, ctx context.Context) *StatusUpdater {
+func NewStatusUpdater(w wallet.Wallet, c chan interface{}, ctx context.Context) *StatusUpdater {
 	return &StatusUpdater{w, c, ctx}
 }
 
@@ -45,7 +44,7 @@ func (s *StatusUpdater) Start() {
 			if err != nil {
 				continue
 			}
-			s.c <- repo.PremarshalledNotifier{ser}
+			s.c <- ser
 		case <-s.ctx.Done():
 			break
 		}

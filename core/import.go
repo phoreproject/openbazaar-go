@@ -15,8 +15,8 @@ import (
 	"time"
 
 	"github.com/OpenBazaar/jsonpb"
-	"github.com/golang/protobuf/ptypes"
 	"github.com/phoreproject/openbazaar-go/pb"
+	"github.com/golang/protobuf/ptypes"
 )
 
 const bufferSize = 5

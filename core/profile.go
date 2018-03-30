@@ -17,16 +17,16 @@ import (
 	"time"
 
 	"github.com/OpenBazaar/jsonpb"
+	"github.com/phoreproject/openbazaar-go/ipfs"
+	"github.com/phoreproject/openbazaar-go/pb"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/imdario/mergo"
 	ipnspb "github.com/ipfs/go-ipfs/namesys/pb"
 	ipnspath "github.com/ipfs/go-ipfs/path"
-	"github.com/phoreproject/openbazaar-go/ipfs"
-	"github.com/phoreproject/openbazaar-go/pb"
 )
 
 const (
-	CachePrefix       = "IPNSPERSISENTCACHE_"
+	CachePrefix       = "IPNSPERSISTENTCACHE_"
 	KeyCachePrefix    = "IPNSPUBKEYCACHE_"
 	CachedProfileTime = time.Hour * 24 * 7
 )
