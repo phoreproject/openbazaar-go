@@ -3,13 +3,13 @@ package exchange
 import (
 	"encoding/json"
 	"errors"
-	"net"
-	"net/http"
-	"sync"
-	"time"
-
 	"github.com/op/go-logging"
 	"golang.org/x/net/proxy"
+	"net"
+	"net/http"
+	"strings"
+	"sync"
+	"time"
 )
 
 const SatoshiPerBTC = 100000000
@@ -55,6 +55,8 @@ func NewBitcoinPriceFetcher(dialer proxy.Dialer) *BitcoinPriceFetcher {
 }
 
 func (b *BitcoinPriceFetcher) GetExchangeRate(currencyCode string) (float64, error) {
+	currencyCode = normalizeCurrentCode(currencyCode)
+
 	b.Lock()
 	defer b.Unlock()
 	price, ok := b.cache[currencyCode]
@@ -65,6 +67,8 @@ func (b *BitcoinPriceFetcher) GetExchangeRate(currencyCode string) (float64, err
 }
 
 func (b *BitcoinPriceFetcher) GetLatestRate(currencyCode string) (float64, error) {
+	currencyCode = normalizeCurrentCode(currencyCode)
+
 	b.fetchCurrentRates()
 	b.Lock()
 	defer b.Unlock()
@@ -165,4 +169,8 @@ func (b CMCDecoder) decode(dat interface{}, cache map[string]float64) (err error
 		}
 	}
 	return nil
+}
+
+func normalizeCurrentCode(currencyCode string) string {
+	return strings.ToUpper(currencyCode)
 }
