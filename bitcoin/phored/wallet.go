@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"path"
+	"strings"
 	"sync"
 	"time"
 
@@ -121,6 +122,70 @@ func (w *RPCWallet) Start() {
 	}
 
 	w.notifications.updateFilterAndSend()
+
+	unbroadcastedTransactions, err := w.DB.GetPendingInv()
+	if err != nil {
+		log.Error(err)
+		return
+	}
+
+	for tx := range unbroadcastedTransactions.InvList {
+		hash := unbroadcastedTransactions.InvList[tx].Hash
+		log.Debugf("Found transaction unbroadcasted: %s", hash.String())
+		transaction, _, err := w.DB.Txns().Get(hash)
+		if err != nil {
+			log.Error(err)
+			continue
+		}
+
+		err = w.Broadcast(transaction)
+		if err != nil {
+			if strings.HasPrefix(err.Error(), "-27") {
+				// transaction is already in the blockchain, so go retrieve it
+				var watchOnly bool
+				res, err := w.rpcClient.GetTransaction(&hash, &watchOnly)
+				if err != nil {
+					log.Error(err)
+					continue
+				}
+
+				blockHash, err := chainhash.NewHashFromStr(res.BlockHash)
+				if err != nil {
+					log.Error(err)
+					continue
+				}
+
+				w.rpcLock.Lock()
+				block, err := w.rpcClient.GetBlockVerbose(blockHash)
+				w.rpcLock.Unlock()
+
+				if err != nil {
+					log.Error(err)
+					continue
+				}
+
+				transactionBytes, err := hex.DecodeString(res.Hex)
+				if err != nil {
+					log.Error(err)
+					continue
+				}
+
+				transaction := wire.MsgTx{}
+				err = transaction.BtcDecode(bytes.NewReader(transactionBytes), 1, wire.BaseEncoding)
+				if err != nil {
+					log.Error(err)
+					continue
+				}
+
+				w.DB.Ingest(&transaction, int32(block.Height))
+			} else if strings.HasPrefix(err.Error(), "-26") {
+				// transaction is spending inputs already spent, so we should just remove it
+				w.DB.Txns().Delete(&hash)
+			} else {
+				log.Error(err)
+			}
+		}
+	}
 
 	log.Info("Connected to phored")
 	w.started = true
@@ -490,20 +555,11 @@ func (w *RPCWallet) Broadcast(tx *wire.MsgTx) error {
 		return err
 	}
 
-	// make an inv message instead of a tx message to be polite
-	txid := tx.TxHash()
-	iv1 := wire.NewInvVect(wire.InvTypeTx, &txid)
-	invMsg := wire.NewMsgInv()
-	err = invMsg.AddInvVect(iv1)
-	if err != nil {
-		return err
-	}
-
 	w.rpcLock.Lock()
 	_, err = w.rpcClient.SendRawTransaction(tx, false)
 	w.rpcLock.Unlock()
 	if err != nil {
-		log.Error(err)
+		return err
 	}
 
 	w.notifications.updateFilterAndSend()
@@ -967,7 +1023,6 @@ func (w *RPCWallet) RetrieveTransactions() error {
 			log.Debug(txs[t].BlockHash)
 
 			hash, err := chainhash.NewHashFromStr(txs[t].BlockHash)
-
 			if err != nil {
 				return err
 			}
