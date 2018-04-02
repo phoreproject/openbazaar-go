@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	ds "gx/ipfs/QmVSase1JP7cq9QkPT46oNwdp9pT6kBkG3oqS14y3QcZjG/go-datastore"
 	"gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
@@ -58,6 +59,9 @@ func (n *OpenBazaarNode) IPNSResolve(peerId string, timeout time.Duration) (stri
 		resp, err := client.Get(n.IPNSBackupAPI + peerId)
 		if err != nil {
 			return "", err
+		}
+		if resp.StatusCode != http.StatusOK {
+			return "", errors.New("IPNS record not found in network")
 		}
 
 		b, err := ioutil.ReadAll(resp.Body)
