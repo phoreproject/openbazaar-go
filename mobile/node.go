@@ -5,13 +5,13 @@ import (
 	"os"
 	"path/filepath"
 
-	manet "gx/ipfs/QmX3U3YXCQ6UYBxq2LVWF8dARS1hPUTEYLrSx654Qyxyw6/go-multiaddr-net"
-	ma "gx/ipfs/QmXY77cVe7rVRQXZZQRioukUM7aRW3BTcAgJe12MCtb3Ji/go-multiaddr"
-
-	"github.com/ipfs/go-ipfs/core/corehttp"
 	"github.com/phoreproject/openbazaar-go/api"
 	obns "github.com/phoreproject/openbazaar-go/namesys"
 	"github.com/phoreproject/openbazaar-go/repo"
+	"github.com/ipfs/go-ipfs/core/corehttp"
+	"github.com/ipfs/go-ipfs/core/corehttp"
+	manet "gx/ipfs/QmX3U3YXCQ6UYBxq2LVWF8dARS1hPUTEYLrSx654Qyxyw6/go-multiaddr-net"
+	ma "gx/ipfs/QmXY77cVe7rVRQXZZQRioukUM7aRW3BTcAgJe12MCtb3Ji/go-multiaddr"
 
 	lis "github.com/phoreproject/openbazaar-go/bitcoin/listeners"
 	"github.com/phoreproject/openbazaar-go/bitcoin/phored"
@@ -21,19 +21,18 @@ import (
 
 	"errors"
 	"fmt"
-	routing "gx/ipfs/QmPR2JzfKd9poHx9XBhzoFeBBC31ZM3W5iUPKJZWyaoZZm/go-libp2p-routing"
-	dht "gx/ipfs/QmUCS9EnqNq1kCnJds2eLDypBiS21aSiCf1MVzSUVB9TGA/go-libp2p-kad-dht"
-	dhtutil "gx/ipfs/QmUCS9EnqNq1kCnJds2eLDypBiS21aSiCf1MVzSUVB9TGA/go-libp2p-kad-dht/util"
-	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
-	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
-	p2phost "gx/ipfs/QmaSxYRuMq4pkpBBG2CYaRrPx2z7NmMVEs34b9g61biQA6/go-libp2p-host"
-	recpb "gx/ipfs/QmbxkgUceEcuSZ4ZdBA3x74VUDSSYjHYmmeEqkjxbtZ6Jg/go-libp2p-record/pb"
-	"io/ioutil"
-	"net/http"
-	"path"
-	"time"
-
 	bstk "github.com/OpenBazaar/go-blockstackclient"
+	"github.com/phoreproject/openbazaar-go/bitcoin"
+	"github.com/phoreproject/openbazaar-go/bitcoin/exchange"
+	"github.com/phoreproject/openbazaar-go/core"
+	"github.com/phoreproject/openbazaar-go/ipfs"
+	obnet "github.com/phoreproject/openbazaar-go/net"
+	"github.com/phoreproject/openbazaar-go/repo/db"
+	"github.com/phoreproject/openbazaar-go/schema"
+	"github.com/phoreproject/openbazaar-go/storage/selfhosted"
+	"github.com/phoreproject/spvwallet"
+	"github.com/phoreproject/wallet-interface"
+	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/ipfs/go-ipfs/commands"
 	ipfscore "github.com/ipfs/go-ipfs/core"
 	bitswap "github.com/ipfs/go-ipfs/exchange/bitswap/network"
@@ -46,14 +45,19 @@ import (
 	lockfile "github.com/ipfs/go-ipfs/repo/fsrepo/lock"
 	"github.com/ipfs/go-ipfs/thirdparty/ds-help"
 	"github.com/op/go-logging"
-	"github.com/phoreproject/btcd/chaincfg"
-	"github.com/phoreproject/openbazaar-go/bitcoin"
-	"github.com/phoreproject/openbazaar-go/bitcoin/exchange"
-	"github.com/phoreproject/openbazaar-go/core"
-	"github.com/phoreproject/openbazaar-go/ipfs"
-	obnet "github.com/phoreproject/openbazaar-go/net"
-	"github.com/phoreproject/openbazaar-go/repo/db"
-	"github.com/phoreproject/openbazaar-go/storage/selfhosted"
+	routing "gx/ipfs/QmPR2JzfKd9poHx9XBhzoFeBBC31ZM3W5iUPKJZWyaoZZm/go-libp2p-routing"
+	dht "gx/ipfs/QmUCS9EnqNq1kCnJds2eLDypBiS21aSiCf1MVzSUVB9TGA/go-libp2p-kad-dht"
+	dhtutil "gx/ipfs/QmUCS9EnqNq1kCnJds2eLDypBiS21aSiCf1MVzSUVB9TGA/go-libp2p-kad-dht/util"
+	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
+	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
+	p2phost "gx/ipfs/QmaSxYRuMq4pkpBBG2CYaRrPx2z7NmMVEs34b9g61biQA6/go-libp2p-host"
+	recpb "gx/ipfs/QmbxkgUceEcuSZ4ZdBA3x74VUDSSYjHYmmeEqkjxbtZ6Jg/go-libp2p-record/pb"
+	"io/ioutil"
+	"net"
+	"net/http"
+	"net/url"
+	"path"
+	"time"
 )
 
 // Node structure definition for IPFS OpenBazaar node including configurations for node, IPFS, and API.
@@ -62,7 +66,7 @@ type Node struct {
 	config     NodeConfig
 	cancel     context.CancelFunc
 	ipfsConfig *ipfscore.BuildCfg
-	apiConfig  *repo.APIConfig
+	apiConfig  *schema.APIConfig
 }
 
 // NewNode function creates a new OpenBazaar node and initializes its configuration
@@ -81,28 +85,30 @@ func NewNode(config NodeConfig) (*Node, error) {
 		return nil, err
 	}
 
+	// Get creation date. Ignore the error and use a default timestamp.
+	creationDate, _ := sqliteDB.Config().GetCreationDate()
+
 	// Load config
 	configFile, err := ioutil.ReadFile(path.Join(config.RepoPath, "config"))
 	if err != nil {
 		return nil, err
 	}
 
-	apiConfig, err := repo.GetAPIConfig(configFile)
+	apiConfig, err := schema.GetAPIConfig(configFile)
 	if err != nil {
 		return nil, err
 	}
 
-	dataSharing, err := repo.GetDataSharing(configFile)
+	dataSharing, err := schema.GetDataSharing(configFile)
 	if err != nil {
 		return nil, err
 	}
 
-	walletCfg, err := repo.GetWalletConfig(configFile)
+	walletCfg, err := schema.GetWalletConfig(configFile)
 	if err != nil {
 		return nil, err
 	}
-
-	resolverConfig, err := repo.GetResolverConfig(configFile)
+	resolverConfig, err := schema.GetResolverConfig(configFile)
 	if err != nil {
 		return nil, err
 	}
@@ -135,7 +141,7 @@ func NewNode(config NodeConfig) (*Node, error) {
 
 	// Setup testnet
 	if config.Testnet {
-		testnetBootstrapAddrs, err := repo.GetTestnetBootstrapAddrs(configFile)
+		testnetBootstrapAddrs, err := schema.GetTestnetBootstrapAddrs(configFile)
 		if err != nil {
 			return nil, err
 		}
@@ -169,7 +175,7 @@ func NewNode(config NodeConfig) (*Node, error) {
 	}
 	var params chaincfg.Params
 	if config.Testnet {
-		params = chaincfg.MainNetParams
+		params = chaincfg.TestNet3Params
 	} else {
 		params = chaincfg.MainNetParams
 	}
@@ -282,7 +288,7 @@ func (n *Node) Start() error {
 	if err != nil {
 		return err
 	}
-	republishInterval, err := repo.GetRepublishInterval(configFile)
+	republishInterval, err := schema.GetRepublishInterval(configFile)
 	if err != nil {
 		return err
 	}
@@ -308,19 +314,18 @@ func (n *Node) Start() error {
 	go func() {
 		<-dht.DefaultBootstrapConfig.DoneChan
 		n.node.Service = service.New(n.node, n.node.Context, n.node.Datastore)
-		mrCfg := ret.MRConfig{
+		MR := ret.NewMessageRetriever(ret.MRConfig{
 			Db:        n.node.Datastore,
 			Ctx:       n.node.Context,
 			IPFSNode:  n.node.IpfsNode,
 			BanManger: n.node.BanManager,
-			Service:   core.Node.Service,
+			Service:   n.node.Service,
 			PrefixLen: 14,
-			PushNodes: core.Node.PushNodes,
+			PushNodes: n.node.PushNodes,
 			Dialer:    nil,
 			SendAck:   n.node.SendOfflineAck,
 			SendError: n.node.SendError,
-		}
-		MR := ret.NewMessageRetriever(mrCfg)
+		})
 		go MR.Run()
 		n.node.MessageRetriever = MR
 		PR := rep.NewPointerRepublisher(n.node.IpfsNode, n.node.Datastore, n.node.PushNodes, n.node.IsModerator)
@@ -373,7 +378,7 @@ func initializeRepo(dataDir, password, mnemonic string, testnet bool, creationDa
 }
 
 // Collects options, creates listener, prints status message and starts serving requests
-func newHTTPGateway(node *core.OpenBazaarNode, authCookie http.Cookie, config repo.APIConfig) (*api.Gateway, error) {
+func newHTTPGateway(node *core.OpenBazaarNode, authCookie http.Cookie, config schema.APIConfig) (*api.Gateway, error) {
 	// Get API configuration
 	cfg, err := node.Context.GetConfig()
 	if err != nil {
@@ -390,6 +395,9 @@ func newHTTPGateway(node *core.OpenBazaarNode, authCookie http.Cookie, config re
 	if err != nil {
 		return nil, fmt.Errorf("newHTTPGateway: manet.Listen(%s) failed: %s", gatewayMaddr, err)
 	}
+
+	// We might have listened to /tcp/0 - let's see what we are listing on
+	gatewayMaddr = gwLis.Multiaddr()
 
 	// Setup an options slice
 	var opts = []corehttp.ServeOption{

@@ -4,13 +4,12 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"net/http"
-	"strings"
-
+	"github.com/phoreproject/openbazaar-go/core"
+	"github.com/phoreproject/openbazaar-go/schema"
 	"github.com/gorilla/websocket"
 	"github.com/ipfs/go-ipfs/commands"
-	"github.com/phoreproject/openbazaar-go/core"
-	"github.com/phoreproject/openbazaar-go/repo"
+	"net/http"
+	"strings"
 )
 
 type connection struct {
@@ -68,7 +67,7 @@ type wsHandler struct {
 	password      string
 }
 
-func newWSAPIHandler(node *core.OpenBazaarNode, ctx commands.Context, authCookie http.Cookie, config repo.APIConfig) (*wsHandler, error) {
+func newWSAPIHandler(node *core.OpenBazaarNode, ctx commands.Context, authCookie http.Cookie, config schema.APIConfig) (*wsHandler, error) {
 	hub := newHub()
 	go hub.run()
 	allowedIps := make(map[string]bool)

@@ -9,19 +9,26 @@ import (
 	"path"
 	"strconv"
 
-	"io/ioutil"
-	"strings"
-
+	"github.com/OpenBazaar/openbazaar-go/ipfs"
+	obnet "github.com/OpenBazaar/openbazaar-go/net"
 	"github.com/ipfs/go-ipfs/commands"
 	ipfscore "github.com/ipfs/go-ipfs/core"
 	bitswap "github.com/ipfs/go-ipfs/exchange/bitswap/network"
 	"github.com/ipfs/go-ipfs/namesys"
 	"github.com/ipfs/go-ipfs/repo/config"
-	"github.com/phoreproject/openbazaar-go/ipfs"
-	obnet "github.com/phoreproject/openbazaar-go/net"
+	"io/ioutil"
+	"strings"
 
 	"bufio"
 	"errors"
+	"github.com/phoreproject/openbazaar-go/repo"
+	"github.com/phoreproject/openbazaar-go/repo/db"
+	"github.com/phoreproject/openbazaar-go/schema"
+	"github.com/ipfs/go-ipfs/core/coreunix"
+	ipfspath "github.com/ipfs/go-ipfs/path"
+	"github.com/ipfs/go-ipfs/repo/fsrepo"
+	"golang.org/x/crypto/ssh/terminal"
+	"golang.org/x/net/proxy"
 	"gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
 	ipld "gx/ipfs/QmPN7cwmpcc4DWXb4KTB9dNAJgjuPY69h3npsMfhRrQL9c/go-ipld-format"
 	pstore "gx/ipfs/QmPgDWmTmuzvP7QE5zwo1TmjbJme9pmZHNujB2453jkCTr/go-libp2p-peerstore"
@@ -39,14 +46,6 @@ import (
 	"sync"
 	"syscall"
 	"time"
-
-	"github.com/ipfs/go-ipfs/core/coreunix"
-	ipfspath "github.com/ipfs/go-ipfs/path"
-	"github.com/ipfs/go-ipfs/repo/fsrepo"
-	"github.com/phoreproject/openbazaar-go/repo"
-	"github.com/phoreproject/openbazaar-go/repo/db"
-	"golang.org/x/crypto/ssh/terminal"
-	"golang.org/x/net/proxy"
 )
 
 type Restore struct {
@@ -146,7 +145,7 @@ func (x *Restore) Execute(args []string) error {
 		return err
 	}
 	if x.Testnet {
-		testnetBootstrapAddrs, err := repo.GetTestnetBootstrapAddrs(configFile)
+		testnetBootstrapAddrs, err := schema.GetTestnetBootstrapAddrs(configFile)
 		if err != nil {
 			PrintError(err.Error())
 			return err
@@ -169,7 +168,7 @@ func (x *Restore) Execute(args []string) error {
 		cfg.Addresses.Swarm = []string{}
 		cfg.Addresses.Swarm = append(cfg.Addresses.Swarm, onionAddrString)
 	}
-	torConfig, err := repo.GetTorConfig(configFile)
+	torConfig, err := schema.GetTorConfig(configFile)
 	if err != nil {
 		PrintError(err.Error())
 		return err
@@ -359,8 +358,7 @@ func RestoreDirectory(repoPath, directory string, nd *ipfscore.IpfsNode, id *cid
 		wg.Add(1)
 		go func(link *ipld.Link) {
 			defer wg.Done()
-			cctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
-			defer cancel()
+			cctx, _ := context.WithTimeout(context.Background(), time.Second*30)
 			r, err := coreunix.Cat(cctx, nd, "/ipfs/"+link.Cid.String())
 			if err != nil {
 				PrintError(fmt.Sprintf("Error retrieving %s\n", path.Join(directory, l.Name)))

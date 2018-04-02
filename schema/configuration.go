@@ -1,4 +1,4 @@
-package repo
+package schema
 
 import (
 	"encoding/json"
@@ -7,26 +7,6 @@ import (
 	"time"
 )
 
-// DefaultBootstrapAddresses defines the addresses that are initially added to the OB node as peers
-var DefaultBootstrapAddresses = []string{
-	"/ip4/159.203.115.78/tcp/5001/ipfs/QmPJuP4Myo8pGL1k56b85Q4rpaoSnmn5L3wLjYHTzbBrk1",
-	"/ip4/104.131.19.44/tcp/5001/ipfs/QmRvbZttqh6CPFiMKWa1jPfRR9JxagYRv4wsvMAG4ADUTj",
-	"/ip4/45.32.171.119/tcp/5001/ipfs/QmbkmTrfSjniyMUfYt9tVUcfZC8yeshVFYsnJ4kuzveYWc",
-	"/ip4/54.227.172.110/tcp/5001/ipfs/QmWbi8z4uPkEdrWHtgxCkQGE5vxJnrStXAeEQnupmQnKRh",
-}
-
-// TestnetBootstrapAddresses defines the addresses that the client connects to initially
-var TestnetBootstrapAddresses = []string{
-	"/ip4/165.227.117.91/tcp/4001/ipfs/Qmaa6De5QYNqShzPb9SGSo8vLmoUte8mnWgzn4GYwzuUYA", // Brooklyn Flea
-	"/ip4/46.101.221.165/tcp/4001/ipfs/QmVAQYg7ygAWTWegs8HSV2kdW1MqW8WMrmpqKG1PQtkgTC", // Shipshewana
-}
-
-// DataPushNodes define certain nodes that are open to store requests
-var DataPushNodes = []string{
-	"QmWbi8z4uPkEdrWHtgxCkQGE5vxJnrStXAeEQnupmQnKRh",
-}
-
-// APIConfig represents the configuration for hosting a server.
 type APIConfig struct {
 	Authenticated bool
 	AllowedIPs    []string

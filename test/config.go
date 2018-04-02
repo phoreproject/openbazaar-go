@@ -5,18 +5,17 @@ import (
 	"os"
 	"path"
 
+	"github.com/phoreproject/openbazaar-go/schema"
 	"io/ioutil"
-
-	"github.com/phoreproject/openbazaar-go/repo"
 )
 
 // NewAPIConfig returns a new config object for the API tests
-func NewAPIConfig() (*repo.APIConfig, error) {
+func NewAPIConfig() (*schema.APIConfig, error) {
 	configFile, err := ioutil.ReadFile(path.Join(GetRepoPath(), "config"))
 	if err != nil {
 		return nil, err
 	}
-	apiConfig, err := repo.GetAPIConfig(configFile)
+	apiConfig, err := schema.GetAPIConfig(configFile)
 	if err != nil {
 		return nil, err
 	}

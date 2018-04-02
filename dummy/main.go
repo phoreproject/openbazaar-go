@@ -20,15 +20,6 @@ import (
 	"golang.org/x/net/proxy"
 
 	"github.com/OpenBazaar/jsonpb"
-	"github.com/OpenBazaar/spvwallet"
-	"github.com/gogo/protobuf/proto"
-	"github.com/ipfs/go-ipfs/commands"
-	ipfscore "github.com/ipfs/go-ipfs/core"
-	ipath "github.com/ipfs/go-ipfs/path"
-	dshelp "github.com/ipfs/go-ipfs/thirdparty/ds-help"
-	"github.com/natefinch/lumberjack"
-	logging "github.com/op/go-logging"
-	"github.com/phoreproject/btcd/chaincfg"
 	"github.com/phoreproject/openbazaar-go/bitcoin/exchange"
 	"github.com/phoreproject/openbazaar-go/core"
 	"github.com/phoreproject/openbazaar-go/ipfs"
@@ -38,14 +29,23 @@ import (
 	"github.com/phoreproject/openbazaar-go/pb"
 	"github.com/phoreproject/openbazaar-go/repo"
 	"github.com/phoreproject/openbazaar-go/repo/db"
+	"github.com/phoreproject/openbazaar-go/schema"
 	"github.com/phoreproject/openbazaar-go/storage/selfhosted"
+	"github.com/OpenBazaar/spvwallet"
+	"github.com/phoreproject/btcd/chaincfg"
+	"github.com/gogo/protobuf/proto"
+	"github.com/ipfs/go-ipfs/commands"
+	ipfscore "github.com/ipfs/go-ipfs/core"
+	ipath "github.com/ipfs/go-ipfs/path"
+	dshelp "github.com/ipfs/go-ipfs/thirdparty/ds-help"
+	"github.com/natefinch/lumberjack"
+	logging "github.com/op/go-logging"
 
 	"github.com/ipfs/go-ipfs/namesys"
 	"github.com/ipfs/go-ipfs/repo/config"
 
-	recpb "gx/ipfs/QmbxkgUceEcuSZ4ZdBA3x74VUDSSYjHYmmeEqkjxbtZ6Jg/go-libp2p-record/pb"
-
 	obns "github.com/phoreproject/openbazaar-go/namesys"
+	recpb "gx/ipfs/QmbxkgUceEcuSZ4ZdBA3x74VUDSSYjHYmmeEqkjxbtZ6Jg/go-libp2p-record/pb"
 
 	namepb "github.com/ipfs/go-ipfs/namesys/pb"
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
@@ -249,37 +249,14 @@ func newNode(repoPath string, db *db.SQLiteDatastore) (*core.OpenBazaarNode, err
 	val, ok := ival.([]byte)
 	if !ok {
 		log.Fatal("Key value is not a []byte.")
-		return nil, errors.New("Key value is not a []byte")
+		return nil, errors.New("Key value is not a []byte.")
 	}
 	dhtrec := new(recpb.Record)
 	proto.Unmarshal(val, dhtrec)
 	e := new(namepb.IpnsEntry)
 	proto.Unmarshal(dhtrec.GetValue(), e)
 
-	// Crosspost gateway
-	gatewayURLStrings, err := repo.GetCrosspostGateway(path.Join(repoPath, "config"))
-	if err != nil {
-		return nil, err
-	}
-
-	if len(gatewayURLStrings) <= 0 {
-		log.Fatal("No gateways")
-	}
-
-	var gatewayUrls []*url.URL
-	for _, gw := range gatewayURLStrings {
-		if gw == "" {
-			continue
-		}
-		u, err := url.Parse(gw)
-		if err != nil {
-			return nil, err
-		}
-
-		gatewayUrls = append(gatewayUrls, u)
-	}
-
-	resolverConfig, err := repo.ResolverConfig{}(path.Join(repoPath, "config"))
+	resolverConfig, err := schema.ResolverConfig{}(path.Join(repoPath, "config"))
 	if err != nil {
 		return nil, err
 	}
@@ -304,14 +281,25 @@ func newNode(repoPath string, db *db.SQLiteDatastore) (*core.OpenBazaarNode, err
 		Wallet:             wallet,
 		NameSystem:         obns.NewNameSystem(resolvers),
 		ExchangeRates:      exchange.NewBitcoinPriceFetcher(torDialer),
-		MessageStorage:     selfhosted.NewSelfHostedStorage(repoPath, ctx, gatewayUrls, torDialer),
-		CrosspostGateways:  gatewayUrls,
+		MessageStorage:     selfhosted.NewSelfHostedStorage(repoPath, ctx, []*url.Url{}, torDialer),
 		UserAgent:          core.USERAGENT,
 		PointerRepublisher: rep.NewPointerRepublisher(nd, db, func() bool { return false }),
 	}
 
 	core.Node.Service = service.New(core.Node, ctx, db)
-	core.Node.MessageRetriever = ret.NewMessageRetriever(db, ctx, nd, nil, core.Node.Service, 16, torDialer, []*url.URL{}, core.Node.SendOfflineAck)
+	config := ret.MRConfig{
+		Db:        db,
+		Ctx:       ctx,
+		IPFSNode:  nd,
+		BanManger: nil,
+		Service:   core.Node.Service,
+		PrefixLen: 14,
+		PushNodes: []*url.URL{},
+		Dialer:    torDialer,
+		SendAck:   core.Node.SendOfflineAck,
+		SendError: core.Node.SendError,
+	}
+	core.Node.MessageRetriever = ret.NewMessageRetriever(config)
 
 	go core.Node.MessageRetriever.Run()
 	go core.Node.PointerRepublisher.Run()
@@ -325,7 +313,7 @@ func newWallet(repoPath string, db *db.SQLiteDatastore) (*spvwallet.SPVWallet, e
 		return nil, err
 	}
 
-	walletCfg, err := repo.GetWalletConfig(path.Join(repoPath, "config"))
+	walletCfg, err := schema.GetWalletConfig(path.Join(repoPath, "config"))
 	if err != nil {
 		return nil, err
 	}

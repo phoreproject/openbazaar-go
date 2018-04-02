@@ -35,6 +35,7 @@ import (
 	"github.com/phoreproject/openbazaar-go/ipfs"
 	"github.com/phoreproject/openbazaar-go/pb"
 	"github.com/phoreproject/openbazaar-go/repo"
+	"github.com/phoreproject/openbazaar-go/schema"
 	"github.com/phoreproject/wallet-interface"
 	"github.com/phoreproject/btcd/chaincfg/chainhash"
 	"github.com/phoreproject/btcutil/base58"
@@ -63,7 +64,7 @@ type jsonAPIHandler struct {
 	node   *core.OpenBazaarNode
 }
 
-func newJsonAPIHandler(node *core.OpenBazaarNode, authCookie http.Cookie, config repo.APIConfig) (*jsonAPIHandler, error) {
+func newJsonAPIHandler(node *core.OpenBazaarNode, authCookie http.Cookie, config schema.APIConfig) (*jsonAPIHandler, error) {
 	allowedIPs := make(map[string]bool)
 	for _, ip := range config.AllowedIPs {
 		allowedIPs[ip] = true

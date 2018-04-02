@@ -5,10 +5,10 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/phoreproject/openbazaar-go/core"
+	"github.com/phoreproject/openbazaar-go/schema"
 	"github.com/ipfs/go-ipfs/core/corehttp"
 	"github.com/op/go-logging"
-	"github.com/phoreproject/openbazaar-go/core"
-	"github.com/phoreproject/openbazaar-go/repo"
 )
 
 var log = logging.MustGetLogger("api")
@@ -17,17 +17,17 @@ var log = logging.MustGetLogger("api")
 type Gateway struct {
 	listener   net.Listener
 	handler    http.Handler
-	config     repo.APIConfig
+	config     schema.APIConfig
 	shutdownCh chan struct{}
 }
 
 // NewGateway instantiates a new `Gateway`
-func NewGateway(n *core.OpenBazaarNode, authCookie http.Cookie, l net.Listener, config repo.APIConfig, logger logging.Backend, options ...corehttp.ServeOption) (*Gateway, error) {
+func NewGateway(n *core.OpenBazaarNode, authCookie http.Cookie, l net.Listener, config schema.APIConfig, logger logging.Backend, options ...corehttp.ServeOption) (*Gateway, error) {
 
 	log.SetBackend(logging.AddModuleLevel(logger))
 	topMux := http.NewServeMux()
 
-	jsonAPI, err := newJSONAPIHandler(n, authCookie, config)
+	jsonAPI, err := newJsonAPIHandler(n, authCookie, config)
 	if err != nil {
 		return nil, err
 	}
