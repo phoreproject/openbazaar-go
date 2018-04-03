@@ -25,7 +25,7 @@ import (
 )
 
 const (
-	ListingVersion           = 3
+	ListingVersion           = 2
 	TitleMaxCharacters       = 140
 	ShortDescriptionLength   = 160
 	DescriptionMaxCharacters = 50000
@@ -217,7 +217,7 @@ func (n *OpenBazaarNode) SignListing(listing *pb.Listing) (*pb.SignedListing, er
 /* Sets the inventory for the listing in the database. Does some basic validation
    to make sure the inventory uses the correct variants. */
 func (n *OpenBazaarNode) SetListingInventory(listing *pb.Listing) error {
-	err := validateListingSkus(listing)
+	err := validateSkus(listing.Item.Skus)
 	if err != nil {
 		return err
 	}
@@ -1244,12 +1244,13 @@ func validateMarketPriceListing(listing *pb.Listing) error {
 		return ErrMarketPriceListingIllegalField("item.price")
 	}
 
-func validateListingSkus(listing *pb.Listing) error {
-	if listing.Metadata.ContractType == pb.Listing_Metadata_CRYPTOCURRENCY {
-		for _, sku := range listing.Item.Skus {
-			if sku.Quantity < 1 {
-				return ErrCryptocurrencySkuQuantityInvalid
-			}
+	return nil
+}
+
+func validateSkus(skus []*pb.Listing_Item_Sku) error {
+	for _, sku := range skus {
+		if sku.Quantity < 1 {
+			return ErrSkuQuantityInvalid
 		}
 	}
 	return nil
