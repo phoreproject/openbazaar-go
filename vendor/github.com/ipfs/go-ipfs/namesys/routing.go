@@ -29,9 +29,9 @@ var UsePersistentCache bool
 
 // routingResolver implements NSResolver for the main IPFS SFS-like naming
 type routingResolver struct {
-	routing   routing.ValueStore
-	datastore ds.Datastore
-	cache     *lru.Cache
+	routing            routing.ValueStore
+	datastore          ds.Datastore
+	cache              *lru.Cache
 }
 
 func (r *routingResolver) cacheGet(name string) (path.Path, bool) {
@@ -105,9 +105,9 @@ func NewRoutingResolver(route routing.ValueStore, cachesize int, ds ds.Datastore
 	}
 
 	return &routingResolver{
-		routing:   route,
-		cache:     cache,
-		datastore: ds,
+		routing:            route,
+		cache:              cache,
+		datastore:          ds,
 	}
 }
 
@@ -141,24 +141,15 @@ func (r *routingResolver) resolveOnce(ctx context.Context, name string) (path.Pa
 		return "", err
 	}
 
-<<<<<<< HEAD
 	suffix := ""
 	if len(split) > 1 {
 		suffix = ":" + split[1]
 		name += suffix
-=======
-	if len(split) > 1 {
-		name += ":" + split[1]
->>>>>>> 106e60e1... Add inventory publishing functions
 	}
 
 	// use the routing system to get the name.
 	// /ipns/<name>
-<<<<<<< HEAD
 	h := []byte("/ipns/" + string(hash) + suffix)
-=======
-	h := []byte("/ipns/" + name)
->>>>>>> 106e60e1... Add inventory publishing functions
 
 	var entry *pb.IpnsEntry
 	var pubkey ci.PubKey
@@ -249,11 +240,7 @@ func (r *routingResolver) resolveOnce(ctx context.Context, name string) (path.Pa
 		r.cacheSet(name, p, entry)
 		go func() {
 			r.datastore.Put(ds.NewKey(cachePrefix+name), val)
-<<<<<<< HEAD
 			r.datastore.Put(ds.NewKey(keyCachePrefix+hash.B58String()), pubkeyBytes)
-=======
-			r.datastore.Put(ds.NewKey(keyCachePrefix+string(hash)), pubkeyBytes)
->>>>>>> 106e60e1... Add inventory publishing functions
 		}()
 		return p, nil
 	} else {
@@ -263,11 +250,7 @@ func (r *routingResolver) resolveOnce(ctx context.Context, name string) (path.Pa
 		r.cacheSet(name, p, entry)
 		go func() {
 			r.datastore.Put(ds.NewKey(cachePrefix+name), val)
-<<<<<<< HEAD
 			r.datastore.Put(ds.NewKey(keyCachePrefix+hash.B58String()), pubkeyBytes)
-=======
-			r.datastore.Put(ds.NewKey(keyCachePrefix+string(hash)), pubkeyBytes)
->>>>>>> 106e60e1... Add inventory publishing functions
 		}()
 		return p, nil
 	}
