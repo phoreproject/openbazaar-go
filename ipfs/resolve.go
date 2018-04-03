@@ -1,12 +1,12 @@
 package ipfs
 
 import (
-	"time"
+	"context"
 
 	"github.com/ipfs/go-ipfs/commands"
 	coreCmds "github.com/ipfs/go-ipfs/core/commands"
-	"context"
 	"gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
+	"time"
 )
 
 // Publish a signed IPNS record to our Peer ID
