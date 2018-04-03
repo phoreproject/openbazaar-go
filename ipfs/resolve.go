@@ -1,12 +1,11 @@
 package ipfs
 
 import (
-	"context"
-
 	"github.com/ipfs/go-ipfs/commands"
 	coreCmds "github.com/ipfs/go-ipfs/core/commands"
-	"gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
 	"time"
+	"context"
+	"gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
 )
 
 // Publish a signed IPNS record to our Peer ID
@@ -20,7 +19,7 @@ func Resolve(ctx commands.Context, hash string, timeout time.Duration) (string, 
 	cmd.Run(req, res)
 	resp := res.Output()
 	if res.Error() != nil {
-		log.Error(res.Error())
+		log.Error(res.Error(), hash)
 		return "", res.Error()
 	}
 	returnedVal := resp.(*coreCmds.ResolvedPath)

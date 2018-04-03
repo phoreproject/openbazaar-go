@@ -2,130 +2,46 @@ package core
 
 import (
 	"encoding/json"
-	"errors"
-	"gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
+	"os"
+	"path"
+	"github.com/OpenBazaar/openbazaar-go/ipfs"
+	"crypto/sha256"
+	"io/ioutil"
+	"encoding/hex"
+	ipfsPath "github.com/ipfs/go-ipfs/path"
 	"time"
-
-	"github.com/phoreproject/openbazaar-go/api/notifications"
-	"github.com/phoreproject/openbazaar-go/repo"
+	"github.com/ipfs/go-ipfs/namesys"
+	"gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
 )
 
-var (
-	ipfsInventoryCacheMaxDuration = 1 * time.Hour
-
-	ErrInventoryNotFoundForSlug = errors.New("Could not find slug in inventory")
-)
-
-// InventoryListing is the listing representation stored on IPFS
-type InventoryListing struct {
-	Inventory   int64  `json:"inventory"`
-	LastUpdated string `json:"lastUpdated"`
-}
-
-// Inventory is the complete inventory representation stored on IPFS
-// It maps slug -> quantity information
-type Inventory map[string]*InventoryListing
-
-// GetLocalInventory gets the inventory from the database
-func (n *OpenBazaarNode) GetLocalInventory() (Inventory, error) {
-	listings, err := n.Datastore.Inventory().GetAll()
+func (n *OpenBazaarNode) PublishInventory(inventory interface{}) error {
+	inv, err := json.MarshalIndent(inventory, "", "    ")
 	if err != nil {
-		return nil, err
+		return err
 	}
+	h := sha256.Sum256(inv)
 
-	inventory := make(Inventory, len(listings))
-	var totalCount int64
-	for slug, variants := range listings {
-		totalCount = 0
-		for _, variantCount := range variants {
-			totalCount += variantCount
-		}
-
-		inventory[slug] = &InventoryListing{
-			Inventory:   totalCount,
-			LastUpdated: time.Now().UTC().Format(time.RFC3339),
-		}
-	}
-
-	return inventory, nil
-}
-
-// GetLocalInventoryForSlug gets the local inventory for the given slug
-func (n *OpenBazaarNode) GetLocalInventoryForSlug(slug string) (*InventoryListing, error) {
-	variants, err := n.Datastore.Inventory().Get(slug)
+	tmpPath := path.Join(n.RepoPath, hex.EncodeToString(h[:])+".json" )
+	err = ioutil.WriteFile(tmpPath, inv, os.ModePerm)
 	if err != nil {
-		return nil, err
+		return err
 	}
-
-	var inventory *InventoryListing
-	var totalCount int64
-	for _, variantCount := range variants {
-		totalCount += variantCount
+	hash, err := ipfs.AddFile(n.Context, tmpPath)
+	if err != nil {
+		return err
 	}
-
-	inventory = &InventoryListing{
-		Inventory:   totalCount,
-		LastUpdated: time.Now().UTC().Format(time.RFC3339),
-	}
-
-	return inventory, nil
-}
-
-// PublishInventory stores an inventory on IPFS
-func (n *OpenBazaarNode) PublishInventory() error {
-	inventory, err := n.GetLocalInventory()
+	err = os.Remove(tmpPath)
 	if err != nil {
 		return err
 	}
 
-	n.Broadcast <- notifications.StatusNotification{"publishing"}
-	go func() {
-		hash, err := repo.PublishObjectToIPFS(n.Context, n.IpfsNode, n.RepoPath, "inventory", inventory)
-		if err != nil {
-			log.Error(err)
-			n.Broadcast <- notifications.StatusNotification{"error publishing"}
-			return
-		}
-
-		n.Broadcast <- notifications.StatusNotification{"publish complete"}
-
-		err = n.sendToPushNodes(hash)
-		if err != nil {
-			log.Error(err)
-		}
-	}()
-
-	return nil
+	return ipfs.PublishAltRoot(n.Context, "inventory", ipfsPath.FromString("/ipfs/"+hash), time.Now().Add(namesys.DefaultPublishLifetime))
 }
 
-// GetPublishedInventoryBytes gets a byte slice representing the given peer's
-// inventory that it published to IPFS
-func (n *OpenBazaarNode) GetPublishedInventoryBytes(p peer.ID, useCache bool) ([]byte, error) {
-	var cacheLength time.Duration
-	if useCache {
-		cacheLength = ipfsInventoryCacheMaxDuration
-	}
-	return repo.GetObjectFromIPFS(n.Context, p, "inventory", cacheLength)
-}
-
-// GetPublishedInventoryBytesForSlug gets a byte slice representing the given
-// slug's inventory from IPFS
-func (n *OpenBazaarNode) GetPublishedInventoryBytesForSlug(p peer.ID, slug string, useCache bool) ([]byte, error) {
-	bytes, err := n.GetPublishedInventoryBytes(p, useCache)
+func (n *OpenBazaarNode) GetInventory(p peer.ID) ([]byte, error) {
+	root, err := ipfs.ResolveAltRoot(n.Context, p, "inventory", time.Minute)
 	if err != nil {
 		return nil, err
 	}
-
-	inventory := Inventory{}
-	err = json.Unmarshal(bytes, &inventory)
-	if err != nil {
-		return nil, err
-	}
-
-	listingInventory, ok := inventory[slug]
-	if !ok {
-		return nil, ErrInventoryNotFoundForSlug
-	}
-
-	return json.Marshal(listingInventory)
+	return ipfs.Cat(n.Context, root, time.Minute)
 }
