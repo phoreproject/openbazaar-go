@@ -307,13 +307,13 @@ func TestCasesGetCaseMetaData(t *testing.T) {
 		t.Errorf("Expected state %s got %s", pb.OrderState_DISPUTED, state)
 	}
 	if read != false {
-		t.Errorf("Expected read=%t got %t", false, read)
+		t.Errorf("Expected read=%v got %v", false, read)
 	}
 	if date.After(time.Now()) || date.Equal(time.Time{}) {
 		t.Error("Case timestamp invalid")
 	}
 	if !buyerOpened {
-		t.Errorf("Expected buyerOpened=%t got %t", true, buyerOpened)
+		t.Errorf("Expected buyerOpened=%v got %v", true, buyerOpened)
 	}
 	if claim != "blah" {
 		t.Errorf("Expected claim=%s got %s", "blah", claim)
@@ -366,10 +366,10 @@ func TestGetPayoutDetails(t *testing.T) {
 			t.Errorf("Expected outpoint hash %s got %s", o.Hash, buyerTestOutpoints[i].Hash)
 		}
 		if o.Index != buyerTestOutpoints[i].Index {
-			t.Errorf("Expected outpoint index %d got %d", o.Index, buyerTestOutpoints[i].Index)
+			t.Errorf("Expected outpoint index %v got %v", o.Index, buyerTestOutpoints[i].Index)
 		}
 		if o.Value != buyerTestOutpoints[i].Value {
-			t.Errorf("Expected outpoint value %d got %d", o.Value, buyerTestOutpoints[i].Value)
+			t.Errorf("Expected outpoint value %v got %v", o.Value, buyerTestOutpoints[i].Value)
 		}
 	}
 	if len(vendorOutpoints) != len(vendorTestOutpoints) {
@@ -380,10 +380,10 @@ func TestGetPayoutDetails(t *testing.T) {
 			t.Errorf("Expected outpoint hash %s got %s", o.Hash, vendorTestOutpoints[i].Hash)
 		}
 		if o.Index != vendorTestOutpoints[i].Index {
-			t.Errorf("Expected outpoint index %d got %d", o.Index, vendorTestOutpoints[i].Index)
+			t.Errorf("Expected outpoint index %v got %v", o.Index, vendorTestOutpoints[i].Index)
 		}
 		if o.Value != vendorTestOutpoints[i].Value {
-			t.Errorf("Expected outpoint value %d got %d", o.Value, vendorTestOutpoints[i].Value)
+			t.Errorf("Expected outpoint value %v got %v", o.Value, vendorTestOutpoints[i].Value)
 		}
 	}
 	if state != pb.OrderState_DISPUTED {
