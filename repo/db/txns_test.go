@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"database/sql"
 	"encoding/hex"
-	"github.com/phoreproject/btcd/wire"
 	"github.com/phoreproject/openbazaar-go/repo"
+	"github.com/phoreproject/btcd/wire"
 	"sync"
 	"testing"
 	"time"
@@ -144,14 +144,11 @@ func TestTxnsDB_UpdateHeight(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	err = txdb.UpdateHeight(tx.TxHash(), -1, time.Now())
+	err = txdb.UpdateHeight(tx.TxHash(), -1)
 	if err != nil {
 		t.Error(err)
 	}
 	txn, err := txdb.Get(tx.TxHash())
-	if err != nil {
-		t.Error(err)
-	}
 	if txn.Height != -1 {
 		t.Error("Txn db failed to update height")
 	}

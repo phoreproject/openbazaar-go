@@ -122,8 +122,7 @@ func (t *TxnsDB) Delete(txid *chainhash.Hash) error {
 	return nil
 }
 
-//TODO what to do with that timestamp???
-func (t *TxnsDB) UpdateHeight(txid chainhash.Hash, height int, timestamp time.Time) error {
+func (t *TxnsDB) UpdateHeight(txid chainhash.Hash, height int) error {
 	t.lock.Lock()
 	defer t.lock.Unlock()
 	tx, err := t.db.Begin()

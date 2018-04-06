@@ -6,9 +6,7 @@ package phored
 import (
 	"bytes"
 	"errors"
-	"sync"
-	"time"
-
+	"github.com/phoreproject/wallet-interface"
 	"github.com/phoreproject/btcd/blockchain"
 	"github.com/phoreproject/btcd/chaincfg"
 	"github.com/phoreproject/btcd/chaincfg/chainhash"
@@ -17,7 +15,8 @@ import (
 	"github.com/phoreproject/btcutil"
 	"github.com/phoreproject/btcutil/bloom"
 	"github.com/phoreproject/spvwallet"
-	wallet "github.com/phoreproject/wallet-interface"
+	"sync"
+	"time"
 )
 
 // TxStore handles transactions we've sent and our addresses
@@ -351,14 +350,14 @@ func (ts *TxStore) Ingest(tx *wire.MsgTx, height int32) (uint32, error) {
 			txn.Timestamp = time.Now()
 			shouldCallback = true
 			var buf bytes.Buffer
-			tx.BtcEncode(&buf, 1, wire.BaseEncoding)
+			tx.BtcEncode(&buf, wire.ProtocolVersion, wire.WitnessEncoding)
 			ts.Txns().Put(buf.Bytes(), tx.TxHash().String(), int(value), int(height), txn.Timestamp, hits == 0)
 			ts.txids[tx.TxHash().String()] = height
 		}
 		// Let's check the height before committing so we don't allow rogue peers to send us a lose
 		// tx that resets our height to zero.
 		if txn.Height <= 0 {
-			ts.Txns().UpdateHeight(tx.TxHash(), int(height), txn.Timestamp)
+			ts.Txns().UpdateHeight(tx.TxHash(), int(height))
 			ts.txids[tx.TxHash().String()] = height
 			if height > 0 {
 				cb.Value = txn.Value
@@ -388,7 +387,7 @@ func (ts *TxStore) markAsDead(txid chainhash.Hash) error {
 		if err != nil {
 			return err
 		}
-		err = ts.Txns().UpdateHeight(s.SpendTxid, -1, time.Now())
+		err = ts.Txns().UpdateHeight(s.SpendTxid, -1)
 		if err != nil {
 			return err
 		}
@@ -427,7 +426,7 @@ func (ts *TxStore) markAsDead(txid chainhash.Hash) error {
 			}
 		}
 	}
-	ts.Txns().UpdateHeight(txid, -1, time.Now())
+	ts.Txns().UpdateHeight(txid, -1)
 	return nil
 }
 
