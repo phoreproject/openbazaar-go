@@ -2,7 +2,6 @@ package phored
 
 import (
 	"bytes"
-	"crypto/sha256"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -509,9 +508,8 @@ func (w *RPCWallet) SweepAddress(utxos []wallet.Utxo, address *btc.Address, key 
 		}
 	}
 
-	hashes := txscript.NewTxSigHashes(tx)
 	for i, txIn := range tx.TxIn {
-		if redeemScript == nil {
+		if !timeLocked {
 			prevOutScript := additionalPrevScripts[txIn.PreviousOutPoint]
 			script, err := txscript.SignTxOutput(w.params,
 				tx, i, prevOutScript, txscript.SigHashAll, getKey,
@@ -521,23 +519,35 @@ func (w *RPCWallet) SweepAddress(utxos []wallet.Utxo, address *btc.Address, key 
 			}
 			txIn.SignatureScript = script
 		} else {
-			sig, err := txscript.RawTxInWitnessSignature(tx, hashes, i, utxos[i].Value, *redeemScript, txscript.SigHashAll, privKey)
+			priv, err := key.ECPrivKey()
 			if err != nil {
 				return nil, err
 			}
-			var witness wire.TxWitness
-			if timeLocked {
-				witness = wire.TxWitness{sig, []byte{}}
-			} else {
-				witness = wire.TxWitness{[]byte{}, sig}
+			script, err := txscript.RawTxInSignature(tx, i, *redeemScript, txscript.SigHashAll, priv)
+			if err != nil {
+				return nil, err
 			}
-			witness = append(witness, *redeemScript)
-			txIn.Witness = witness
+			builder := txscript.NewScriptBuilder().
+				AddData(script).
+				AddOp(txscript.OP_0).
+				AddData(*redeemScript)
+			scriptSig, _ := builder.Script()
+			txIn.SignatureScript = scriptSig
+			tx.Version = 2
+			locktime, err := spvwallet.LockTimeFromRedeemScript(*redeemScript)
+			if err != nil {
+				return nil, err
+			}
+			txIn.Sequence = locktime
+
 		}
 	}
 
 	// broadcast
-	w.Broadcast(tx)
+	err = w.Broadcast(tx)
+	if err != nil {
+		return nil, err
+	}
 	txid := tx.TxHash()
 	return &txid, nil
 }
@@ -649,9 +659,8 @@ func (w *RPCWallet) CreateMultisigSignature(ins []wallet.TransactionInput, outs 
 		return sigs, err
 	}
 
-	hashes := txscript.NewTxSigHashes(tx)
 	for i := range tx.TxIn {
-		sig, err := txscript.RawTxInWitnessSignature(tx, hashes, i, ins[i].Value, redeemScript, txscript.SigHashAll, signingKey)
+		sig, err := txscript.RawTxInSignature(tx, i, redeemScript, txscript.SigHashAll, signingKey)
 		if err != nil {
 			continue
 		}
@@ -889,9 +898,7 @@ func (w *RPCWallet) GenerateMultisigScript(keys []hd.ExtendedKey, threshold int,
 		return nil, nil, err
 	}
 
-	witnessProgram := sha256.Sum256(redeemScript)
-
-	addr, err = btc.NewAddressWitnessScriptHash(witnessProgram[:], w.params)
+	addr, err = btc.NewAddressScriptHash(redeemScript, w.params)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -954,21 +961,28 @@ func (w *RPCWallet) Multisign(ins []wallet.TransactionInput, outs []wallet.Trans
 				break
 			}
 		}
-
-		witness := wire.TxWitness{[]byte{}, sig1, sig2}
+		builder := txscript.NewScriptBuilder()
+		builder.AddOp(txscript.OP_0)
+		builder.AddData(sig1)
+		builder.AddData(sig2)
 
 		if timeLocked {
-			witness = append(witness, []byte{0x01})
+			builder.AddOp(txscript.OP_1)
 		}
-		witness = append(witness, redeemScript)
-		input.Witness = witness
+
+		builder.AddData(redeemScript)
+		scriptSig, err := builder.Script()
+		if err != nil {
+			return nil, err
+		}
+		input.SignatureScript = scriptSig
 	}
 	// broadcast
 	if broadcast {
 		w.Broadcast(tx)
 	}
 	var buf bytes.Buffer
-	tx.BtcEncode(&buf, wire.ProtocolVersion, wire.WitnessEncoding)
+	tx.BtcEncode(&buf, wire.ProtocolVersion, wire.BaseEncoding)
 	return buf.Bytes(), nil
 }
 
