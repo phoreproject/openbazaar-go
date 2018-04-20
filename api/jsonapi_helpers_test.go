@@ -10,10 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/phoreproject/openbazaar-go/bitcoin/phored"
-	"github.com/OpenBazaar/jsonpb"
-	"github.com/phoreproject/openbazaar-go/test"
-	"github.com/golang/protobuf/proto"
+	"github.com/OpenBazaar/openbazaar-go/test"
 
 	manet "gx/ipfs/QmX3U3YXCQ6UYBxq2LVWF8dARS1hPUTEYLrSx654Qyxyw6/go-multiaddr-net"
 	ma "gx/ipfs/QmXY77cVe7rVRQXZZQRioukUM7aRW3BTcAgJe12MCtb3Ji/go-multiaddr"
@@ -57,11 +54,6 @@ func newTestGateway() (*Gateway, error) {
 		return nil, err
 	}
 
-	node.Wallet.Start()
-
-	// always phored so we can safely cast here
-	<-node.Wallet.(*phored.RPCWallet).InitChan()
-
 	return NewGateway(node, *test.GetAuthCookie(), listener.NetListener(), *apiConfig, logging.NewLogBackend(os.Stdout, "", 0))
 }
 
@@ -88,34 +80,43 @@ func request(req *http.Request) (*http.Response, error) {
 	return resp, nil
 }
 
-func resetTestRepo(t *testing.T) {
+// buildRequest issues an http request directly to the blackbox handler
+func buildRequest(method string, path string, body string) (*http.Request, error) {
+	// Create a JSON request to the given endpoint
+	req, err := http.NewRequest(method, testURIRoot+path, bytes.NewBufferString(body))
+	if err != nil {
+		return nil, err
+	}
+
+	// Set headers/auth/cookie
+	req.Header.Add("Content-Type", "application/json")
+	req.SetBasicAuth("test", "test")
+	req.AddCookie(test.GetAuthCookie())
+
+	return req, nil
+}
+
+func runAPITests(t *testing.T, tests apiTests) {
+	// Create test repo
 	repository, err := test.NewRepository()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	repository.Reset()
+	// Reset repo state
+	err = repository.Reset()
 	if err != nil {
 		t.Fatal(err)
 	}
-}
-
-func runAPITests(t *testing.T, tests apiTests) {
-	resetTestRepo(t)
 
 	// Run each test in serial
 	for _, jsonAPITest := range tests {
-		executeAPITest(t, jsonAPITest)
+		runAPITest(t, jsonAPITest)
 	}
 }
 
+// runTest executes the given test against the blackbox
 func runAPITest(t *testing.T, test apiTest) {
-	resetTestRepo(t)
-	executeAPITest(t, test)
-}
-
-// executeAPITest executes the given test against the blackbox
-func executeAPITest(t *testing.T, test apiTest) {
 	// Make the request
 	req, err := buildRequest(test.method, test.path, test.requestBody)
 	if err != nil {
@@ -161,34 +162,4 @@ func executeAPITest(t *testing.T, test apiTest) {
 			t.Fatal("Incorrect response")
 		}
 	}
-}
-
-// buildRequest issues an http request directly to the blackbox handler
-func buildRequest(method string, path string, body string) (*http.Request, error) {
-	// Create a JSON request to the given endpoint
-	req, err := http.NewRequest(method, testURIRoot+path, bytes.NewBufferString(body))
-	if err != nil {
-		return nil, err
-	}
-
-	// Set headers/auth/cookie
-	req.Header.Add("Content-Type", "application/json")
-	req.SetBasicAuth("test", "test")
-	req.AddCookie(test.GetAuthCookie())
-
-	return req, nil
-}
-
-func errorResponseJSON(err error) string {
-	return `{"success": false, "reason": "` + err.Error() + `"}`
-}
-
-func jsonFor(t *testing.T, fixture proto.Message) string {
-	m := jsonpb.Marshaler{}
-
-	json, err := m.MarshalToString(fixture)
-	if err != nil {
-		t.Fatal(err)
-	}
-	return json
 }
