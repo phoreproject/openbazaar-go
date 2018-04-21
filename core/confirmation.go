@@ -8,13 +8,13 @@ import (
 
 	"time"
 
-	"github.com/phoreproject/wallet-interface"
+	"github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/ptypes"
 	"github.com/phoreproject/btcd/chaincfg/chainhash"
 	"github.com/phoreproject/btcd/wire"
 	hd "github.com/phoreproject/btcutil/hdkeychain"
-	"github.com/golang/protobuf/proto"
-	"github.com/golang/protobuf/ptypes"
 	"github.com/phoreproject/openbazaar-go/pb"
+	"github.com/phoreproject/wallet-interface"
 )
 
 // NewOrderConfirmation method creates order confirmation for a new order with order ID, payment address, timestamp, rating signatures,
@@ -242,7 +242,7 @@ func (n *OpenBazaarNode) RejectOfflineOrder(contract *pb.RicardianContract, reco
 	return nil
 }
 
-// ValidateOrderConfirmation method confirms the order ID, requested payment amount, rating signatures 
+// ValidateOrderConfirmation method confirms the order ID, requested payment amount, rating signatures
 // for moderated payments, wallet address, and signatures on order confirmation.
 func (n *OpenBazaarNode) ValidateOrderConfirmation(contract *pb.RicardianContract, validateAddress bool) error {
 	orderID, err := n.CalcOrderID(contract.BuyerOrder)

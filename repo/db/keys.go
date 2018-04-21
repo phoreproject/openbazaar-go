@@ -4,8 +4,8 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"errors"
-	"github.com/phoreproject/wallet-interface"
 	"github.com/phoreproject/btcd/btcec"
+	"github.com/phoreproject/wallet-interface"
 	"strconv"
 	"sync"
 )

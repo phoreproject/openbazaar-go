@@ -6,11 +6,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/phoreproject/wallet-interface"
+	"github.com/golang/protobuf/ptypes"
 	"github.com/phoreproject/btcd/chaincfg"
 	"github.com/phoreproject/btcutil"
-	"github.com/golang/protobuf/ptypes"
 	"github.com/phoreproject/openbazaar-go/pb"
+	"github.com/phoreproject/wallet-interface"
 )
 
 var saldb SalesDB
