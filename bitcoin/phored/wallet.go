@@ -1083,3 +1083,7 @@ func (w *RPCWallet) RetrieveTransactions() error {
 	}
 	return nil
 }
+
+func (w *RPCWallet) InitChan() chan struct{} {
+	return w.initChan
+}
