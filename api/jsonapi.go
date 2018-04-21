@@ -30,7 +30,7 @@ import (
 	"io/ioutil"
 
 	"github.com/OpenBazaar/jsonpb"
-	wallet "github.com/OpenBazaar/wallet-interface"
+	wallet "github.com/phoreproject/wallet-interface"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/ipfs/go-ipfs/core/coreunix"
