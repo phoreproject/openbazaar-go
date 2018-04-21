@@ -30,7 +30,6 @@ import (
 	"io/ioutil"
 
 	"github.com/OpenBazaar/jsonpb"
-	wallet "github.com/phoreproject/wallet-interface"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/ipfs/go-ipfs/core/coreunix"
@@ -45,6 +44,7 @@ import (
 	"github.com/phoreproject/openbazaar-go/ipfs"
 	"github.com/phoreproject/openbazaar-go/pb"
 	"github.com/phoreproject/openbazaar-go/repo"
+	wallet "github.com/phoreproject/wallet-interface"
 )
 
 // JSONAPIConfig stores information about the configuration of the API
