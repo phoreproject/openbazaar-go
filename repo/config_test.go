@@ -4,11 +4,12 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/ipfs/go-ipfs/repo/fsrepo"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/ipfs/go-ipfs/repo/fsrepo"
 )
 
 const testConfigFolder = "testdata"
@@ -67,40 +68,12 @@ func TestGetWalletConfig(t *testing.T) {
 		t.Error(err)
 	}
 	config, err := GetWalletConfig(configFile)
-	if config.FeeAPI != "https://btc.fees.openbazaar.org" {
-		t.Error("FeeApi does not equal expected value")
+	if config.RPCLocation != "rpc.phore.io" {
+		t.Error("RPCLocation does not equal expected value")
 	}
-	if config.TrustedPeer != "127.0.0.1:8333" {
-		t.Error("TrustedPeer does not equal expected value")
-	}
-	if config.Type != "spvwallet" {
+	if config.Type != "phored" {
 		t.Error("Type does not equal expected value")
 	}
-	if config.RPCUser != "username" {
-		t.Error("RPC user does not equal expected value")
-	}
-	if config.RPCPassword != "password" {
-		t.Error("RPC password does not equal expected value")
-	}
-	if config.Binary != "/path/to/bitcoind" {
-		t.Error("Binary does not equal expected value")
-	}
-	if config.LowFeeDefault != 20 {
-		t.Error("Expected low to be 20, got ", config.LowFeeDefault)
-	}
-	if config.MediumFeeDefault != 40 {
-		t.Error("Expected medium to be 40, got ", config.MediumFeeDefault)
-	}
-	if config.HighFeeDefault != 60 {
-		t.Error("Expected high to be 60, got ", config.HighFeeDefault)
-	}
-	if config.MaxFee != 2000 {
-		t.Error("Expected maxFee to be 2000, got ", config.MaxFee)
-	}
-	if err != nil {
-		t.Error("GetFeeAPI threw an unexpected error")
-	}
-
 	_, err = GetWalletConfig([]byte{})
 	if err == nil {
 		t.Error("GetFeeAPI didn't throw an error")

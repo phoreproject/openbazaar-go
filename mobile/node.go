@@ -14,6 +14,7 @@ import (
 	"github.com/phoreproject/openbazaar-go/repo"
 
 	lis "github.com/phoreproject/openbazaar-go/bitcoin/listeners"
+	"github.com/phoreproject/openbazaar-go/bitcoin/phored"
 	rep "github.com/phoreproject/openbazaar-go/net/repointer"
 	ret "github.com/phoreproject/openbazaar-go/net/retriever"
 	"github.com/phoreproject/openbazaar-go/net/service"
@@ -28,15 +29,11 @@ import (
 	p2phost "gx/ipfs/QmaSxYRuMq4pkpBBG2CYaRrPx2z7NmMVEs34b9g61biQA6/go-libp2p-host"
 	recpb "gx/ipfs/QmbxkgUceEcuSZ4ZdBA3x74VUDSSYjHYmmeEqkjxbtZ6Jg/go-libp2p-record/pb"
 	"io/ioutil"
-	"net"
 	"net/http"
-	"net/url"
 	"path"
 	"time"
 
 	bstk "github.com/OpenBazaar/go-blockstackclient"
-	"github.com/OpenBazaar/spvwallet"
-	wallet "github.com/OpenBazaar/wallet-interface"
 	"github.com/ipfs/go-ipfs/commands"
 	ipfscore "github.com/ipfs/go-ipfs/core"
 	bitswap "github.com/ipfs/go-ipfs/exchange/bitswap/network"
@@ -84,9 +81,6 @@ func NewNode(config NodeConfig) (*Node, error) {
 		return nil, err
 	}
 
-	// Get creation date. Ignore the error and use a default timestamp.
-	creationDate, _ := sqliteDB.Config().GetCreationDate()
-
 	// Load config
 	configFile, err := ioutil.ReadFile(path.Join(config.RepoPath, "config"))
 	if err != nil {
@@ -103,10 +97,6 @@ func NewNode(config NodeConfig) (*Node, error) {
 		return nil, err
 	}
 
-	walletCfg, err := repo.GetWalletConfig(configFile)
-	if err != nil {
-		return nil, err
-	}
 	resolverConfig, err := repo.GetResolverConfig(configFile)
 	if err != nil {
 		return nil, err
@@ -174,43 +164,12 @@ func NewNode(config NodeConfig) (*Node, error) {
 	}
 	var params chaincfg.Params
 	if config.Testnet {
-		params = chaincfg.TestNet3Params
+		params = chaincfg.MainNetParams
 	} else {
 		params = chaincfg.MainNetParams
 	}
 
-	var wallet wallet.Wallet
-	var tp net.Addr
-	if config.WalletTrustedPeer != "" {
-		tp, err = net.ResolveTCPAddr("tcp", walletCfg.TrustedPeer)
-		if err != nil {
-			return nil, err
-		}
-	}
-	feeAPI, err := url.Parse(walletCfg.FeeAPI)
-	if err != nil {
-		return nil, err
-	}
-	spvwalletConfig := &spvwallet.Config{
-		Mnemonic:     mn,
-		Params:       &params,
-		MaxFee:       uint64(walletCfg.MaxFee),
-		LowFee:       uint64(walletCfg.LowFeeDefault),
-		MediumFee:    uint64(walletCfg.MediumFeeDefault),
-		HighFee:      uint64(walletCfg.HighFeeDefault),
-		FeeAPI:       *feeAPI,
-		RepoPath:     config.RepoPath,
-		CreationDate: creationDate,
-		DB:           sqliteDB,
-		UserAgent:    "OpenBazaar",
-		TrustedPeer:  tp,
-		Logger:       logger,
-	}
-	core.PublishLock.Lock()
-	wallet, err = spvwallet.NewSPVWallet(spvwalletConfig)
-	if err != nil {
-		return nil, err
-	}
+	wallet := phored.NewRPCWallet(mn, &params, config.RepoPath, sqliteDB, "rpc.phore.io")
 
 	exchangeRates := exchange.NewBitcoinPriceFetcher(nil)
 
@@ -316,11 +275,11 @@ func (n *Node) Start() error {
 
 	configFile, err := ioutil.ReadFile(path.Join(n.node.RepoPath, "config"))
 	if err != nil {
-		return nil, err
+		return err
 	}
 	republishInterval, err := repo.GetRepublishInterval(configFile)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	// Offline messaging storage

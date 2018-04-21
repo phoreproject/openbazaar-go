@@ -19,8 +19,8 @@ func TestOpenBazaarNode_CalculateOrderTotal(t *testing.T) {
 			Metadata: &pb.Listing_Metadata{
 				ContractType:       pb.Listing_Metadata_PHYSICAL_GOOD,
 				Format:             pb.Listing_Metadata_FIXED_PRICE,
-				AcceptedCurrencies: []string{"BTC"},
-				PricingCurrency:    "BTC",
+				AcceptedCurrencies: []string{"PHR"},
+				PricingCurrency:    "PHR",
 				Version:            2,
 			},
 			Item: &pb.Listing_Item{

@@ -16,3 +16,12 @@
 [submodule "vendor/github.com/phoreproject/btcd"]
 	path = vendor/github.com/phoreproject/btcd
 	url = https://github.com/phoreproject/btcd
+[submodule "vendor/github.com/gogo/protobuf"]
+	path = vendor/github.com/gogo/protobuf
+	url = https://github.com/gogo/protobuf
+[submodule "vendor/github.com/icrowley/fake"]
+	path = vendor/github.com/icrowley/fake
+	url = https://github.com/icrowley/fake
+[submodule "vendor/github.com/corpix/uarand"]
+	path = vendor/github.com/corpix/uarand
+	url = https://github.com/corpix/uarand

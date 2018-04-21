@@ -53,7 +53,7 @@ func init() {
 	payment := new(pb.Order_Payment)
 	payment.Amount = 10
 	payment.Method = pb.Order_Payment_DIRECT
-	payment.Address = "3BDbGsH5h5ctDiFtWMmZawcf3E7iWirVms"
+	payment.Address = "PK5fSKzv5nGqzFT1mbEK21U8wf2Sj8QqQd"
 	order.Payment = payment
 	contract.BuyerOrder = order
 }
@@ -364,10 +364,10 @@ func TestGetPayoutDetails(t *testing.T) {
 			t.Errorf("Expected outpoint hash %s got %s", o.Hash, buyerTestOutpoints[i].Hash)
 		}
 		if o.Index != buyerTestOutpoints[i].Index {
-			t.Errorf("Expected outpoint index %s got %s", o.Index, buyerTestOutpoints[i].Index)
+			t.Errorf("Expected outpoint index %d got %d", o.Index, buyerTestOutpoints[i].Index)
 		}
 		if o.Value != buyerTestOutpoints[i].Value {
-			t.Errorf("Expected outpoint value %s got %s", o.Value, buyerTestOutpoints[i].Value)
+			t.Errorf("Expected outpoint value %d got %d", o.Value, buyerTestOutpoints[i].Value)
 		}
 	}
 	if len(vendorOutpoints) != len(vendorTestOutpoints) {
@@ -378,10 +378,10 @@ func TestGetPayoutDetails(t *testing.T) {
 			t.Errorf("Expected outpoint hash %s got %s", o.Hash, vendorTestOutpoints[i].Hash)
 		}
 		if o.Index != vendorTestOutpoints[i].Index {
-			t.Errorf("Expected outpoint index %s got %s", o.Index, vendorTestOutpoints[i].Index)
+			t.Errorf("Expected outpoint index %d got %d", o.Index, vendorTestOutpoints[i].Index)
 		}
 		if o.Value != vendorTestOutpoints[i].Value {
-			t.Errorf("Expected outpoint value %s got %s", o.Value, vendorTestOutpoints[i].Value)
+			t.Errorf("Expected outpoint value %d got %d", o.Value, vendorTestOutpoints[i].Value)
 		}
 	}
 	if state != pb.OrderState_DISPUTED {

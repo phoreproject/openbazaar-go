@@ -84,6 +84,7 @@ func NewRPCWallet(mnemonic string, params *chaincfg.Params, repoPath string, DB 
 		connCfg:          connCfg,
 		rpcBasePath:      host,
 		rpcLock:          new(sync.Mutex),
+		initChan:         make(chan struct{}),
 	}
 	return &w
 }
@@ -114,6 +115,8 @@ func (w *RPCWallet) Start() {
 		return
 	}
 	w.notifications = n
+
+	close(w.initChan)
 
 	err = w.RetrieveTransactions()
 	if err != nil {
@@ -189,7 +192,6 @@ func (w *RPCWallet) Start() {
 
 	log.Info("Connected to phored")
 	w.started = true
-	close(w.initChan)
 }
 
 // CurrencyCode returns the currency code of the wallet

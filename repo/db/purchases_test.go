@@ -52,7 +52,7 @@ func init() {
 	payment := new(pb.Order_Payment)
 	payment.Amount = 10
 	payment.Method = pb.Order_Payment_DIRECT
-	payment.Address = "3BDbGsH5h5ctDiFtWMmZawcf3E7iWirVms"
+	payment.Address = "PK5fSKzv5nGqzFT1mbEK21U8wf2Sj8QqQd"
 	order.Payment = payment
 	contract.BuyerOrder = order
 }
@@ -274,7 +274,7 @@ func TestPurchasesGetByPaymentAddress(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	addr, err = btcutil.DecodeAddress("19bsDJeYjH6JX1pvsCcA8Qt5LQmPYt7Mry", &chaincfg.MainNetParams)
+	addr, err = btcutil.DecodeAddress("PUxo8xZwGYYasHGmkdQo3YnE7ZTyZuwwzK", &chaincfg.MainNetParams)
 	if err != nil {
 		t.Error(err)
 	}

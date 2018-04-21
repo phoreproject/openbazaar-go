@@ -47,6 +47,7 @@ func startNotificationListener(wallet *RPCWallet) (*NotificationListener, error)
 
 	log.Infof("Connecting to %s", u.String())
 	conn, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
+	log.Infof("Connected to websockets!")
 
 	if err != nil {
 		return nil, err

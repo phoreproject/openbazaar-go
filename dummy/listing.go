@@ -145,16 +145,6 @@ IMAGE_LOOP:
 						EstimatedDelivery: fake.Digits() + " days",
 					},
 				},
-				ShippingRules: &pb.Listing_ShippingOption_ShippingRules{
-					RuleType: pb.Listing_ShippingOption_ShippingRules_FLAT_FEE_QUANTITY_RANGE,
-					Rules: []*pb.Listing_ShippingOption_ShippingRules_Rule{
-						{
-							MinRange: 0,
-							MaxRange: 999,
-							Price:    uint64(rand.Intn(999)),
-						},
-					},
-				},
 			},
 		},
 
