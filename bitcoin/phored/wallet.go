@@ -109,14 +109,14 @@ func (w *RPCWallet) Start() {
 	}
 	ticker.Stop()
 
+	close(w.initChan)
+
 	n, err := startNotificationListener(w)
 	if err != nil {
 		log.Error(err)
 		return
 	}
 	w.notifications = n
-
-	close(w.initChan)
 
 	err = w.RetrieveTransactions()
 	if err != nil {

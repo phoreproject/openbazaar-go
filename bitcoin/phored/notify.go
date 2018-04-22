@@ -104,18 +104,24 @@ func startNotificationListener(wallet *RPCWallet) (*NotificationListener, error)
 				transaction := wire.NewMsgTx(1)
 				transaction.BtcDecode(bytes.NewReader(txBytes), 1, wire.BaseEncoding)
 
-				blockhash, err := chainhash.NewHashFromStr(getTx.BlockHash)
-				if err != nil {
-					log.Error(err)
-					continue
-				}
-				block, err := wallet.rpcClient.GetBlockVerbose(blockhash)
-				if err != nil {
-					log.Error(err)
-					continue
+				var blockHeight int32
+
+				if getTx.BlockHash != "" {
+					blockhash, err := chainhash.NewHashFromStr(getTx.BlockHash)
+					if err != nil {
+						log.Error(err)
+						continue
+					}
+
+					block, err := wallet.rpcClient.GetBlockVerbose(blockhash)
+					if err != nil {
+						log.Error(err)
+						continue
+					}
+					blockHeight = int32(block.Height)
 				}
 
-				hits, err := wallet.DB.Ingest(transaction, int32(block.Height))
+				hits, err := wallet.DB.Ingest(transaction, blockHeight)
 				if err != nil {
 					log.Errorf("Error ingesting tx: %s\n", err.Error())
 					continue
