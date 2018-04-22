@@ -122,15 +122,11 @@
     "Last": ""
   },
   "Wallet": {
-    "Binary": "/path/to/bitcoind",
-    "FeeAPI": "https://btc.fees.openbazaar.org",
-    "HighFeeDefault": 60,
+    "HighFeeDefault": 160,
     "LowFeeDefault": 20,
     "MaxFee": 2000,
-    "MediumFeeDefault": 40,
-    "RPCPassword": "password",
-    "RPCUser": "username",
-    "TrustedPeer": "127.0.0.1:8333",
-    "Type": "bitcoind"
+    "MediumFeeDefault": 60,
+    "RPCLocation": "rpc.phore.io",
+    "Type": "phored"
   }
 }

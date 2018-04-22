@@ -2,8 +2,9 @@ package db
 
 import (
 	"database/sql"
-	"github.com/phoreproject/openbazaar-go/repo"
 	"testing"
+
+	"github.com/phoreproject/openbazaar-go/repo"
 )
 
 var metDB TxMetadataDB
@@ -40,7 +41,7 @@ func TestTxMetadataDB_Put(t *testing.T) {
 	if memo != m.Memo {
 		t.Error("TxMetadataDB failed to put memo")
 	}
-	if orderId != m.OrderId {
+	if orderId != m.OrderID {
 		t.Error("TxMetadataDB failed to put order ID")
 	}
 	if thumbnail != m.Thumbnail {
@@ -69,7 +70,7 @@ func TestTxMetadataDB_Get(t *testing.T) {
 	if ret.Memo != m.Memo {
 		t.Error("TxMetadataDB failed to get memo")
 	}
-	if ret.OrderId != m.OrderId {
+	if ret.OrderID != m.OrderID {
 		t.Error("TxMetadataDB failed to get order ID")
 	}
 	if ret.Thumbnail != m.Thumbnail {
@@ -105,7 +106,7 @@ func TestTxMetadataDB_GetAll(t *testing.T) {
 	if ret.Memo != m.Memo {
 		t.Error("TxMetadataDB failed to get memo")
 	}
-	if ret.OrderId != m.OrderId {
+	if ret.OrderID != m.OrderID {
 		t.Error("TxMetadataDB failed to get order ID")
 	}
 	if ret.Thumbnail != m.Thumbnail {

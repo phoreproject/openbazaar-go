@@ -711,7 +711,7 @@ const statusBadPeerIDJSONResponse = `{"status": "error parsing peerID"}`
 
 const walletMneumonicJSONResponse = `{"mnemonic": "correct horse battery staple"}`
 
-const walletAddressJSONResponse = `{"address": "moLsBry5Dk8AN3QT3i1oxZdwD12MYRfTL5"}`
+const walletAddressJSONResponse = `{"address": "PGR63nGwTeB6ZmbbgDMxoYPsxkbXhTmnRn"}`
 
 const walletBalanceJSONResponse = `{"confirmed": 0, "unconfirmed": 0}`
 
@@ -720,7 +720,7 @@ const walletBalanceJSONResponse = `{"confirmed": 0, "unconfirmed": 0}`
 //
 
 const spendJSON = `{
-	"address": "1HYhu8e2wv19LZ2umXoo1pMiwzy2rL32UQ",
+	"address": "PGR63nGwTeB6ZmbbgDMxoYPsxkbXhTmnRn",
 	"amount": 1700000,
 	"feeLevel": "NORMAL"
 }`

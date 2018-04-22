@@ -11,8 +11,8 @@ import (
 	"os"
 	"path"
 
-	"github.com/phoreproject/btcd/btcec"
 	"github.com/golang/protobuf/proto"
+	"github.com/phoreproject/btcd/btcec"
 	"github.com/phoreproject/openbazaar-go/pb"
 )
 

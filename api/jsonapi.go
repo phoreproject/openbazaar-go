@@ -39,11 +39,12 @@ import (
 	"github.com/phoreproject/btcd/chaincfg/chainhash"
 	"github.com/phoreproject/btcutil/base58"
 	"github.com/phoreproject/openbazaar-go/api/notifications"
+	"github.com/phoreproject/openbazaar-go/bitcoin/phored"
 	"github.com/phoreproject/openbazaar-go/core"
 	"github.com/phoreproject/openbazaar-go/ipfs"
 	"github.com/phoreproject/openbazaar-go/pb"
 	"github.com/phoreproject/openbazaar-go/repo"
-	"github.com/phoreproject/wallet-interface"
+	wallet "github.com/phoreproject/wallet-interface"
 )
 
 // JSONAPIConfig stores information about the configuration of the API
@@ -781,6 +782,14 @@ func (i *jsonAPIHandler) GETMnemonic(w http.ResponseWriter, r *http.Request) {
 }
 
 func (i *jsonAPIHandler) GETBalance(w http.ResponseWriter, r *http.Request) {
+	t := time.NewTicker(60 * time.Second)
+	select {
+	case <-i.node.Wallet.(*phored.RPCWallet).InitChan():
+		break
+	case <-t.C:
+		ErrorResponse(w, http.StatusServiceUnavailable, "ERROR_WALLET_UNINITIALIZED")
+		return
+	}
 	confirmed, unconfirmed := i.node.Wallet.Balance()
 	SanitizedResponse(w, fmt.Sprintf(`{"confirmed": %d, "unconfirmed": %d}`, int(confirmed), int(unconfirmed)))
 }
@@ -812,7 +821,7 @@ func (i *jsonAPIHandler) POSTSpendCoins(w http.ResponseWriter, r *http.Request) 
 	}
 	addr, err := i.node.Wallet.DecodeAddress(snd.Address)
 	if err != nil {
-		ErrorResponse(w, http.StatusBadRequest, err.Error())
+		ErrorResponse(w, http.StatusBadRequest, "ERROR_INVALID_ADDRESS")
 		return
 	}
 	txid, err := i.node.Wallet.Spend(snd.Amount, addr, feeLevel)

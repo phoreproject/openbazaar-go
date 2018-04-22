@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/phoreproject/openbazaar-go/bitcoin/phored"
 	"github.com/phoreproject/openbazaar-go/test"
 
 	manet "gx/ipfs/QmX3U3YXCQ6UYBxq2LVWF8dARS1hPUTEYLrSx654Qyxyw6/go-multiaddr-net"
@@ -53,6 +54,11 @@ func newTestGateway() (*Gateway, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	node.Wallet.Start()
+
+	// always phored so we can safely cast here
+	<-node.Wallet.(*phored.RPCWallet).InitChan()
 
 	return NewGateway(node, *test.GetAuthCookie(), listener.NetListener(), *apiConfig, logging.NewLogBackend(os.Stdout, "", 0))
 }

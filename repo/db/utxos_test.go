@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"database/sql"
 	"encoding/hex"
-	"github.com/phoreproject/wallet-interface"
 	"github.com/phoreproject/btcd/chaincfg/chainhash"
 	"github.com/phoreproject/btcd/wire"
+	"github.com/phoreproject/wallet-interface"
 	"strconv"
 	"testing"
 )

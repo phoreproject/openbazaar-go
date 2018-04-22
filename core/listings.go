@@ -16,10 +16,10 @@ import (
 	"time"
 
 	"github.com/OpenBazaar/jsonpb"
-	"github.com/phoreproject/btcd/chaincfg"
 	"github.com/golang/protobuf/proto"
 	"github.com/kennygrant/sanitize"
 	"github.com/microcosm-cc/bluemonday"
+	"github.com/phoreproject/btcd/chaincfg"
 	"github.com/phoreproject/openbazaar-go/ipfs"
 	"github.com/phoreproject/openbazaar-go/pb"
 	"github.com/phoreproject/openbazaar-go/repo"

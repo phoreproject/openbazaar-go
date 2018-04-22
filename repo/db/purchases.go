@@ -3,13 +3,14 @@ package db
 import (
 	"database/sql"
 	"encoding/json"
+	"sync"
+	"time"
+
 	"github.com/OpenBazaar/jsonpb"
-	"github.com/phoreproject/wallet-interface"
 	btc "github.com/phoreproject/btcutil"
 	"github.com/phoreproject/openbazaar-go/pb"
 	"github.com/phoreproject/openbazaar-go/repo"
-	"sync"
-	"time"
+	"github.com/phoreproject/wallet-interface"
 )
 
 type PurchasesDB struct {

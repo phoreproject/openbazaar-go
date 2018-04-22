@@ -1,0 +1,36 @@
+[submodule "vendor/github.com/phoreproject/wallet-interface"]
+	path = vendor/github.com/phoreproject/wallet-interface
+	url = https://github.com/phoreproject/wallet-interface
+	ignore = dirty
+[submodule "vendor/github.com/dropbox/dropbox-sdk-go-unofficial"]
+	path = vendor/github.com/dropbox/dropbox-sdk-go-unofficial
+	url = https://github.com/dropbox/dropbox-sdk-go-unofficial
+	ignore = dirty
+[submodule "vendor/github.com/phoreproject/spvwallet"]
+	path = vendor/github.com/phoreproject/spvwallet
+	url = https://github.com/phoreproject/spvwallet
+	ignore = dirty
+[submodule "vendor/github.com/phoreproject/btcwallet"]
+	path = vendor/github.com/phoreproject/btcwallet
+	url = https://github.com/phoreproject/btcwallet
+	ignore = dirty
+[submodule "vendor/github.com/phoreproject/btcutil"]
+	path = vendor/github.com/phoreproject/btcutil
+	url = https://github.com/phoreproject/btcutil
+	ignore = dirty
+[submodule "vendor/github.com/phoreproject/btcd"]
+	path = vendor/github.com/phoreproject/btcd
+	url = https://github.com/phoreproject/btcd
+	ignore = dirty
+[submodule "vendor/github.com/gogo/protobuf"]
+	path = vendor/github.com/gogo/protobuf
+	url = https://github.com/gogo/protobuf
+	ignore = dirty
+[submodule "vendor/github.com/icrowley/fake"]
+	path = vendor/github.com/icrowley/fake
+	url = https://github.com/icrowley/fake
+	ignore = dirty
+[submodule "vendor/github.com/corpix/uarand"]
+	path = vendor/github.com/corpix/uarand
+	url = https://github.com/corpix/uarand
+	ignore = dirty

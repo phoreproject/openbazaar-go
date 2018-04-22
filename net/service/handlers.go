@@ -12,18 +12,18 @@ import (
 	blocks "gx/ipfs/QmSn9Td7xgxm9EV7iEjTckpUWmWApggzPxu7eFGWkkpwin/go-block-format"
 	"strconv"
 
-	"github.com/phoreproject/wallet-interface"
+	"github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/ptypes"
+	"github.com/golang/protobuf/ptypes/any"
 	"github.com/phoreproject/btcd/chaincfg/chainhash"
 	"github.com/phoreproject/btcd/wire"
 	"github.com/phoreproject/btcutil"
 	hd "github.com/phoreproject/btcutil/hdkeychain"
-	"github.com/golang/protobuf/proto"
-	"github.com/golang/protobuf/ptypes"
-	"github.com/golang/protobuf/ptypes/any"
 	"github.com/phoreproject/openbazaar-go/api/notifications"
 	"github.com/phoreproject/openbazaar-go/core"
 	"github.com/phoreproject/openbazaar-go/net"
 	"github.com/phoreproject/openbazaar-go/pb"
+	"github.com/phoreproject/wallet-interface"
 )
 
 // HandlerForMsgType returns a handler function for a given message type
