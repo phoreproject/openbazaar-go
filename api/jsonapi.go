@@ -782,10 +782,11 @@ func (i *jsonAPIHandler) GETMnemonic(w http.ResponseWriter, r *http.Request) {
 }
 
 func (i *jsonAPIHandler) GETBalance(w http.ResponseWriter, r *http.Request) {
+	t := time.NewTicker(60 * time.Second)
 	select {
 	case <-i.node.Wallet.(*phored.RPCWallet).InitChan():
 		break
-	default:
+	case <-t.C:
 		ErrorResponse(w, http.StatusServiceUnavailable, "ERROR_WALLET_UNINITIALIZED")
 		return
 	}
