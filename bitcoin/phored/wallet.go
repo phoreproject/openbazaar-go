@@ -145,8 +145,7 @@ func (w *RPCWallet) Start() {
 		if err != nil {
 			if strings.HasPrefix(err.Error(), "-27") {
 				// transaction is already in the blockchain, so go retrieve it
-				var watchOnly bool
-				res, err := w.rpcClient.GetTransaction(&hash, &watchOnly)
+				res, err := w.rpcClient.GetRawTransactionVerbose(&hash)
 				if err != nil {
 					log.Error(err)
 					continue

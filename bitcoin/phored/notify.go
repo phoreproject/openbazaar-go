@@ -11,6 +11,7 @@ import (
 	"github.com/gorilla/websocket"
 	logging "github.com/op/go-logging"
 	"github.com/phoreproject/btcd/btcjson"
+	"github.com/phoreproject/btcd/chaincfg/chainhash"
 	"github.com/phoreproject/btcd/wire"
 )
 
@@ -42,6 +43,8 @@ func (n *NotificationListener) updateFilterAndSend() {
 }
 
 func startNotificationListener(wallet *RPCWallet) (*NotificationListener, error) {
+	<-wallet.InitChan()
+
 	notificationListener := &NotificationListener{wallet: wallet}
 	u := url.URL{Scheme: "wss", Host: wallet.rpcBasePath, Path: "/ws"}
 
@@ -101,7 +104,18 @@ func startNotificationListener(wallet *RPCWallet) (*NotificationListener, error)
 				transaction := wire.NewMsgTx(1)
 				transaction.BtcDecode(bytes.NewReader(txBytes), 1, wire.BaseEncoding)
 
-				hits, err := wallet.DB.Ingest(transaction, 0)
+				blockhash, err := chainhash.NewHashFromStr(getTx.BlockHash)
+				if err != nil {
+					log.Error(err)
+					continue
+				}
+				block, err := wallet.rpcClient.GetBlockVerbose(blockhash)
+				if err != nil {
+					log.Error(err)
+					continue
+				}
+
+				hits, err := wallet.DB.Ingest(transaction, int32(block.Height))
 				if err != nil {
 					log.Errorf("Error ingesting tx: %s\n", err.Error())
 					continue
