@@ -10,7 +10,7 @@ import (
 	"path"
 	"time"
 
-	"github.com/phoreproject/openbazaar-go/ipfs"
+	"github.com/OpenBazaar/openbazaar-go/ipfs"
 	"github.com/ipfs/go-ipfs/namesys"
 	ipfsPath "github.com/ipfs/go-ipfs/path"
 )
@@ -50,7 +50,7 @@ func (n *OpenBazaarNode) PublishModelToIPFS(model string, data interface{}) erro
 
 // GetModelFromIPFS gets the requested model from ipfs or the local cache
 func (n *OpenBazaarNode) GetModelFromIPFS(p peer.ID, model string, maxCacheLen time.Duration) ([]byte, error) {
-	entry, ok := getModelFromIPFSCache[getIPFSCacheKey(p, model)]
+	entry, ok := getModelFromIPFSCache[p.Pretty()+"|"+model]
 	if !ok {
 		return n.fetchModelFromIPFS(p, model)
 	}
@@ -68,18 +68,5 @@ func (n *OpenBazaarNode) fetchModelFromIPFS(p peer.ID, model string) ([]byte, er
 	if err != nil {
 		return nil, err
 	}
-	bytes, err := ipfs.Cat(n.Context, root, time.Minute)
-	if err != nil {
-		return nil, err
-	}
-	getModelFromIPFSCache[getIPFSCacheKey(p, model)] = getModelFromIPFSCacheEntry{
-		bytes:   bytes,
-		created: time.Now(),
-	}
-
-	return bytes, nil
-}
-
-func getIPFSCacheKey(p peer.ID, model string) string {
-	return p.Pretty() + "|" + model
+	return ipfs.Cat(n.Context, root, time.Minute)
 }
