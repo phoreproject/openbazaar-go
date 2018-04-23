@@ -111,9 +111,7 @@ func ReadPassword(fd int) ([]byte, error) {
 		return nil, err
 	}
 
-	defer func() {
-		syscall.Syscall6(syscall.SYS_IOCTL, uintptr(fd), ioctlWriteTermios, uintptr(unsafe.Pointer(&oldState)), 0, 0, 0)
-	}()
+	defer unix.IoctlSetTermios(fd, ioctlWriteTermios, termios)
 
 	return readPasswordLine(passwordReader(fd))
 }

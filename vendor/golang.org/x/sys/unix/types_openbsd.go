@@ -17,6 +17,7 @@ package unix
 #define KERNEL
 #include <dirent.h>
 #include <fcntl.h>
+#include <poll.h>
 #include <signal.h>
 #include <termios.h>
 #include <stdio.h>
@@ -35,6 +36,7 @@ package unix
 #include <sys/time.h>
 #include <sys/uio.h>
 #include <sys/un.h>
+#include <sys/utsname.h>
 #include <sys/wait.h>
 #include <net/bpf.h>
 #include <net/if.h>
@@ -125,6 +127,12 @@ type Flock_t C.struct_flock
 type Dirent C.struct_dirent
 
 type Fsid C.fsid_t
+
+// File system limits
+
+const (
+	PathMax = C.PATH_MAX
+)
 
 // Sockets
 
@@ -242,3 +250,8 @@ type BpfTimeval C.struct_bpf_timeval
 // Terminal handling
 
 type Termios C.struct_termios
+
+
+// Uname
+
+type Utsname C.struct_utsname
