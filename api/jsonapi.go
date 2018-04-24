@@ -808,7 +808,7 @@ func (i *jsonAPIHandler) GETConfig(w http.ResponseWriter, r *http.Request) {
 		Testnet        bool   `json:"testnet"`
 		Tor            bool   `json:"tor"`
 	}{
-		PeerId:         i.node.IpfsNode.Identity.Pretty(),
+		PeerId:         i.node.IPFSIdentityString(),
 		CryptoCurrency: core.NormalizeCurrencyCode(i.node.Wallet.CurrencyCode()),
 		Testnet:        i.node.TestNetworkEnabled(),
 		Tor:            usingTor,
@@ -1028,7 +1028,7 @@ func (i *jsonAPIHandler) GETExchangeRate(w http.ResponseWriter, r *http.Request)
 
 func (i *jsonAPIHandler) GETFollowers(w http.ResponseWriter, r *http.Request) {
 	_, peerID := path.Split(r.URL.Path)
-	if peerID == "" || strings.ToLower(peerID) == "followers" || peerID == i.node.IpfsNode.Identity.Pretty() {
+	if peerID == "" || strings.ToLower(peerID) == "followers" || peerID == i.node.IPFSIdentityString() {
 		offset := r.URL.Query().Get("offsetID")
 		limit := r.URL.Query().Get("limit")
 		if limit == "" {
@@ -1094,7 +1094,7 @@ func (i *jsonAPIHandler) GETFollowers(w http.ResponseWriter, r *http.Request) {
 
 func (i *jsonAPIHandler) GETFollowing(w http.ResponseWriter, r *http.Request) {
 	_, peerID := path.Split(r.URL.Path)
-	if peerID == "" || strings.ToLower(peerID) == "following" || peerID == i.node.IpfsNode.Identity.Pretty() {
+	if peerID == "" || strings.ToLower(peerID) == "following" || peerID == i.node.IPFSIdentityString() {
 		offset := r.URL.Query().Get("offsetID")
 		limit := r.URL.Query().Get("limit")
 		if limit == "" {
@@ -1148,7 +1148,7 @@ func (i *jsonAPIHandler) GETInventory(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// If we want our own inventory get it from the local database and return
-	getPersonalInventory := (peerIDString == "" || peerIDString == i.node.IpfsNode.Identity.Pretty())
+	getPersonalInventory := (peerIDString == "" || peerIDString == i.node.IPFSIdentityString())
 	if getPersonalInventory {
 		type inv struct {
 			Slug     string `json:"slug"`
@@ -1318,7 +1318,7 @@ func (i *jsonAPIHandler) DELETEModerator(w http.ResponseWriter, r *http.Request)
 
 func (i *jsonAPIHandler) GETListings(w http.ResponseWriter, r *http.Request) {
 	_, peerID := path.Split(r.URL.Path)
-	if peerID == "" || strings.ToLower(peerID) == "listings" || peerID == i.node.IpfsNode.Identity.Pretty() {
+	if peerID == "" || strings.ToLower(peerID) == "listings" || peerID == i.node.IPFSIdentityString() {
 		listingsBytes, err := i.node.GetListings()
 		if err != nil {
 			ErrorResponse(w, http.StatusNotFound, err.Error())
@@ -1351,7 +1351,7 @@ func (i *jsonAPIHandler) GETListing(w http.ResponseWriter, r *http.Request) {
 		Indent:       "    ",
 		OrigName:     false,
 	}
-	if peerID == "" || strings.ToLower(peerID) == "listing" || peerID == i.node.IpfsNode.Identity.Pretty() {
+	if peerID == "" || strings.ToLower(peerID) == "listing" || peerID == i.node.IPFSIdentityString() {
 		sl := new(pb.SignedListing)
 		_, err := cid.Decode(listingId)
 		if err == nil {
@@ -1456,7 +1456,7 @@ func (i *jsonAPIHandler) GETProfile(w http.ResponseWriter, r *http.Request) {
 	cacheBool := r.URL.Query().Get("usecache")
 	useCache, _ := strconv.ParseBool(cacheBool)
 
-	if peerID == "" || strings.ToLower(peerID) == "profile" || peerID == i.node.IpfsNode.Identity.Pretty() {
+	if peerID == "" || strings.ToLower(peerID) == "profile" || peerID == i.node.IPFSIdentityString() {
 		profile, err = i.node.GetProfile()
 		if err != nil && err == core.ErrorProfileNotFound {
 			ErrorResponse(w, http.StatusNotFound, err.Error())
@@ -3171,7 +3171,7 @@ func (i *jsonAPIHandler) GETRatings(w http.ResponseWriter, r *http.Request) {
 	_, peerID := path.Split(urlPath[:len(urlPath)-1])
 
 	var indexBytes []byte
-	if peerID != i.node.IpfsNode.Identity.Pretty() {
+	if peerID != i.node.IPFSIdentityString() {
 		indexBytes, _ = i.node.IPNSResolveThenCat(ipnspath.FromString(path.Join(peerID, "ratings.json")), time.Minute)
 
 	} else {
@@ -3748,7 +3748,7 @@ func (i *jsonAPIHandler) DELETEPost(w http.ResponseWriter, r *http.Request) {
 // GET a list of posts (self or peer)
 func (i *jsonAPIHandler) GETPosts(w http.ResponseWriter, r *http.Request) {
 	_, peerID := path.Split(r.URL.Path)
-	if peerID == "" || strings.ToLower(peerID) == "posts" || peerID == i.node.IpfsNode.Identity.Pretty() {
+	if peerID == "" || strings.ToLower(peerID) == "posts" || peerID == i.node.IPFSIdentityString() {
 		postsBytes, err := i.node.GetPosts()
 		if err != nil {
 			ErrorResponse(w, http.StatusNotFound, err.Error())
@@ -3782,7 +3782,7 @@ func (i *jsonAPIHandler) GETPost(w http.ResponseWriter, r *http.Request) {
 		Indent:       "    ",
 		OrigName:     false,
 	}
-	if peerID == "" || strings.ToLower(peerID) == "post" || peerID == i.node.IpfsNode.Identity.Pretty() {
+	if peerID == "" || strings.ToLower(peerID) == "post" || peerID == i.node.IPFSIdentityString() {
 		sl := new(pb.SignedPost)
 		_, err := cid.Decode(postId)
 		if err == nil {
