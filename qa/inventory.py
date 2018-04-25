@@ -51,7 +51,7 @@ class InventoryTest(OpenBazaarTestFramework):
         resp = json.loads(r.text)
         if r.status_code != 200:
             raise TestFailure("InventoryTest - FAIL: Profile GET failed. Reason: %s", resp["reason"])
-        alicePeerID = resp["peerId"]
+        alicePeerID = resp["peerID"]
 
         # Get own inventory
         api_url = bob["gateway_url"] + "ob/inventory"
