@@ -6,6 +6,8 @@ import (
 	"errors"
 	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
 	"time"
+
+	"github.com/phoreproject/openbazaar-go/repo"
 )
 
 var (
@@ -45,7 +47,7 @@ func (n *OpenBazaarNode) PublishInventory() error {
 		}
 	}
 
-	return n.PublishModelToIPFS("inventory", inventory)
+	return repo.PublishObjectToIPFS(n.Context, n.IpfsNode, n.RepoPath, "inventory", inventory)
 }
 
 // GetPublishedInventoryBytes gets a byte slice representing the given peer's
@@ -55,7 +57,7 @@ func (n *OpenBazaarNode) GetPublishedInventoryBytes(p peer.ID, useCache bool) ([
 	if useCache {
 		cacheLength = ipfsInventoryCacheMaxDuration
 	}
-	return n.GetModelFromIPFS(p, "inventory", cacheLength)
+	return repo.GetObjectFromIPFS(n.Context, p, "inventory", cacheLength)
 }
 
 // GetPublishedInventoryBytesForSlug gets a byte slice representing the given
