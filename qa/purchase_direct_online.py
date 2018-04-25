@@ -16,6 +16,7 @@ class PurchaseDirectOnlineTest(OpenBazaarTestFramework):
         buyer = self.nodes[1]
 
         # generate some coins and send them to buyer
+        time.sleep(4)
         api_url = buyer["gateway_url"] + "wallet/address"
         r = requests.get(api_url)
         if r.status_code == 200:
@@ -34,14 +35,11 @@ class PurchaseDirectOnlineTest(OpenBazaarTestFramework):
         api_url = vendor["gateway_url"] + "ob/profile"
         requests.post(api_url, data=json.dumps(profile_json, indent=4))
 
-        # post profile for alice
-        with open('testdata/profile.json') as profile_file:
-            profile_json = json.load(profile_file, object_pairs_hook=OrderedDict)
-        api_url = alice["gateway_url"] + "ob/profile"
-        requests.post(api_url, data=json.dumps(profile_json, indent=4))
-
+        # post listing to vendor
         with open('testdata/listing.json') as listing_file:
             listing_json = json.load(listing_file, object_pairs_hook=OrderedDict)
+        if self.bitcoincash:
+            listing_json["metadata"]["pricingCurrency"] = "tbch"
 
         api_url = vendor["gateway_url"] + "ob/listing"
         r = requests.post(api_url, data=json.dumps(listing_json, indent=4))
@@ -135,24 +133,8 @@ class PurchaseDirectOnlineTest(OpenBazaarTestFramework):
         if resp["funded"] == False:
             raise TestFailure("PurchaseDirectOnlineTest - FAIL: Vendor incorrectly saved as unfunded")
 
-        # buyer send order
-        with open('testdata/order_direct_too_much_quantity.json') as order_file:
-            order_json = json.load(order_file, object_pairs_hook=OrderedDict)
-
-        order_json["items"][0]["listingHash"] = listingId
-        api_url = buyer["gateway_url"] + "ob/purchase"
-        r = requests.post(api_url, data=json.dumps(order_json, indent=4))
-        resp = json.loads(r.text)
-        if r.status_code == 200:
-            raise TestFailure("PurchaseDirectOnlineTest - FAIL: Purchase POST should have failed failed.")
-        if resp["reason"] != "not enough inventory":
-            raise TestFailure("PurchaseDirectOnlineTest - FAIL: Purchase POST failed with incorrect reason: %s", resp["reason"])
-        if resp["code"] != "ERR_INSUFFICIENT_INVENTORY":
-            raise TestFailure("PurchaseDirectOnlineTest - FAIL: Purchase POST failed with incorrect code: %s", resp["code"])
-        if resp["remainingInventory"] != 6:
-            raise TestFailure("PurchaseDirectOnlineTest - FAIL: Purchase POST failed with incorrect remainingInventory: %d", resp["remainingInventory"])
-
         print("PurchaseDirectOnlineTest - PASS")
+
 if __name__ == '__main__':
     print("Running PurchaseDirectOnlineTest")
     PurchaseDirectOnlineTest().main(["--regtest", "--disableexchangerates"])
