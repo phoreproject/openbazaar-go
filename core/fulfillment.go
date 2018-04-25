@@ -104,7 +104,10 @@ func (n *OpenBazaarNode) FulfillOrder(fulfillment *pb.OrderFulfillment, contract
 	}
 
 	if listing.Metadata.ContractType == pb.Listing_Metadata_CRYPTOCURRENCY {
-		validateCryptocurrencyFulfillment(fulfillment)
+		err := validateCryptocurrencyFulfillment(fulfillment)
+		if err != nil {
+			return err
+		}
 	}
 
 	ts, err := ptypes.TimestampProto(time.Now())
