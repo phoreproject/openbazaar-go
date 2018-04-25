@@ -8,20 +8,16 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
-	"sync"
 	"time"
 
-	"github.com/phoreproject/openbazaar-go/ipfs"
+	"github.com/OpenBazaar/openbazaar-go/ipfs"
 	"github.com/ipfs/go-ipfs/commands"
 	"github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/namesys"
 	ipfsPath "github.com/ipfs/go-ipfs/path"
 )
 
-var (
-	getObjectFromIPFSCache   = map[string]getObjectFromIPFSCacheEntry{}
-	getObjectFromIPFSCacheMu = sync.Mutex{}
-)
+var getObjectFromIPFSCache = map[string]getObjectFromIPFSCacheEntry{}
 
 type getObjectFromIPFSCacheEntry struct {
 	bytes   []byte
@@ -29,60 +25,40 @@ type getObjectFromIPFSCacheEntry struct {
 }
 
 // PublishObjectToIPFS writes the given data to IPFS labeled as the given name
-func PublishObjectToIPFS(ctx commands.Context, ipfsNode *core.IpfsNode, tempDir string, name string, data interface{}) (string, error) {
+func PublishObjectToIPFS(ctx commands.Context, ipfsNode *core.IpfsNode, tempDir string, name string, data interface{}) error {
 	serializedData, err := json.MarshalIndent(data, "", "    ")
 	if err != nil {
-		return "", err
+		return err
 	}
 	h := sha256.Sum256(serializedData)
 
 	tmpPath := path.Join(tempDir, hex.EncodeToString(h[:])+".json")
 	err = ioutil.WriteFile(tmpPath, serializedData, os.ModePerm)
 	if err != nil {
-		return "", err
+		return err
 	}
 	hash, err := ipfs.AddFile(ctx, tmpPath)
 	if err != nil {
-		return "", err
+		return err
 	}
 	err = os.Remove(tmpPath)
 	if err != nil {
-		return "", err
+		return err
 	}
 
-	return hash, ipfs.PublishAltRoot(ctx, ipfsNode, name, ipfsPath.FromString("/ipfs/"+hash), time.Now().Add(namesys.DefaultPublishLifetime))
+	return ipfs.PublishAltRoot(ctx, ipfsNode, name, ipfsPath.FromString("/ipfs/"+hash), time.Now().Add(namesys.DefaultPublishLifetime))
 }
 
 // GetObjectFromIPFS gets the requested name from ipfs or the local cache
 func GetObjectFromIPFS(ctx commands.Context, p peer.ID, name string, maxCacheLen time.Duration) ([]byte, error) {
-	getObjectFromIPFSCacheMu.Lock()
-	defer getObjectFromIPFSCacheMu.Unlock()
-
-	fetchAndUpdateCache := func() ([]byte, error) {
-		objBytes, err := fetchObjectFromIPFS(ctx, p, name)
-		if err != nil {
-			return nil, err
-		}
-
-		getObjectFromIPFSCache[getIPFSCacheKey(p, name)] = getObjectFromIPFSCacheEntry{
-			bytes:   objBytes,
-			created: time.Now(),
-		}
-
-		return objBytes, nil
-	}
-
 	entry, ok := getObjectFromIPFSCache[getIPFSCacheKey(p, name)]
-	if !ok || entry.created.Add(maxCacheLen).Before(time.Now()) {
-		return fetchAndUpdateCache()
+	if !ok {
+		return fetchObjectFromIPFS(ctx, p, name)
 	}
 
-	// Update cache in background after a successful read
-	go func() {
-		getObjectFromIPFSCacheMu.Lock()
-		defer getObjectFromIPFSCacheMu.Unlock()
-		fetchAndUpdateCache()
-	}()
+	if entry.created.Add(maxCacheLen).Before(time.Now()) {
+		return fetchObjectFromIPFS(ctx, p, name)
+	}
 
 	return entry.bytes, nil
 }
@@ -93,10 +69,13 @@ func fetchObjectFromIPFS(ctx commands.Context, p peer.ID, name string) ([]byte, 
 	if err != nil {
 		return nil, err
 	}
-
 	bytes, err := ipfs.Cat(ctx, root, time.Minute)
 	if err != nil {
 		return nil, err
+	}
+	getObjectFromIPFSCache[getIPFSCacheKey(p, name)] = getObjectFromIPFSCacheEntry{
+		bytes:   bytes,
+		created: time.Now(),
 	}
 
 	return bytes, nil
