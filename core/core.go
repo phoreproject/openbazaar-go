@@ -8,6 +8,7 @@ import (
 	"path"
 	"time"
 
+<<<<<<< HEAD
 	"github.com/phoreproject/openbazaar-go/bitcoin"
 	"github.com/phoreproject/openbazaar-go/ipfs"
 	"github.com/phoreproject/openbazaar-go/namesys"
@@ -17,15 +18,28 @@ import (
 	"github.com/phoreproject/openbazaar-go/repo"
 	sto "github.com/phoreproject/openbazaar-go/storage"
 	"github.com/phoreproject/wallet-interface"
+=======
+	"gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
+	ds "gx/ipfs/QmVSase1JP7cq9QkPT46oNwdp9pT6kBkG3oqS14y3QcZjG/go-datastore"
+	ma "gx/ipfs/QmXY77cVe7rVRQXZZQRioukUM7aRW3BTcAgJe12MCtb3Ji/go-multiaddr"
+	"sync"
+
+	"github.com/OpenBazaar/openbazaar-go/api/notifications"
+	"github.com/OpenBazaar/openbazaar-go/bitcoin"
+	"github.com/OpenBazaar/openbazaar-go/ipfs"
+	"github.com/OpenBazaar/openbazaar-go/namesys"
+	"github.com/OpenBazaar/openbazaar-go/net"
+	rep "github.com/OpenBazaar/openbazaar-go/net/repointer"
+	ret "github.com/OpenBazaar/openbazaar-go/net/retriever"
+	"github.com/OpenBazaar/openbazaar-go/repo"
+	sto "github.com/OpenBazaar/openbazaar-go/storage"
+	"github.com/OpenBazaar/wallet-interface"
+>>>>>>> 92496cf4... TWEAK: Send alt roots to push nodes.
 	"github.com/ipfs/go-ipfs/commands"
 	"github.com/ipfs/go-ipfs/core"
 	"github.com/op/go-logging"
 	"golang.org/x/net/context"
 	"golang.org/x/net/proxy"
-	"gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
-	ds "gx/ipfs/QmVSase1JP7cq9QkPT46oNwdp9pT6kBkG3oqS14y3QcZjG/go-datastore"
-	ma "gx/ipfs/QmXY77cVe7rVRQXZZQRioukUM7aRW3BTcAgJe12MCtb3Ji/go-multiaddr"
-	"sync"
 )
 
 var (
@@ -156,23 +170,41 @@ func (n *OpenBazaarNode) publish(hash string) {
 		n.Broadcast <- repo.StatusNotification{"publishing"}
 	}
 
-	id, err := cid.Decode(hash)
+	err := n.sendToPushNodes(hash)
 	if err != nil {
 		log.Error(err)
 		return
+	}
+
+	inflightPublishRequests++
+	_, err = ipfs.Publish(n.Context, hash)
+
+	inflightPublishRequests--
+	if inflightPublishRequests == 0 {
+		if err != nil {
+			log.Error(err)
+			n.Broadcast <- notifications.StatusNotification{"error publishing"}
+		} else {
+			n.Broadcast <- notifications.StatusNotification{"publish complete"}
+		}
+	}
+}
+
+func (n *OpenBazaarNode) sendToPushNodes(hash string) error {
+	id, err := cid.Decode(hash)
+	if err != nil {
+		return err
 	}
 
 	var graph []cid.Cid
 	if len(n.PushNodes) > 0 {
 		graph, err = ipfs.FetchGraph(n.IpfsNode.DAG, id)
 		if err != nil {
-			log.Error(err)
-			return
+			return err
 		}
 		pointers, err := n.Datastore.Pointers().GetByPurpose(ipfs.MESSAGE)
 		if err != nil {
-			log.Error(err)
-			return
+			return err
 		}
 		// Check if we're seeding any outgoing messages and add their CIDs to the graph
 		for _, p := range pointers {
@@ -198,6 +230,7 @@ func (n *OpenBazaarNode) publish(hash string) {
 		}(p)
 	}
 
+<<<<<<< HEAD
 	inflightPublishRequests++
 	_, err = ipfs.Publish(n.Context, hash)
 
@@ -210,6 +243,9 @@ func (n *OpenBazaarNode) publish(hash string) {
 			n.Broadcast <- repo.StatusNotification{"publish complete"}
 		}
 	}
+=======
+	return nil
+>>>>>>> 92496cf4... TWEAK: Send alt roots to push nodes.
 }
 
 func (n *OpenBazaarNode) SetUpRepublisher(interval time.Duration) {
