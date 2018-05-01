@@ -81,7 +81,7 @@ func (n *OpenBazaarNode) PublishInventory() error {
 
 	n.Broadcast <- notifications.StatusNotification{"publishing"}
 	go func() {
-		err := repo.PublishObjectToIPFS(n.Context, n.IpfsNode, n.RepoPath, "inventory", inventory)
+		hash, err := repo.PublishObjectToIPFS(n.Context, n.IpfsNode, n.RepoPath, "inventory", inventory)
 		if err != nil {
 			log.Error(err)
 			n.Broadcast <- notifications.StatusNotification{"error publishing"}
@@ -89,6 +89,11 @@ func (n *OpenBazaarNode) PublishInventory() error {
 		}
 
 		n.Broadcast <- notifications.StatusNotification{"publish complete"}
+
+		err = n.sendToPushNodes(hash)
+		if err != nil {
+			log.Error(err)
+		}
 	}()
 
 	return nil
