@@ -203,7 +203,18 @@ func JSONErrorResponse(w http.ResponseWriter, errorCode int, err error) {
 	fmt.Fprint(w, err.Error())
 }
 
-// SanitizedResponse sends a response after cleaning up formatting
+func RenderJSONOrStringError(w http.ResponseWriter, errorCode int, err error) {
+	errStr := err.Error()
+	var jsonObj map[string]interface{}
+	if json.Unmarshal([]byte(errStr), &jsonObj) == nil {
+		JSONErrorResponse(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	ErrorResponse(w, http.StatusInternalServerError, errStr)
+}
+
+//FEATURE: Make out of inventory errors JSON messages that include remaining inventory.
 func SanitizedResponse(w http.ResponseWriter, response string) {
 	ret, err := SanitizeJSON([]byte(response))
 	if err != nil {
@@ -587,13 +598,7 @@ func (i *jsonAPIHandler) POSTPurchase(w http.ResponseWriter, r *http.Request) {
 	}
 	orderID, paymentAddr, amount, online, err := i.node.Purchase(&data)
 	if err != nil {
-		errStr := err.Error()
-		var jsonObj map[string]interface{}
-		if json.Unmarshal([]byte(errStr), &jsonObj) == nil {
-			JSONErrorResponse(w, http.StatusInternalServerError, err)
-			return
-		}
-		ErrorResponse(w, http.StatusInternalServerError, errStr)
+		RenderJSONOrStringError(w, http.StatusInternalServerError, err)
 		return
 	}
 	type purchaseReturn struct {
