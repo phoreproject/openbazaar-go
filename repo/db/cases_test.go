@@ -517,7 +517,7 @@ func TestCasesDB_GetAll(t *testing.T) {
 	}
 }
 
-func TestGetDisputesForNotificationReturnsRelevantRecords(t *testing.T) {
+func TestGetDisputesForDisputeExpiryReturnsRelevantRecords(t *testing.T) {
 	database, _ := sql.Open("sqlite3", ":memory:")
 	setupSQL := []string{
 		schema.PragmaKey(""),
@@ -558,7 +558,7 @@ func TestGetDisputesForNotificationReturnsRelevantRecords(t *testing.T) {
 	}
 
 	casesdb := NewCaseStore(database, new(sync.Mutex))
-	cases, err := casesdb.GetDisputesForNotification()
+	cases, err := casesdb.GetDisputesForDisputeExpiryNotifications()
 	if err != nil {
 		t.Fatal(err)
 	}
