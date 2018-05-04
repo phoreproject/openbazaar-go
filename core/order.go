@@ -39,7 +39,7 @@ type shippingOption struct {
 
 type item struct {
 	ListingHash    string         `json:"listingHash"`
-	Quantity       int            `json:"quantity"`
+	Quantity       uint64         `json:"quantity"`
 	Options        []option       `json:"options"`
 	Shipping       shippingOption `json:"shipping"`
 	Memo           string         `json:"memo"`
@@ -809,20 +809,28 @@ func (n *OpenBazaarNode) CalculateOrderTotal(contract *pb.RicardianContract) (ui
 		var (
 			satoshis     uint64
 			itemTotal    uint64
-			itemQuantity uint32 = item.Quantity
+			itemQuantity uint64
 		)
 
 		l, err := ParseContractForListing(item.ListingHash, contract)
 		if err != nil {
 			return 0, fmt.Errorf("Listing not found in contract for item %s", item.ListingHash)
 		}
+
+		// Continue using the old 32-bit quantity field for all listings less than version 3
+		if l.Metadata.Version < 3 {
+			itemQuantity = uint64(item.Quantity)
+		} else {
+			itemQuantity = item.Quantity64
+		}
+
 		if l.Metadata.ContractType == pb.Listing_Metadata_PHYSICAL_GOOD {
 			physicalGoods[item.ListingHash] = l
 		}
 
 		if l.Metadata.Format == pb.Listing_Metadata_MARKET_PRICE {
+			satoshis, err = n.getMarketPriceInSatoshis(l.Metadata.CoinType, itemQuantity)
 			itemQuantity = 1
-			satoshis, err = n.getMarketPriceInSatoshis(l.Metadata.CoinType, item.Quantity)
 		} else {
 			satoshis, err = n.getPriceInSatoshi(l.Metadata.PricingCurrency, l.Item.Price)
 		}
@@ -1042,7 +1050,7 @@ func (n *OpenBazaarNode) getPriceInSatoshi(currencyCode string, amount uint64) (
 	return uint64(satoshis), nil
 }
 
-func (n *OpenBazaarNode) getMarketPriceInSatoshis(currencyCode string, amount uint32) (uint64, error) {
+func (n *OpenBazaarNode) getMarketPriceInSatoshis(currencyCode string, amount uint64) (uint64, error) {
 	if n.ExchangeRates == nil {
 		return 0, ErrPriceCalculationRequiresExchangeRates
 	}
