@@ -1194,7 +1194,7 @@ collectListings:
 	type inventory struct {
 		Slug    string
 		Variant int
-		Count   int
+		Count   int64
 	}
 	var inventoryList []inventory
 	for _, item := range contract.BuyerOrder.Items {
@@ -1238,7 +1238,11 @@ collectListings:
 			return errors.New("Not all options were selected")
 		}
 		// Create inventory paths to check later
-		inv.Count = int(item.Quantity)
+		if listingMap[item.ListingHash].Metadata.Version < 3 {
+			inv.Count = int64(item.Quantity)
+		} else {
+			inv.Count = int64(item.Quantity64)
+		}
 		inventoryList = append(inventoryList, inv)
 	}
 

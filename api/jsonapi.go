@@ -1347,7 +1347,7 @@ func (i *jsonAPIHandler) POSTInventory(w http.ResponseWriter, r *http.Request) {
 	type inv struct {
 		Slug     string `json:"slug"`
 		Variant  int    `json:"variant"`
-		Quantity int    `json:"quantity"`
+		Quantity int64  `json:"quantity"`
 	}
 	decoder := json.NewDecoder(r.Body)
 	var invList []inv
