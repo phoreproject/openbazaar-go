@@ -35,7 +35,7 @@ func (n *OpenBazaarNode) GetLocalInventory() (Inventory, error) {
 	}
 
 	inventory := make(Inventory, len(listings))
-	var totalCount int
+	var totalCount int64
 	for slug, variants := range listings {
 		totalCount = 0
 		for _, variantCount := range variants {
@@ -43,7 +43,7 @@ func (n *OpenBazaarNode) GetLocalInventory() (Inventory, error) {
 		}
 
 		inventory[slug] = &InventoryListing{
-			Inventory:   int64(totalCount),
+			Inventory:   totalCount,
 			LastUpdated: time.Now().UTC().Format(time.RFC3339),
 		}
 	}
@@ -59,13 +59,13 @@ func (n *OpenBazaarNode) GetLocalInventoryForSlug(slug string) (*InventoryListin
 	}
 
 	var inventory *InventoryListing
-	var totalCount int
+	var totalCount int64
 	for _, variantCount := range variants {
 		totalCount += variantCount
 	}
 
 	inventory = &InventoryListing{
-		Inventory:   int64(totalCount),
+		Inventory:   totalCount,
 		LastUpdated: time.Now().UTC().Format(time.RFC3339),
 	}
 
