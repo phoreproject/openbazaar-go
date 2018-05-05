@@ -1,7 +1,7 @@
 package selfhosted
 
 import (
-	"github.com/phoreproject/openbazaar-go/ipfs"
+	"github.com/OpenBazaar/openbazaar-go/ipfs"
 	"gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
 	"gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
 	"os"
