@@ -20,9 +20,11 @@ type Opts struct {
 }
 type Stop struct{}
 type Restart struct{}
+type Gencerts struct{}
 
 var stopServer Stop
 var restartServer Restart
+var generateCertificates Gencerts
 
 var opts Opts
 
@@ -51,6 +53,10 @@ func main() {
 			os.Exit(1)
 		}
 	}()
+	parser.AddCommand("gencerts",
+		"Generate certificates",
+		"Generate self-singned certificates",
+		&generateCertificates)
 	parser.AddCommand("init",
 		"initialize a new repo and exit",
 		"Initializes a new repo without starting the server",
