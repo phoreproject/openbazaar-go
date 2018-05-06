@@ -90,10 +90,12 @@ var fileLogFormat = logging.MustStringFormatter(
 	`%{time:15:04:05.000} [%{level}] [%{module}/%{shortfunc}] %{message}`,
 )
 
+//ErrNoGateways
 var (
 	ErrNoGateways = errors.New("No gateway addresses configured")
 )
 
+//Start struct
 type Start struct {
 	Password             string   `short:"p" long:"password" description:"the encryption password if the database is encrypted"`
 	Testnet              bool     `short:"t" long:"testnet" description:"use the test network"`
@@ -116,6 +118,7 @@ type Start struct {
 	ZCash                string   `long:"zcash" description:"use a ZCash wallet in a dedicated data directory. To use this you must pass in the location of the zcashd binary."`
 }
 
+//Execute start command
 func (x *Start) Execute(args []string) error {
 	printSplashScreen(x.Verbose)
 
@@ -550,7 +553,7 @@ func (x *Start) Execute(args []string) error {
 				return err
 			}
 		}
-		feeApi, err := url.Parse(walletCfg.FeeAPI)
+		feeAPI, err := url.Parse(walletCfg.FeeAPI)
 		if err != nil {
 			log.Error(err)
 			return err
@@ -562,7 +565,7 @@ func (x *Start) Execute(args []string) error {
 			LowFee:       uint64(walletCfg.LowFeeDefault),
 			MediumFee:    uint64(walletCfg.MediumFeeDefault),
 			HighFee:      uint64(walletCfg.HighFeeDefault),
-			FeeAPI:       *feeApi,
+			FeeAPI:       *feeAPI,
 			RepoPath:     repoPath,
 			CreationDate: creationDate,
 			DB:           sqliteDB,
@@ -587,7 +590,7 @@ func (x *Start) Execute(args []string) error {
 				return err
 			}
 		}
-		feeApi, err := url.Parse(walletCfg.FeeAPI)
+		feeAPI, err := url.Parse(walletCfg.FeeAPI)
 		if err != nil {
 			log.Error(err)
 			return err
@@ -600,7 +603,7 @@ func (x *Start) Execute(args []string) error {
 			LowFee:               uint64(walletCfg.LowFeeDefault),
 			MediumFee:            uint64(walletCfg.MediumFeeDefault),
 			HighFee:              uint64(walletCfg.HighFeeDefault),
-			FeeAPI:               *feeApi,
+			FeeAPI:               *feeAPI,
 			RepoPath:             repoPath,
 			CreationDate:         creationDate,
 			DB:                   sqliteDB,
@@ -709,7 +712,7 @@ func (x *Start) Execute(args []string) error {
 			f.Close()
 		} else {
 			if string(cookie)[:len(cookiePrefix)] != cookiePrefix {
-				return errors.New("Invalid authentication cookie. Delete it to generate a new one.")
+				return errors.New("Invalid authentication cookie. Delete it to generate a new one")
 			}
 			split := strings.SplitAfter(string(cookie), cookiePrefix)
 			authCookie.Value = split[1]
@@ -874,25 +877,30 @@ func printSwarmAddrs(node *ipfscore.IpfsNode) {
 	}
 }
 
+//DummyWriter struct
 type DummyWriter struct{}
 
 func (d *DummyWriter) Write(p []byte) (n int, err error) {
 	return 0, nil
 }
 
+//DummyListener struct
 type DummyListener struct {
 	addr net.Addr
 }
 
+//Addr return addr
 func (d *DummyListener) Addr() net.Addr {
 	return d.addr
 }
 
+//Accept retunr conn
 func (d *DummyListener) Accept() (net.Conn, error) {
 	conn, _ := net.FileConn(nil)
 	return conn, nil
 }
 
+//Close return nil
 func (d *DummyListener) Close() error {
 	return nil
 }
@@ -967,6 +975,7 @@ func newHTTPGateway(node *core.OpenBazaarNode, authCookie http.Cookie, config sc
 	return api.NewGateway(node, authCookie, gwLis.NetListener(), config, ml, opts...)
 }
 
+//DHTOption variable
 var DHTOption ipfscore.RoutingOption = constructDHTRouting
 
 func constructDHTRouting(ctx context.Context, host p2phost.Host, dstore ipfsrepo.Datastore) (routing.IpfsRouting, error) {
@@ -1038,6 +1047,7 @@ func serveHTTPApi(cctx *commands.Context) (<-chan error, error) {
 	return errc, nil
 }
 
+//InitializeRepo initialize repo
 func InitializeRepo(dataDir, password, mnemonic string, testnet bool, creationDate time.Time) (*db.SQLiteDatastore, error) {
 	// Database
 	sqliteDB, err := db.Create(dataDir, password, testnet)
