@@ -2,15 +2,14 @@ package main
 
 import (
 	"fmt"
-	"os"
-	"os/signal"
-	"path/filepath"
-
+	"github.com/phoreproject/openbazaar-go/cmd"
+	"github.com/phoreproject/openbazaar-go/core"
 	lockfile "github.com/ipfs/go-ipfs/repo/fsrepo/lock"
 	"github.com/jessevdk/go-flags"
 	"github.com/op/go-logging"
-	"github.com/phoreproject/openbazaar-go/cmd"
-	"github.com/phoreproject/openbazaar-go/core"
+	"os"
+	"os/signal"
+	"path/filepath"
 )
 
 var log = logging.MustGetLogger("main")
@@ -18,13 +17,13 @@ var log = logging.MustGetLogger("main")
 type Opts struct {
 	Version bool `short:"v" long:"version" description:"Print the version number and exit"`
 }
-
 type Stop struct{}
-
 type Restart struct{}
+type Gencerts struct{}
 
 var stopServer Stop
 var restartServer Restart
+var generateCertificates Gencerts
 
 var opts Opts
 
@@ -39,7 +38,6 @@ func main() {
 			log.Info("OpenBazaar Server shutting down...")
 			if core.Node != nil {
 				if core.Node.MessageRetriever != nil {
-					core.Node.RecordAgingNotifier.Stop()
 					close(core.Node.MessageRetriever.DoneChan)
 					core.Node.MessageRetriever.Wait()
 				}
@@ -54,11 +52,10 @@ func main() {
 			os.Exit(1)
 		}
 	}()
-
 	parser.AddCommand("gencerts",
 		"Generate certificates",
 		"Generate self-singned certificates",
-		&cmd.GenerateCertificates{})
+		&generateCertificates)
 	parser.AddCommand("init",
 		"initialize a new repo and exit",
 		"Initializes a new repo without starting the server",
@@ -95,6 +92,10 @@ func main() {
 		"restore user data",
 		"This command will attempt to restore user data (profile, listings, ratings, etc) by downloading them from the network. This will only work if the IPNS mapping is still available in the DHT. Optionally it will take a mnemonic seed to restore from.",
 		&cmd.Restore{})
+	parser.AddCommand("convert",
+		"convert this node to a different coin type",
+		"This command will convert the node to use a different cryptocurrency",
+		&cmd.Convert{})
 	if len(os.Args) > 1 && (os.Args[1] == "--version" || os.Args[1] == "-v") {
 		fmt.Println(core.VERSION)
 		return
