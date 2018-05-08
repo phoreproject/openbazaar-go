@@ -33,6 +33,7 @@ func (x *Status) Execute(args []string) error {
 	if fsrepo.IsInitialized(repoPath) {
 		sqliteDB, err := db.Create(repoPath, "", x.Testnet)
 		if err != nil {
+			os.Exit(1)
 		}
 		defer sqliteDB.Close()
 		if sqliteDB.Config().IsEncrypted() {
