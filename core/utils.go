@@ -63,7 +63,7 @@ func FormatRFC3339PB(ts google_protobuf.Timestamp) string {
 	return util.FormatRFC3339(time.Unix(ts.Seconds, int64(ts.Nanos)).UTC())
 }
 
-// Used by the GET order API to build transaction records suitable to be included in the order response
+// BuildTransactionRecords is used by the GET order API to build transaction records suitable to be included in the order response
 func (n *OpenBazaarNode) BuildTransactionRecords(contract *pb.RicardianContract, records []*wallet.TransactionRecord, state pb.OrderState) ([]*pb.TransactionRecord, *pb.TransactionRecord, error) {
 	paymentRecords := []*pb.TransactionRecord{}
 	payments := make(map[string]*pb.TransactionRecord)
@@ -119,7 +119,7 @@ func (n *OpenBazaarNode) BuildTransactionRecords(contract *pb.RicardianContract,
 			// Direct we need to use the transaction info in the contract's refund object
 			ch, err := chainhash.NewHashFromStr(contract.Refund.RefundTransaction.Txid)
 			if err != nil {
-				return paymentRecords, refundRecord, err
+				return paymentRecords, refundRecord, nil
 			}
 			confirmations, height, err := n.Wallet.GetConfirmations(*ch)
 			if err != nil {
