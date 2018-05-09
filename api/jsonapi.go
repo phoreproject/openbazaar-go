@@ -1107,17 +1107,17 @@ func (i *jsonAPIHandler) GETClosestPeers(w http.ResponseWriter, r *http.Request)
 func (i *jsonAPIHandler) GETExchangeRate(w http.ResponseWriter, r *http.Request) {
 	_, currencyCode := path.Split(r.URL.Path)
 	if currencyCode == "" || strings.ToLower(currencyCode) == "exchangerate" {
-		currencyMap, err := i.node.ExchangeRates.GetAllRates()
+		currencyMap, err := i.node.ExchangeRates.GetAllRates(true)
 		if err != nil {
 			ErrorResponse(w, http.StatusInternalServerError, err.Error())
 			return
 		}
-		exchangeRateJson, err := json.MarshalIndent(currencyMap, "", "    ")
+		exchangeRateJSON, err := json.MarshalIndent(currencyMap, "", "    ")
 		if err != nil {
 			ErrorResponse(w, http.StatusInternalServerError, err.Error())
 			return
 		}
-		SanitizedResponse(w, string(exchangeRateJson))
+		SanitizedResponse(w, string(exchangeRateJSON))
 
 	} else {
 		rate, err := i.node.ExchangeRates.GetExchangeRate(strings.ToUpper(currencyCode))
@@ -1125,7 +1125,7 @@ func (i *jsonAPIHandler) GETExchangeRate(w http.ResponseWriter, r *http.Request)
 			ErrorResponse(w, http.StatusInternalServerError, err.Error())
 			return
 		}
-		fmt.Fprintf(w, `%.2f`, rate)
+		fmt.Fprintf(w, `%f`, rate)
 	}
 }
 

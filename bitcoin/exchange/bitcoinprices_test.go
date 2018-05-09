@@ -50,7 +50,7 @@ func TestGetAllRates(t *testing.T) {
 	b := setupBitcoinPriceFetcher()
 	b.cache["USD"] = 650.00
 	b.cache["EUR"] = 600.00
-	priceMap, err := b.GetAllRates()
+	priceMap, err := b.GetAllRates(true)
 	if err != nil {
 		t.Error(err)
 	}

@@ -11,7 +11,7 @@ type ExchangeRates interface {
 
 	/* Returns all available rates
 	   It is OK if this returns from cach. */
-	GetAllRates() (map[string]float64, error)
+	GetAllRates(cacheOK bool) (map[string]float64, error)
 
 	/* Return the number of currency units per coin. For example, in bitcoin
 	   this is 100m satoshi per BTC. This is used when converting from fiat

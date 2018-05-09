@@ -3,13 +3,13 @@ package exchange
 import (
 	"encoding/json"
 	"errors"
-	"github.com/op/go-logging"
-	"golang.org/x/net/proxy"
 	"net"
 	"net/http"
-	"strconv"
 	"sync"
 	"time"
+
+	"github.com/op/go-logging"
+	"golang.org/x/net/proxy"
 )
 
 const SatoshiPerBTC = 100000000
@@ -48,7 +48,7 @@ func NewBitcoinPriceFetcher(dialer proxy.Dialer) *BitcoinPriceFetcher {
 	client := &http.Client{Transport: tbTransport, Timeout: time.Minute}
 
 	b.providers = []*ExchangeRateProvider{
-		{"https://api.coinmarketcap.com/v1/ticker/phore", b.cache, client, CMCDecoder{}},
+		{"https://api.coinmarketcap.com/v2/ticker/2158/?convert=", b.cache, client, CMCDecoder{}},
 	}
 	go b.run()
 	return &b
@@ -75,7 +75,13 @@ func (b *BitcoinPriceFetcher) GetLatestRate(currencyCode string) (float64, error
 	return price, nil
 }
 
-func (b *BitcoinPriceFetcher) GetAllRates() (map[string]float64, error) {
+func (b *BitcoinPriceFetcher) GetAllRates(cacheOK bool) (map[string]float64, error) {
+	if !cacheOK {
+		err := b.fetchCurrentRates()
+		if err != nil {
+			return nil, err
+		}
+	}
 	b.Lock()
 	defer b.Unlock()
 	return b.cache, nil
@@ -98,24 +104,32 @@ func (b *BitcoinPriceFetcher) fetchCurrentRates() error {
 	return errors.New("All exchange rate API queries failed")
 }
 
+// CMCValidCurrencies are any currencies that CMC supports converting to
+var CMCValidCurrencies = []string{"BTC", "AUD", "BRL", "CAD", "CHF", "CLP", "CNY", "CZK", "DKK", "EUR", "GBP", "HKD", "HUF", "IDR", "ILS", "INR", "JPY", "KRW", "MXN", "MYR", "NOK", "NZD", "PHP", "PKR", "PLN", "RUB", "SEK", "SGD", "THB", "TRY", "TWD", "ZAR"}
+
 func (provider *ExchangeRateProvider) fetch() (err error) {
-	if len(provider.fetchUrl) == 0 {
-		err = errors.New("Provider has no fetchUrl")
-		return err
+	currencies := make([]interface{}, len(CMCValidCurrencies))
+
+	for i, curr := range CMCValidCurrencies {
+		if len(provider.fetchUrl) == 0 {
+			err = errors.New("Provider has no fetchUrl")
+			return err
+		}
+		resp, err := provider.client.Get(provider.fetchUrl + curr)
+		if err != nil {
+			log.Error("Failed to fetch from "+provider.fetchUrl, err)
+			return err
+		}
+		decoder := json.NewDecoder(resp.Body)
+		var dataMap interface{}
+		err = decoder.Decode(&dataMap)
+		if err != nil {
+			log.Error("Failed to decode JSON from "+provider.fetchUrl, err)
+			return err
+		}
+		currencies[i] = dataMap
 	}
-	resp, err := provider.client.Get(provider.fetchUrl)
-	if err != nil {
-		log.Error("Failed to fetch from "+provider.fetchUrl, err)
-		return err
-	}
-	decoder := json.NewDecoder(resp.Body)
-	var dataMap interface{}
-	err = decoder.Decode(&dataMap)
-	if err != nil {
-		log.Error("Failed to decode JSON from "+provider.fetchUrl, err)
-		return err
-	}
-	return provider.decoder.decode(dataMap, provider.cache)
+	return provider.decoder.decode(currencies, provider.cache)
 }
 
 func (b *BitcoinPriceFetcher) run() {
@@ -128,34 +142,27 @@ func (b *BitcoinPriceFetcher) run() {
 
 // Decoders
 func (b CMCDecoder) decode(dat interface{}, cache map[string]float64) (err error) {
-	data := dat.([]interface{})
-
-	if len(data) < 1 {
-		return errors.New("could not get currency")
-	}
-
-	priceInfo := data[0].(map[string]interface{})
-
-	priceUSDObj, found := priceInfo["price_usd"]
-
-	if !found {
-		return errors.New("could not get USD price")
-	}
-
-	priceUSDString, ok := priceUSDObj.(string)
-
+	currencyInfo, ok := dat.([]interface{})
 	if !ok {
-		return errors.New("could not decode current USD price")
+		return errors.New("coinmarketcap returned malformed information")
 	}
+	for _, v := range currencyInfo {
 
-	priceUSD, err := strconv.ParseFloat(priceUSDString, 64)
-
-	if err != nil {
-		return errors.New("usd price is not a number")
+		priceData, found := v.(map[string]interface{})["data"]
+		if !found {
+			return errors.New("coinmarketcap returned incorrect information")
+		}
+		priceQuotes, found := priceData.(map[string]interface{})["quotes"].(map[string]interface{})
+		if !found {
+			return errors.New("coinmarketcap did not return quotes")
+		}
+		for currency, price := range priceQuotes {
+			priceAmount, found := price.(map[string]interface{})["price"].(float64)
+			if !found {
+				return errors.New("coinmarketcap did not return pricedata for " + currency)
+			}
+			cache[currency] = priceAmount
+		}
 	}
-
-	cache["PHR"] = priceUSD
-	cache["USD"] = priceUSD
-
 	return nil
 }
