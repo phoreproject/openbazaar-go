@@ -20,6 +20,7 @@ var Migrations = []Migration{
 	migrations.Migration003,
 	migrations.Migration004,
 	migrations.Migration005,
+	migrations.Migration006,
 }
 
 // MigrateUp looks at the currently active migration version
