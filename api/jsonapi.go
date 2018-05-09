@@ -21,6 +21,7 @@ import (
 
 	"crypto/sha256"
 	ps "gx/ipfs/QmPgDWmTmuzvP7QE5zwo1TmjbJme9pmZHNujB2453jkCTr/go-libp2p-peerstore"
+	ds "gx/ipfs/QmVSase1JP7cq9QkPT46oNwdp9pT6kBkG3oqS14y3QcZjG/go-datastore"
 	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
 	"sync"
 
@@ -1167,7 +1168,7 @@ func (i *jsonAPIHandler) GETFollowers(w http.ResponseWriter, r *http.Request) {
 			ErrorResponse(w, http.StatusNotFound, err.Error())
 			return
 		}
-		peerId = pid.Pretty()
+		peerID = pid.Pretty()
 		followBytes, err := i.node.IPNSResolveThenCat(ipnspath.FromString(path.Join(peerID, "followers.json")), time.Minute)
 		if err != nil {
 			ErrorResponse(w, http.StatusNotFound, err.Error())
@@ -1225,7 +1226,7 @@ func (i *jsonAPIHandler) GETFollowing(w http.ResponseWriter, r *http.Request) {
 			ErrorResponse(w, http.StatusNotFound, err.Error())
 			return
 		}
-		peerId = pid.Pretty()
+		peerID = pid.Pretty()
 		followBytes, err := i.node.IPNSResolveThenCat(ipnspath.FromString(path.Join(peerID, "following.json")), time.Minute)
 		if err != nil {
 			ErrorResponse(w, http.StatusNotFound, err.Error())
@@ -1371,7 +1372,7 @@ func (i *jsonAPIHandler) GETListings(w http.ResponseWriter, r *http.Request) {
 			ErrorResponse(w, http.StatusNotFound, err.Error())
 			return
 		}
-		peerId = pid.Pretty()
+		peerID = pid.Pretty()
 		listingsBytes, err := i.node.IPNSResolveThenCat(ipnspath.FromString(path.Join(peerID, "listings.json")), time.Minute)
 		if err != nil {
 			ErrorResponse(w, http.StatusNotFound, err.Error())
@@ -1460,7 +1461,7 @@ func (i *jsonAPIHandler) GETListing(w http.ResponseWriter, r *http.Request) {
 				ErrorResponse(w, http.StatusNotFound, err.Error())
 				return
 			}
-			peerId = pid.Pretty()
+			peerID = pid.Pretty()
 			listingBytes, err = i.node.IPNSResolveThenCat(ipnspath.FromString(path.Join(peerID, "listings", listingId+".json")), time.Minute)
 			if err != nil {
 				ErrorResponse(w, http.StatusNotFound, err.Error())
@@ -3179,7 +3180,7 @@ func (i *jsonAPIHandler) GETRatings(w http.ResponseWriter, r *http.Request) {
 	_, peerID := path.Split(urlPath[:len(urlPath)-1])
 
 	var indexBytes []byte
-	if peerId != i.node.IpfsNode.Identity.Pretty() {
+	if peerID != i.node.IpfsNode.Identity.Pretty() {
 		indexBytes, _ = i.node.IPNSResolveThenCat(ipnspath.FromString(path.Join(peerID, "ratings.json")), time.Minute)
 
 	} else {
@@ -3769,7 +3770,7 @@ func (i *jsonAPIHandler) GETPosts(w http.ResponseWriter, r *http.Request) {
 			ErrorResponse(w, http.StatusNotFound, err.Error())
 			return
 		}
-		peerId = pid.Pretty()
+		peerID = pid.Pretty()
 		postsBytes, err := i.node.IPNSResolveThenCat(ipnspath.FromString(path.Join(peerID, "posts.json")), time.Minute)
 		if err != nil {
 			ErrorResponse(w, http.StatusNotFound, err.Error())
@@ -3839,7 +3840,7 @@ func (i *jsonAPIHandler) GETPost(w http.ResponseWriter, r *http.Request) {
 				ErrorResponse(w, http.StatusNotFound, err.Error())
 				return
 			}
-			peerId = pid.Pretty()
+			peerID = pid.Pretty()
 			postBytes, err = i.node.IPNSResolveThenCat(ipnspath.FromString(path.Join(peerID, "posts", postId+".json")), time.Minute)
 			if err != nil {
 				ErrorResponse(w, http.StatusNotFound, err.Error())
