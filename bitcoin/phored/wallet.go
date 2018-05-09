@@ -45,6 +45,7 @@ type RPCWallet struct {
 	DB               *TxStore
 	connCfg          *rpcclient.ConnConfig
 	notifications    *NotificationListener
+	scriptsToWatch   [][]byte
 	rpcBasePath      string
 	rpcLock          *sync.Mutex
 	initChan         chan struct{}
@@ -397,12 +398,13 @@ func (w *RPCWallet) ChainTip() (uint32, chainhash.Hash) {
 
 // AddWatchedScript adds a script to be watched
 func (w *RPCWallet) AddWatchedScript(script []byte) error {
-	<-w.initChan
-	err := w.DB.WatchedScripts().Put(script)
-	w.DB.PopulateAdrs()
-
-	w.notifications.updateFilterAndSend()
-	return err
+	select {
+	case <-w.initChan:
+		return w.addWatchedScript(script)
+	default:
+		w.scriptsToWatch = append(w.scriptsToWatch, script)
+	}
+	return nil
 }
 
 // Close closes the rpc wallet connection
@@ -1087,4 +1089,18 @@ func (w *RPCWallet) RetrieveTransactions() error {
 
 func (w *RPCWallet) InitChan() chan struct{} {
 	return w.initChan
+}
+
+func (w *RPCWallet) addWatchedScript(script []byte) error {
+	err := w.DB.WatchedScripts().Put(script)
+	w.DB.PopulateAdrs()
+
+	w.notifications.updateFilterAndSend()
+	return err
+}
+
+func (w *RPCWallet) addQueuedWatchAddresses() {
+	for _, script := range w.scriptsToWatch {
+		w.addWatchedScript(script)
+	}
 }
