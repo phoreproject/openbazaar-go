@@ -109,7 +109,7 @@ func (x *GenerateCertificates) Execute(args []string) error {
 	}
 	pem.Encode(certOut, &pem.Block{Type: "CERTIFICATE", Bytes: derBytes})
 	certOut.Close()
-	log.Noticef("written cert.pem\n")
+	log.Noticef("wrote cert.pem\n")
 
 	//Create and write key.pem
 	keyOut, err := os.OpenFile(path.Join(repoPath, "ssl", "key.pem"), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
@@ -119,7 +119,7 @@ func (x *GenerateCertificates) Execute(args []string) error {
 	}
 	pem.Encode(keyOut, &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(priv.(*rsa.PrivateKey))})
 	keyOut.Close()
-	log.Noticef("written key.pem\n")
+	log.Noticef("wrote key.pem\n")
 
 	return nil
 }
