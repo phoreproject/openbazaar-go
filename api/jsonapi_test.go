@@ -5,18 +5,12 @@ import (
 	"os"
 	"testing"
 
-<<<<<<< HEAD
-	"github.com/phoreproject/openbazaar-go/core"
+	"github.com/phoreproject/jsonpb"
 	"github.com/phoreproject/openbazaar-go/pb"
+	"github.com/phoreproject/openbazaar-go/repo"
+	"github.com/phoreproject/openbazaar-go/test"
 	"github.com/phoreproject/openbazaar-go/test/factory"
-=======
-	"github.com/OpenBazaar/jsonpb"
-	"github.com/OpenBazaar/openbazaar-go/pb"
-	"github.com/OpenBazaar/openbazaar-go/repo"
-	"github.com/OpenBazaar/openbazaar-go/test"
-	"github.com/OpenBazaar/openbazaar-go/test/factory"
 	"github.com/golang/protobuf/proto"
->>>>>>> 907f5a77... [#843] Prevent api.POSTCloseDispute from closing expired disputes
 )
 
 func TestMain(m *testing.M) {
@@ -35,6 +29,12 @@ func TestMain(m *testing.M) {
 
 	// Run tests
 	retCode := m.Run()
+
+	// Shutdown test server
+	err = gateway.Close()
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	os.Exit(retCode)
 }
@@ -154,13 +154,13 @@ func TestListings(t *testing.T) {
 
 	runAPITests(t, apiTests{
 		{"GET", "/ob/listings", "", 200, `[]`},
-		{"GET", "/ob/inventory", "", 200, `{}`},
+		{"GET", "/ob/inventory", "", 200, `[]`},
 
 		// Invalid creates
 		{"POST", "/ob/listing", `{`, 400, jsonUnexpectedEOF},
 
 		{"GET", "/ob/listings", "", 200, `[]`},
-		{"GET", "/ob/inventory", "", 200, `{}`},
+		{"GET", "/ob/inventory", "", 200, `[]`},
 
 		// TODO: Add support for improved JSON matching to since contracts
 		// change each test run due to signatures
@@ -215,112 +215,43 @@ func TestCryptoListings(t *testing.T) {
 	})
 }
 
-func TestListingsQuantity(t *testing.T) {
-	listing := factory.NewListing("crypto")
-	runAPITest(t, apiTest{
-		"POST", "/ob/listing", jsonFor(t, listing), 200, `{"slug": "crypto"}`,
-	})
-
-	listing.Item.Skus[0].Quantity = 0
-	runAPITest(t, apiTest{
-		"POST", "/ob/listing", jsonFor(t, listing), 200, anyResponseJSON,
-	})
-
-	listing.Item.Skus[0].Quantity = -1
-	runAPITest(t, apiTest{
-		"POST", "/ob/listing", jsonFor(t, listing), 200, anyResponseJSON,
-	})
-}
-
-func TestCryptoListingsQuantity(t *testing.T) {
-	listing := factory.NewCryptoListing("crypto")
-	runAPITest(t, apiTest{
-		"POST", "/ob/listing", jsonFor(t, listing), 200, `{"slug": "crypto"}`,
-	})
-
-	listing.Item.Skus[0].Quantity = 0
-	runAPITest(t, apiTest{
-		"POST", "/ob/listing", jsonFor(t, listing), 500, errorResponseJSON(core.ErrCryptocurrencySkuQuantityInvalid),
-	})
-
-	listing.Item.Skus[0].Quantity = -1
-	runAPITest(t, apiTest{
-		"POST", "/ob/listing", jsonFor(t, listing), 500, errorResponseJSON(core.ErrCryptocurrencySkuQuantityInvalid),
-	})
-}
-
 func TestCryptoListingsNoCoinType(t *testing.T) {
 	listing := factory.NewCryptoListing("crypto")
 	listing.Metadata.CoinType = ""
 
 	runAPITests(t, apiTests{
-<<<<<<< HEAD
-		{"POST", "/ob/listing", jsonFor(t, listing), 500, errorResponseJSON(core.ErrCryptocurrencyListingCoinTypeRequired)},
-	})
-}
-
-func TestCryptoListingsCoinDivisibilityIncorrect(t *testing.T) {
-	listing := factory.NewCryptoListing("crypto")
-	runAPITests(t, apiTests{
-		{"POST", "/ob/listing", jsonFor(t, listing), 200, anyResponseJSON},
-	})
-
-	listing.Metadata.CoinDivisibility = 1e7
-	runAPITests(t, apiTests{
-		{"POST", "/ob/listing", jsonFor(t, listing), 500, errorResponseJSON(core.ErrListingCoinDivisibilityIncorrect)},
-	})
-
-	listing.Metadata.CoinDivisibility = 0
-	runAPITests(t, apiTests{
-		{"POST", "/ob/listing", jsonFor(t, listing), 500, errorResponseJSON(core.ErrListingCoinDivisibilityIncorrect)},
-	})
-=======
 		{"POST", "/ob/listing", jsonFor(t, listing), 500, `{"success": false, "reason": "Cryptocurrency listings require a coinType"}`},
-<<<<<<< HEAD
-	}, nil, nil)
->>>>>>> 907f5a77... [#843] Prevent api.POSTCloseDispute from closing expired disputes
-=======
 	})
->>>>>>> 8c3e6084... REFACTOR: api test helper setup.
 }
 
 func TestCryptoListingsIllegalFields(t *testing.T) {
-	runTest := func(listing *pb.Listing, err error) {
+	runTest := func(listing *pb.Listing) {
 		runAPITests(t, apiTests{
-<<<<<<< HEAD
-			{"POST", "/ob/listing", jsonFor(t, listing), 500, errorResponseJSON(err)},
-		})
-=======
 			{"POST", "/ob/listing", jsonFor(t, listing), 500, `{"success": false,"reason": "Illegal cryptocurrency listing field"}`},
-<<<<<<< HEAD
-		}, nil, nil)
->>>>>>> 907f5a77... [#843] Prevent api.POSTCloseDispute from closing expired disputes
-=======
 		})
->>>>>>> 8c3e6084... REFACTOR: api test helper setup.
 	}
 
 	physicalListing := factory.NewListing("physical")
 
 	listing := factory.NewCryptoListing("crypto")
 	listing.Metadata.PricingCurrency = "btc"
-	runTest(listing, core.ErrCryptocurrencyListingIllegalField("metadata.pricingCurrency"))
+	runTest(listing)
 
 	listing = factory.NewCryptoListing("crypto")
 	listing.Item.Condition = "new"
-	runTest(listing, core.ErrCryptocurrencyListingIllegalField("item.condition"))
+	runTest(listing)
 
 	listing = factory.NewCryptoListing("crypto")
 	listing.Item.Options = physicalListing.Item.Options
-	runTest(listing, core.ErrCryptocurrencyListingIllegalField("item.options"))
+	runTest(listing)
 
 	listing = factory.NewCryptoListing("crypto")
 	listing.ShippingOptions = physicalListing.ShippingOptions
-	runTest(listing, core.ErrCryptocurrencyListingIllegalField("shippingOptions"))
+	runTest(listing)
 
 	listing = factory.NewCryptoListing("crypto")
 	listing.Coupons = physicalListing.Coupons
-	runTest(listing, core.ErrCryptocurrencyListingIllegalField("coupons"))
+	runTest(listing)
 }
 
 func TestMarketRatePrice(t *testing.T) {
@@ -329,17 +260,8 @@ func TestMarketRatePrice(t *testing.T) {
 	listing.Item.Price = 1
 
 	runAPITests(t, apiTests{
-<<<<<<< HEAD
-		{"POST", "/ob/listing", jsonFor(t, listing), 500, errorResponseJSON(core.ErrMarketPriceListingIllegalField("item.price"))},
-	})
-=======
 		{"POST", "/ob/listing", jsonFor(t, listing), 500, `{"success": false,"reason": "Illegal market price listing field"}`},
-<<<<<<< HEAD
-	}, nil, nil)
->>>>>>> 907f5a77... [#843] Prevent api.POSTCloseDispute from closing expired disputes
-=======
 	})
->>>>>>> 8c3e6084... REFACTOR: api test helper setup.
 }
 
 func TestStatus(t *testing.T) {
@@ -366,8 +288,6 @@ func TestConfig(t *testing.T) {
 	})
 }
 
-<<<<<<< HEAD
-=======
 func TestPeers(t *testing.T) {
 	// Follow, Unfollow
 	runAPITests(t, apiTests{
@@ -376,7 +296,6 @@ func TestPeers(t *testing.T) {
 	})
 }
 
->>>>>>> 907f5a77... [#843] Prevent api.POSTCloseDispute from closing expired disputes
 func Test404(t *testing.T) {
 	// Test undefined endpoints
 	runAPITests(t, apiTests{
@@ -422,9 +341,6 @@ func TestPosts(t *testing.T) {
 
 func TestCloseDisputeBlocksWhenExpired(t *testing.T) {
 	dbSetup := func(testRepo *test.Repository) error {
-		// TODO: Make NewDisputeCaseRecord return a valid fixture for this valid case to work
-		//nonexpired := factory.NewDisputeCaseRecord()
-		//nonexpired.CaseID = "nonexpiredCase"
 		expired := factory.NewExpiredDisputeCaseRecord()
 		expired.CaseID = "expiredCase"
 		for _, r := range []*repo.DisputeCaseRecord{expired} {
@@ -438,10 +354,39 @@ func TestCloseDisputeBlocksWhenExpired(t *testing.T) {
 		return nil
 	}
 	expiredPostJSON := `{"orderId":"expiredCase","resolution":"","buyerPercentage":100.0,"vendorPercentage":0.0}`
-	//nonexpiredPostJSON := `{"orderId":"nonexpiredCase","resolution":"","buyerPercentage":100.0,"vendorPercentage":0.0}`
 	runAPITestsWithSetup(t, apiTests{
-		//{"POST", "/ob/profile", moderatorProfileJSON, 200, anyResponseJSON},
 		{"POST", "/ob/closedispute", expiredPostJSON, 400, anyResponseJSON},
-		//{"POST", "/ob/closedispute", nonexpiredPostJSON, 200, anyResponseJSON},
 	}, dbSetup, nil)
+}
+
+// TODO: Make NewDisputeCaseRecord return a valid fixture for this valid case to work
+//func TestCloseDisputeReturnsOK(t *testing.T) {
+//dbSetup := func(testRepo *test.Repository) error {
+//nonexpired := factory.NewDisputeCaseRecord()
+//nonexpired.CaseID = "nonexpiredCase"
+//for _, r := range []*repo.DisputeCaseRecord{nonexpired} {
+//if err := testRepo.DB.Cases().PutRecord(r); err != nil {
+//return err
+//}
+//if err := testRepo.DB.Cases().UpdateBuyerInfo(r.CaseID, r.BuyerContract, []string{}, r.BuyerPayoutAddress, r.BuyerOutpoints); err != nil {
+//return err
+//}
+//}
+//return nil
+//}
+//nonexpiredPostJSON := `{"orderId":"nonexpiredCase","resolution":"","buyerPercentage":100.0,"vendorPercentage":0.0}`
+//runAPITestsWithSetup(t, apiTests{
+//{"POST", "/ob/profile", moderatorProfileJSON, 200, anyResponseJSON},
+//{"POST", "/ob/closedispute", nonexpiredPostJSON, 200, anyResponseJSON},
+//}, dbSetup, nil)
+//}
+
+func jsonFor(t *testing.T, fixture proto.Message) string {
+	m := jsonpb.Marshaler{}
+
+	json, err := m.MarshalToString(fixture)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return json
 }
