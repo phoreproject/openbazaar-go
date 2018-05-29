@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"errors"
-	crypto "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
+	"gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 
 	"time"
 
@@ -95,9 +95,11 @@ func (n *OpenBazaarNode) FulfillOrder(fulfillment *pb.OrderFulfillment, contract
 		fulfillment.Payout = payout
 	}
 	var keyIndex int
-	for i, listing := range contract.VendorListings {
-		if listing.Slug == fulfillment.Slug {
+	var listing *pb.Listing
+	for i, list := range contract.VendorListings {
+		if list.Slug == fulfillment.Slug {
 			keyIndex = i
+			listing = list
 			break
 		}
 	}

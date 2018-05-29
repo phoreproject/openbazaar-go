@@ -12,14 +12,13 @@ import (
 	"sync"
 	"time"
 
-	"io"
-
-	"github.com/ipfs/go-ipfs/commands"
-	ctxio "github.com/jbenet/go-context/io"
-	"github.com/op/go-logging"
 	"github.com/phoreproject/openbazaar-go/core"
 	"github.com/phoreproject/openbazaar-go/pb"
 	"github.com/phoreproject/openbazaar-go/repo"
+	"github.com/ipfs/go-ipfs/commands"
+	ctxio "github.com/jbenet/go-context/io"
+	"github.com/op/go-logging"
+	"io"
 )
 
 var log = logging.MustGetLogger("service")

@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	cid "gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
+	"gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
 	mh "gx/ipfs/QmU9a9NV9RdPNwZQDYd5uKsm6N6LJLSvLbywDDYFbaaC6P/go-multihash"
 	"io/ioutil"
 	"net/url"
@@ -19,7 +19,6 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/kennygrant/sanitize"
 	"github.com/microcosm-cc/bluemonday"
-	"github.com/phoreproject/btcd/chaincfg"
 	"github.com/phoreproject/openbazaar-go/ipfs"
 	"github.com/phoreproject/openbazaar-go/pb"
 	"github.com/phoreproject/openbazaar-go/repo"
@@ -57,7 +56,7 @@ type thumbnail struct {
 	Small  string `json:"small"`
 	Medium string `json:"medium"`
 }
-type listingData struct {
+type ListingData struct {
 	Hash          string    `json:"hash"`
 	Slug          string    `json:"slug"`
 	Title         string    `json:"title"`
@@ -404,12 +403,12 @@ func coinDivisibilityForType(coinType string) uint32 {
 	return DefaultCoinDivisibility
 }
 
-func (n *OpenBazaarNode) extractListingData(listing *pb.SignedListing) (listingData, error) {
+func (n *OpenBazaarNode) extractListingData(listing *pb.SignedListing) (ListingData, error) {
 	listingPath := path.Join(n.RepoPath, "root", "listings", listing.Listing.Slug+".json")
 
 	listingHash, err := ipfs.GetHashOfFile(n.Context, listingPath)
 	if err != nil {
-		return listingData{}, err
+		return ListingData{}, err
 	}
 
 	descriptionLength := len(listing.Listing.Item.Description)
@@ -441,7 +440,7 @@ func (n *OpenBazaarNode) extractListingData(listing *pb.SignedListing) (listingD
 		}
 	}
 
-	ld := listingData{
+	ld := ListingData{
 		Hash:         listingHash,
 		Slug:         listing.Listing.Slug,
 		Title:        listing.Listing.Item.Title,
@@ -460,10 +459,10 @@ func (n *OpenBazaarNode) extractListingData(listing *pb.SignedListing) (listingD
 	return ld, nil
 }
 
-func (n *OpenBazaarNode) getListingIndex() ([]listingData, error) {
+func (n *OpenBazaarNode) getListingIndex() ([]ListingData, error) {
 	indexPath := path.Join(n.RepoPath, "root", "listings.json")
 
-	var index []listingData
+	var index []ListingData
 
 	_, ferr := os.Stat(indexPath)
 	if !os.IsNotExist(ferr) {
@@ -481,7 +480,7 @@ func (n *OpenBazaarNode) getListingIndex() ([]listingData, error) {
 }
 
 // Update the listings.json file in the listings directory
-func (n *OpenBazaarNode) updateListingOnDisk(index []listingData, ld listingData, updateRatings bool) error {
+func (n *OpenBazaarNode) updateListingOnDisk(index []ListingData, ld ListingData, updateRatings bool) error {
 	indexPath := path.Join(n.RepoPath, "root", "listings.json")
 	// Check to see if the listing we are adding already exists in the list. If so delete it.
 	var avgRating float32
@@ -494,7 +493,7 @@ func (n *OpenBazaarNode) updateListingOnDisk(index []listingData, ld listingData
 		ratingCount = d.RatingCount
 
 		if len(index) == 1 {
-			index = []listingData{}
+			index = []ListingData{}
 			break
 		}
 		index = append(index[:i], index[i+1:]...)
@@ -530,7 +529,7 @@ func (n *OpenBazaarNode) updateRatingInListingIndex(rating *pb.Rating) error {
 	if err != nil {
 		return err
 	}
-	var ld listingData
+	var ld ListingData
 	exists := false
 	for _, l := range index {
 		if l.Slug != rating.RatingData.VendorSig.Metadata.ListingSlug {
@@ -555,7 +554,7 @@ func (n *OpenBazaarNode) updateRatingInListingIndex(rating *pb.Rating) error {
 func (n *OpenBazaarNode) UpdateEachListingOnIndex(updateListing func(*ListingData) error) error {
 	indexPath := path.Join(n.RepoPath, "root", "listings.json")
 
-	var index []listingData
+	var index []ListingData
 
 	_, ferr := os.Stat(indexPath)
 	if os.IsNotExist(ferr) {
@@ -604,7 +603,7 @@ func (n *OpenBazaarNode) GetListingCount() int {
 		return 0
 	}
 
-	var index []listingData
+	var index []ListingData
 	err = json.Unmarshal(file, &index)
 	if err != nil {
 		return 0
@@ -629,7 +628,7 @@ func (n *OpenBazaarNode) IsItemForSale(listing *pb.Listing) bool {
 		return false
 	}
 
-	var index []listingData
+	var index []ListingData
 	err = json.Unmarshal(file, &index)
 	if err != nil {
 		log.Error(err)
@@ -666,7 +665,7 @@ func (n *OpenBazaarNode) DeleteListing(slug string) error {
 	if err != nil {
 		return err
 	}
-	var index []listingData
+	var index []ListingData
 	indexPath := path.Join(n.RepoPath, "root", "listings.json")
 	_, ferr := os.Stat(indexPath)
 	if !os.IsNotExist(ferr) {
@@ -688,7 +687,7 @@ func (n *OpenBazaarNode) DeleteListing(slug string) error {
 		}
 
 		if len(index) == 1 {
-			index = []listingData{}
+			index = []ListingData{}
 			break
 		}
 		index = append(index[:i], index[i+1:]...)
@@ -733,7 +732,7 @@ func (n *OpenBazaarNode) GetListings() ([]byte, error) {
 	}
 
 	// Unmarshal the index to check if file contains valid json
-	var index []listingData
+	var index []ListingData
 	err = json.Unmarshal(file, &index)
 	if err != nil {
 		return nil, err
@@ -752,7 +751,7 @@ func (n *OpenBazaarNode) GetListingFromHash(hash string) (*pb.SignedListing, err
 	}
 
 	// Unmarshal the index
-	var index []listingData
+	var index []ListingData
 	err = json.Unmarshal(file, &index)
 	if err != nil {
 		return nil, err

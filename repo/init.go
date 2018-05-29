@@ -9,8 +9,6 @@ import (
 
 	"github.com/phoreproject/openbazaar-go/repo/migrations"
 	"github.com/phoreproject/openbazaar-go/util"
-	"path/filepath"
-	"runtime"
 	"time"
 
 	"github.com/ipfs/go-ipfs/core"

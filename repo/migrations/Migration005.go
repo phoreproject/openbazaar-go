@@ -2,17 +2,15 @@ package migrations
 
 import (
 	"path"
-	"encoding/json"
-	"errors"
 	"io/ioutil"
 	"os"
-	"path"
 )
 
 type Migration005 struct{}
 
-func (Migration005) Up(repoPath string, dbPassword string, testnet bool) error {
 var SwarmKeyData []byte = []byte("/key/swarm/psk/1.0.0/\n/base16/\n59468cfd4d4dc2a61395080513e853434d0313495f34be65c18d643d09eafe6f")
+
+func (Migration005) Up(repoPath string, dbPassword string, testnet bool) error {
 
 	f1, err := os.Create(path.Join(repoPath, "repover"))
 	if err != nil {

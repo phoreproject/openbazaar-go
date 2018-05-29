@@ -2,9 +2,8 @@ package core
 
 import (
 	"encoding/json"
-	"github.com/phoreproject/openbazaar-go/ipfs"
 	"errors"
-	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
+	"gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
 	"time"
 
 	"github.com/phoreproject/openbazaar-go/api/notifications"
