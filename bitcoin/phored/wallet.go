@@ -334,14 +334,13 @@ func (w *RPCWallet) Transactions() ([]wallet.Txn, error) {
 // GetTransaction returns the transaction given by a transaction hash
 func (w *RPCWallet) GetTransaction(txid chainhash.Hash) (wallet.Txn, error) {
 	<-w.initChan
-	_, txn, err := w.DB.Txns().Get(txid)
-	return txn, err
+	return w.DB.Txns().Get(txid)
 }
 
 // GetConfirmations returns the number of confirmations and the block number where the transaction was confirmed
 func (w *RPCWallet) GetConfirmations(txid chainhash.Hash) (uint32, uint32, error) {
 	<-w.initChan
-	_, txn, err := w.DB.Txns().Get(txid)
+	txn, err := w.DB.Txns().Get(txid)
 	if err != nil {
 		return 0, 0, err
 	}
@@ -603,7 +602,7 @@ var ErrBumpFeeNotFound = errors.New("Transaction either doesn't exist or has alr
 // BumpFee attempts to bump the fee for a transaction
 func (w *RPCWallet) BumpFee(txid chainhash.Hash) (*chainhash.Hash, error) {
 	<-w.initChan
-	_, txn, err := w.DB.Txns().Get(txid)
+	txn, err := w.DB.Txns().Get(txid)
 	if err != nil {
 		return nil, err
 	}
