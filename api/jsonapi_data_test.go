@@ -390,7 +390,7 @@ const walletMneumonicJSONResponse = `{"mnemonic": "correct horse battery staple"
 
 const walletAddressJSONResponse = `{"address": "PGR63nGwTeB6ZmbbgDMxoYPsxkbXhTmnRn"}`
 
-const walletBalanceJSONResponse = `{"confirmed": 0, "unconfirmed": 0}`
+const walletBalanceJSONResponse = `{"confirmed": 0, "unconfirmed": 0, "height": 1151136}`
 
 //
 // Spending
