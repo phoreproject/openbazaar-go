@@ -30,8 +30,6 @@ import (
 	routing "gx/ipfs/QmUCS9EnqNq1kCnJds2eLDypBiS21aSiCf1MVzSUVB9TGA/go-libp2p-kad-dht"
 	"io/ioutil"
 
-	ds "gx/ipfs/QmVSase1JP7cq9QkPT46oNwdp9pT6kBkG3oqS14y3QcZjG/go-datastore"
-
 	"github.com/OpenBazaar/jsonpb"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
@@ -39,7 +37,6 @@ import (
 	ipnspb "github.com/ipfs/go-ipfs/namesys/pb"
 	ipnspath "github.com/ipfs/go-ipfs/path"
 	lockfile "github.com/ipfs/go-ipfs/repo/fsrepo/lock"
-	"github.com/phoreproject/btcd/chaincfg"
 	"github.com/phoreproject/btcd/chaincfg/chainhash"
 	"github.com/phoreproject/btcutil/base58"
 	"github.com/phoreproject/openbazaar-go/api/notifications"
@@ -3006,7 +3003,7 @@ func (i *jsonAPIHandler) POSTBlockNode(w http.ResponseWriter, r *http.Request) {
 			nodes = append(nodes, pid)
 		}
 	}
-	go ipfs.RemoveAll(i.node.Context, peerId)
+	go ipfs.RemoveAll(i.node.Context, peerID)
 	nodes = append(nodes, peerID)
 	settings.BlockedNodes = &nodes
 	if err := i.node.Datastore.Settings().Put(settings); err != nil {

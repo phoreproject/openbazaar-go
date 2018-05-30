@@ -109,6 +109,8 @@ type Start struct {
 	DaemonLocation       string   `long:"daemonlocation" description:"sets the location of the phore daemon"`
 	DisableExchangeRates bool     `long:"disableexchangerates" description:"disable the exchange rate service to prevent api queries"`
 	Storage              string   `long:"storage" description:"set the outgoing message storage option [self-hosted, dropbox] default=self-hosted"`
+	Testnet				 bool     `long:"testnet" description:"run wallet on testnet"`
+	Regtest				 bool     `long:"regtest" description:"start regtest"`
 }
 
 func (x *Start) Execute(args []string) error {
@@ -118,10 +120,8 @@ func (x *Start) Execute(args []string) error {
 		return errors.New("Invalid combination of tor and dual stack modes")
 	}
 
-	isTestnet := false
-
 	// Set repo path
-	repoPath, err := repo.GetRepoPath(isTestnet)
+	repoPath, err := repo.GetRepoPath(x.Testnet)
 	if err != nil {
 		return err
 	}
@@ -132,7 +132,7 @@ func (x *Start) Execute(args []string) error {
 	repoLockFile := filepath.Join(repoPath, lockfile.LockFile)
 	os.Remove(repoLockFile)
 
-	sqliteDB, err := InitializeRepo(repoPath, x.Password, "", isTestnet, time.Now())
+	sqliteDB, err := InitializeRepo(repoPath, x.Password, "", x.Testnet, time.Now())
 	if err != nil && err != repo.ErrRepoExists {
 		return err
 	}
@@ -200,7 +200,7 @@ func (x *Start) Execute(args []string) error {
 		bytePassword, _ := terminal.ReadPassword(int(syscall.Stdin))
 		fmt.Println("")
 		pw := string(bytePassword)
-		sqliteDB, err = InitializeRepo(repoPath, pw, "", isTestnet, time.Now())
+		sqliteDB, err = InitializeRepo(repoPath, pw, "", x.Testnet, time.Now())
 		if err != nil && err != repo.ErrRepoExists {
 			return err
 		}
