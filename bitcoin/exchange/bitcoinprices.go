@@ -113,9 +113,7 @@ func (b *BitcoinPriceFetcher) fetchCurrentRates() error {
 var CMCValidCurrencies = []string{"BTC", "AUD", "BRL", "CAD", "CHF", "CLP", "CNY", "CZK", "DKK", "EUR", "GBP", "HKD", "HUF", "IDR", "ILS", "INR", "JPY", "KRW", "MXN", "MYR", "NOK", "NZD", "PHP", "PKR", "PLN", "RUB", "SEK", "SGD", "THB", "TRY", "TWD", "ZAR"}
 
 func (provider *ExchangeRateProvider) fetch() (err error) {
-	currencies := make([]interface{}, len(CMCValidCurrencies))
-
-	for i, curr := range CMCValidCurrencies {
+	for _, curr := range CMCValidCurrencies {
 		if len(provider.fetchUrl) == 0 {
 			err = errors.New("Provider has no fetchUrl")
 			return err
@@ -132,9 +130,13 @@ func (provider *ExchangeRateProvider) fetch() (err error) {
 			log.Error("Failed to decode JSON from "+provider.fetchUrl, err)
 			return err
 		}
-		currencies[i] = dataMap
+
+		err = provider.decoder.decode(dataMap, provider.cache)
+		if err != nil {
+			return err
+		}
 	}
-	return provider.decoder.decode(currencies, provider.cache)
+	return nil
 }
 
 func (b *BitcoinPriceFetcher) run() {
@@ -147,27 +149,37 @@ func (b *BitcoinPriceFetcher) run() {
 
 // Decoders
 func (b CMCDecoder) decode(dat interface{}, cache map[string]float64) (err error) {
-	currencyInfo, ok := dat.([]interface{})
+	currencyInfo, ok := dat.(map[string]interface{})
 	if !ok {
 		return errors.New("coinmarketcap returned malformed information")
 	}
-	for _, v := range currencyInfo {
 
-		priceData, found := v.(map[string]interface{})["data"]
-		if !found {
-			return errors.New("coinmarketcap returned incorrect information")
-		}
-		priceQuotes, found := priceData.(map[string]interface{})["quotes"].(map[string]interface{})
-		if !found {
-			return errors.New("coinmarketcap did not return quotes")
-		}
-		for currency, price := range priceQuotes {
-			priceAmount, found := price.(map[string]interface{})["price"].(float64)
-			if !found {
-				return errors.New("coinmarketcap did not return pricedata for " + currency)
-			}
-			cache[currency] = priceAmount
-		}
+	metadata, found := currencyInfo["metadata"].(map[string]interface{})
+	if !found {
+		return errors.New("coinmarketcap did not return metadata")
 	}
+
+	error, found := metadata["error"].(interface{})
+	if found && error != nil {
+		return errors.New("coinmarketcap returned error: " + error.(string))
+	}
+
+	data, found := currencyInfo["data"].(map[string]interface{})
+	if !found {
+		return errors.New("coinmarketcap did not return data")
+	}
+
+	priceQuotes, found := data["quotes"].(map[string]interface{})
+	if !found {
+		return errors.New("coinmarketcap did not return quotes")
+	}
+	for currency, price := range priceQuotes {
+		priceAmount, found := price.(map[string]interface{})["price"].(float64)
+		if !found {
+			return errors.New("coinmarketcap did not return pricedata for " + currency)
+		}
+		cache[currency] = priceAmount
+	}
+
 	return nil
 }

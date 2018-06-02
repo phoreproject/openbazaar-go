@@ -16,7 +16,7 @@ func setupBitcoinPriceFetcher() (b BitcoinPriceFetcher) {
 	}
 	client := &http.Client{Transport: &http.Transport{Dial: gonet.Dial}, Timeout: time.Minute}
 	b.providers = []*ExchangeRateProvider{
-		{"https://api.coinmarketcap.com/v1/ticker/phore/", b.cache, client, CMCDecoder{}},
+		{"https://api.coinmarketcap.com/v2/ticker/2158/?convert=", b.cache, client, CMCDecoder{}},
 	}
 	return b
 }
@@ -31,16 +31,16 @@ func TestFetchCurrentRates(t *testing.T) {
 
 func TestGetLatestRate(t *testing.T) {
 	b := setupBitcoinPriceFetcher()
-	price, err := b.GetLatestRate("PHR")
+	price, err := b.GetLatestRate("USD")
 	if err != nil || price == 650 {
 		t.Error("Incorrect return at GetLatestRate (price, err)", price, err)
 	}
-	b.cache["PHR"] = 650.00
-	price, ok := b.cache["PHR"]
+	b.cache["USD"] = 650.00
+	price, ok := b.cache["USD"]
 	if !ok || price != 650 {
 		t.Error("Failed to fetch exchange rates from cache")
 	}
-	price, err = b.GetLatestRate("PHR")
+	price, err = b.GetLatestRate("USD")
 	if err != nil || price == 650.00 {
 		t.Error("Incorrect return at GetLatestRate (price, err)", price, err)
 	}
@@ -102,27 +102,35 @@ func TestDecodeCMCDecoder(t *testing.T) {
 	cmcDecoder := CMCDecoder{}
 	var dataMap interface{}
 
-	response := `[
-      {
-          "id": "phore",
-          "name": "Phore",
-          "symbol": "PHR",
-          "rank": "377",
-          "price_usd": "0.542017",
-          "price_btc": "0.00004258",
-          "24h_volume_usd": "52747.3",
-          "market_cap_usd": "5275455.0",
-          "available_supply": "9733007.0",
-          "total_supply": "11349574.0",
-          "max_supply": null,
-          "percent_change_1h": "4.49",
-          "percent_change_24h": "21.59",
-          "percent_change_7d": "11.32",
-          "last_updated": "1512583195"
-      }
-  ]`
-	// Test valid response
-	r := &req{bytes.NewReader([]byte(response))}
+	correctResponse := `{
+    	"data": {
+        	"id": 2158, 
+        	"name": "Phore", 
+        	"symbol": "PHR", 
+        	"website_slug": "phore", 
+        	"rank": 313, 
+        	"circulating_supply": 13318225.0, 
+        	"total_supply": 13318225.0, 
+        	"max_supply": null, 
+        	"quotes": {
+            	"USD": {
+                	"price": 2.00949, 
+                	"volume_24h": 232477.0, 
+                	"market_cap": 26762840.0, 
+                	"percent_change_1h": -0.58, 
+                	"percent_change_24h": 4.97, 
+                	"percent_change_7d": 26.54
+            	}
+        	}, 
+        	"last_updated": 1527944368
+    	}, 
+    	"metadata": {
+        	"timestamp": 1527944160, 
+        	"error": null
+    	}
+	}`
+	// Test valid correctResponse
+	r := &req{bytes.NewReader([]byte(correctResponse))}
 	decoder := json.NewDecoder(r)
 	err := decoder.Decode(&dataMap)
 	if err != nil {
@@ -138,10 +146,9 @@ func TestDecodeCMCDecoder(t *testing.T) {
 		t.Error("Failed to response to cache")
 	}
 
-	resp := `[]`
-
+	emptyResponse := `{}`
 	// Test missing JSON element
-	r = &req{bytes.NewReader([]byte(resp))}
+	r = &req{bytes.NewReader([]byte(emptyResponse))}
 	decoder = json.NewDecoder(r)
 	err = decoder.Decode(&dataMap)
 	if err != nil {
@@ -151,10 +158,16 @@ func TestDecodeCMCDecoder(t *testing.T) {
 	if err == nil {
 		t.Error(err)
 	}
-	resp = `[]`
 
-	// Test invalid JSON
-	r = &req{bytes.NewReader([]byte(resp))}
+	errorResponse := `{
+    	"data": null, 
+    	"metadata": {
+        	"timestamp": 1527944160, 
+        	"error": "some error"
+    	}
+	}`
+	// Test CMC error not empty
+	r = &req{bytes.NewReader([]byte(errorResponse))}
 	decoder = json.NewDecoder(r)
 	err = decoder.Decode(&dataMap)
 	if err != nil {
