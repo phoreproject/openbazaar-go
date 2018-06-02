@@ -136,12 +136,15 @@ func (w *RPCWallet) Start() {
 	for tx := range unbroadcastedTransactions.InvList {
 		hash := unbroadcastedTransactions.InvList[tx].Hash
 		log.Debugf("Found transaction unbroadcasted: %s", hash.String())
-		transaction, _, err := w.DB.Txns().Get(hash)
+		txn, err := w.DB.Txns().Get(hash)
 		if err != nil {
 			log.Error(err)
 			continue
 		}
 
+		r := bytes.NewReader(txn.Bytes)
+		transaction := wire.NewMsgTx(wire.TxVersion)
+		transaction.DeserializeNoWitness(r)
 		err = w.Broadcast(transaction)
 		if err != nil {
 			if strings.HasPrefix(err.Error(), "-27") {
