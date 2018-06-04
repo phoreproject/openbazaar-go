@@ -129,9 +129,9 @@ func IsWitnessProgram(script []byte) bool {
 
 // isWitnessProgram returns true if the passed script is a witness program, and
 // false otherwise. A witness program MUST adhere to the following constraints:
-// there must be excatly two pops (program version and the program itself), the
+// there must be exactly two pops (program version and the program itself), the
 // first opcode MUST be a small integer (0-16), the push data MUST be
-// cannonical, and finally the size of the push data must be between 2 and 40
+// canonical, and finally the size of the push data must be between 2 and 40
 // bytes.
 func isWitnessProgram(pops []parsedOpcode) bool {
 	return len(pops) == 2 &&
@@ -554,6 +554,45 @@ func CalcWitnessSigHash(script []byte, sigHashes *TxSigHashes, hType SigHashType
 		amt)
 }
 
+// shallowCopyTx creates a shallow copy of the transaction for use when
+// calculating the signature hash.  It is used over the Copy method on the
+// transaction itself since that is a deep copy and therefore does more work and
+// allocates much more space than needed.
+func shallowCopyTx(tx *wire.MsgTx) wire.MsgTx {
+	// As an additional memory optimization, use contiguous backing arrays
+	// for the copied inputs and outputs and point the final slice of
+	// pointers into the contiguous arrays.  This avoids a lot of small
+	// allocations.
+	txCopy := wire.MsgTx{
+		Version:  tx.Version,
+		TxIn:     make([]*wire.TxIn, len(tx.TxIn)),
+		TxOut:    make([]*wire.TxOut, len(tx.TxOut)),
+		LockTime: tx.LockTime,
+	}
+	txIns := make([]wire.TxIn, len(tx.TxIn))
+	for i, oldTxIn := range tx.TxIn {
+		txIns[i] = *oldTxIn
+		txCopy.TxIn[i] = &txIns[i]
+	}
+	txOuts := make([]wire.TxOut, len(tx.TxOut))
+	for i, oldTxOut := range tx.TxOut {
+		txOuts[i] = *oldTxOut
+		txCopy.TxOut[i] = &txOuts[i]
+	}
+	return txCopy
+}
+
+// CalcSignatureHash will, given a script and hash type for the current script
+// engine instance, calculate the signature hash to be used for signing and
+// verification.
+func CalcSignatureHash(script []byte, hashType SigHashType, tx *wire.MsgTx, idx int) ([]byte, error) {
+	parsedScript, err := parseScript(script)
+	if err != nil {
+		return nil, fmt.Errorf("cannot parse output script: %v", err)
+	}
+	return calcSignatureHash(parsedScript, hashType, tx, idx), nil
+}
+
 // calcSignatureHash will, given a script and hash type for the current script
 // engine instance, calculate the signature hash to be used for signing and
 // verification.
@@ -587,9 +626,9 @@ func calcSignatureHash(script []parsedOpcode, hashType SigHashType, tx *wire.Msg
 	// Remove all instances of OP_CODESEPARATOR from the script.
 	script = removeOpcode(script, OP_CODESEPARATOR)
 
-	// Make a deep copy of the transaction, zeroing out the script for all
-	// inputs that are not currently being processed.
-	txCopy := tx.Copy()
+	// Make a shallow copy of the transaction, zeroing out the script for
+	// all inputs that are not currently being processed.
+	txCopy := shallowCopyTx(tx)
 	for i := range txCopy.TxIn {
 		if i == idx {
 			// UnparseScript cannot fail here because removeOpcode

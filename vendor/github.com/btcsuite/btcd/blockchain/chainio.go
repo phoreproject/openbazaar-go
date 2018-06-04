@@ -18,7 +18,18 @@ import (
 	"github.com/btcsuite/btcutil"
 )
 
+const (
+	// blockHdrSize is the size of a block header.  This is simply the
+	// constant from wire and is only provided here for convenience since
+	// wire.MaxBlockHeaderPayload is quite long.
+	blockHdrSize = wire.MaxBlockHeaderPayload
+)
+
 var (
+	// blockIndexBucketName is the name of the db bucket used to house to the
+	// block headers and contextual information.
+	blockIndexBucketName = []byte("blockheaderidx")
+
 	// hashIndexBucketName is the name of the db bucket used to house to the
 	// block hash -> block height index.
 	hashIndexBucketName = []byte("hashidx")
@@ -1058,29 +1069,37 @@ func dbPutBestState(dbTx database.Tx, snapshot *BestState, workSum *big.Int) err
 func (b *BlockChain) createChainState() error {
 	// Create a new node from the genesis block and set it as the best node.
 	genesisBlock := btcutil.NewBlock(b.chainParams.GenesisBlock)
+	genesisBlock.SetHeight(0)
 	header := &genesisBlock.MsgBlock().Header
-	node := newBlockNode(header, 0)
-	node.inMainChain = true
-	b.bestNode = node
+	node := newBlockNode(header, nil)
+	node.status = statusDataStored | statusValid
+	b.bestChain.SetTip(node)
 
 	// Add the new node to the index which is used for faster lookups.
-	b.index.AddNode(node)
+	b.index.addNode(node)
 
 	// Initialize the state related to the best block.  Since it is the
 	// genesis block, use its timestamp for the median time.
 	numTxns := uint64(len(genesisBlock.MsgBlock().Transactions))
 	blockSize := uint64(genesisBlock.MsgBlock().SerializeSize())
 	blockWeight := uint64(GetBlockWeight(genesisBlock))
-	b.stateSnapshot = newBestState(b.bestNode, blockSize, blockWeight,
-		numTxns, numTxns, time.Unix(b.bestNode.timestamp, 0))
+	b.stateSnapshot = newBestState(node, blockSize, blockWeight, numTxns,
+		numTxns, time.Unix(node.timestamp, 0))
 
 	// Create the initial the database chain state including creating the
 	// necessary index buckets and inserting the genesis block.
 	err := b.db.Update(func(dbTx database.Tx) error {
+		meta := dbTx.Metadata()
+
+		// Create the bucket that houses the block index data.
+		_, err := meta.CreateBucket(blockIndexBucketName)
+		if err != nil {
+			return err
+		}
+
 		// Create the bucket that houses the chain block hash to height
 		// index.
-		meta := dbTx.Metadata()
-		_, err := meta.CreateBucket(hashIndexBucketName)
+		_, err = meta.CreateBucket(hashIndexBucketName)
 		if err != nil {
 			return err
 		}
@@ -1106,21 +1125,27 @@ func (b *BlockChain) createChainState() error {
 			return err
 		}
 
+		// Save the genesis block to the block index database.
+		err = dbStoreBlockNode(dbTx, node)
+		if err != nil {
+			return err
+		}
+
 		// Add the genesis block hash to height and height to hash
 		// mappings to the index.
-		err = dbPutBlockIndex(dbTx, &b.bestNode.hash, b.bestNode.height)
+		err = dbPutBlockIndex(dbTx, &node.hash, node.height)
 		if err != nil {
 			return err
 		}
 
 		// Store the current best chain state into the database.
-		err = dbPutBestState(dbTx, b.stateSnapshot, b.bestNode.workSum)
+		err = dbPutBestState(dbTx, b.stateSnapshot, node.workSum)
 		if err != nil {
 			return err
 		}
 
 		// Store the genesis block into the database.
-		return dbTx.StoreBlock(genesisBlock)
+		return dbStoreBlock(dbTx, genesisBlock)
 	})
 	return err
 }
@@ -1129,17 +1154,38 @@ func (b *BlockChain) createChainState() error {
 // database.  When the db does not yet contain any chain state, both it and the
 // chain state are initialized to the genesis block.
 func (b *BlockChain) initChainState() error {
-	// Attempt to load the chain state from the database.
-	var isStateInitialized bool
+	// Determine the state of the chain database. We may need to initialize
+	// everything from scratch or upgrade certain buckets.
+	var initialized, hasBlockIndex bool
 	err := b.db.View(func(dbTx database.Tx) error {
+		initialized = dbTx.Metadata().Get(chainStateKeyName) != nil
+		hasBlockIndex = dbTx.Metadata().Bucket(blockIndexBucketName) != nil
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	if !initialized {
+		// At this point the database has not already been initialized, so
+		// initialize both it and the chain state to the genesis block.
+		return b.createChainState()
+	}
+
+	if !hasBlockIndex {
+		err := migrateBlockIndex(b.db)
+		if err != nil {
+			return nil
+		}
+	}
+
+	// Attempt to load the chain state from the database.
+	return b.db.View(func(dbTx database.Tx) error {
 		// Fetch the stored chain state from the database metadata.
 		// When it doesn't exist, it means the database hasn't been
 		// initialized for use with chain yet, so break out now to allow
 		// that to happen under a writable database transaction.
 		serializedData := dbTx.Metadata().Get(chainStateKeyName)
-		if serializedData == nil {
-			return nil
-		}
 		log.Tracef("Serialized chain state: %x", serializedData)
 		state, err := deserializeBestChainState(serializedData)
 		if err != nil {
@@ -1151,38 +1197,70 @@ func (b *BlockChain) initChainState() error {
 		// number of nodes are already known, perform a single alloc
 		// for them versus a whole bunch of little ones to reduce
 		// pressure on the GC.
-		log.Infof("Loading block index.  This might take a while...")
-		bestHeight := int32(state.height)
-		blockNodes := make([]blockNode, bestHeight+1)
-		for height := int32(0); height <= bestHeight; height++ {
-			header, err := dbFetchHeaderByHeight(dbTx, height)
+		log.Infof("Loading block index...")
+
+		blockIndexBucket := dbTx.Metadata().Bucket(blockIndexBucketName)
+
+		// Determine how many blocks will be loaded into the index so we can
+		// allocate the right amount.
+		var blockCount int32
+		cursor := blockIndexBucket.Cursor()
+		for ok := cursor.First(); ok; ok = cursor.Next() {
+			blockCount++
+		}
+		blockNodes := make([]blockNode, blockCount)
+
+		var i int32
+		var lastNode *blockNode
+		cursor = blockIndexBucket.Cursor()
+		for ok := cursor.First(); ok; ok = cursor.Next() {
+			header, status, err := deserializeBlockRow(cursor.Value())
 			if err != nil {
 				return err
 			}
 
+			// Determine the parent block node. Since we iterate block headers
+			// in order of height, if the blocks are mostly linear there is a
+			// very good chance the previous header processed is the parent.
+			var parent *blockNode
+			if lastNode == nil {
+				blockHash := header.BlockHash()
+				if !blockHash.IsEqual(b.chainParams.GenesisHash) {
+					return AssertError(fmt.Sprintf("initChainState: Expected "+
+						"first entry in block index to be genesis block, "+
+						"found %s", blockHash))
+				}
+			} else if header.PrevBlock == lastNode.hash {
+				// Since we iterate block headers in order of height, if the
+				// blocks are mostly linear there is a very good chance the
+				// previous header processed is the parent.
+				parent = lastNode
+			} else {
+				parent = b.index.LookupNode(&header.PrevBlock)
+				if parent == nil {
+					return AssertError(fmt.Sprintf("initChainState: Could "+
+						"not find parent for block %s", header.BlockHash()))
+				}
+			}
+
 			// Initialize the block node for the block, connect it,
 			// and add it to the block index.
-			node := &blockNodes[height]
-			initBlockNode(node, header, height)
-			if parent := b.bestNode; parent != nil {
-				node.parent = parent
-				node.workSum = node.workSum.Add(parent.workSum,
-					node.workSum)
-			}
-			node.inMainChain = true
-			b.index.AddNode(node)
+			node := &blockNodes[i]
+			initBlockNode(node, header, parent)
+			node.status = status
+			b.index.addNode(node)
 
-			// This node is now the end of the best chain.
-			b.bestNode = node
+			lastNode = node
+			i++
 		}
 
-		// Ensure the resulting best node matches the stored best state
-		// hash.
-		if b.bestNode.hash != state.hash {
-			return AssertError(fmt.Sprintf("initChainState: block "+
-				"index chain tip %s does not match stored "+
-				"best state %s", b.bestNode.hash, state.hash))
+		// Set the best chain view to the stored best state.
+		tip := b.index.LookupNode(&state.hash)
+		if tip == nil {
+			return AssertError(fmt.Sprintf("initChainState: cannot find "+
+				"chain tip %s in block index", state.hash))
 		}
+		b.bestChain.SetTip(tip)
 
 		// Load the raw block bytes for the best block.
 		blockBytes, err := dbTx.FetchBlock(&state.hash)
@@ -1199,24 +1277,30 @@ func (b *BlockChain) initChainState() error {
 		blockSize := uint64(len(blockBytes))
 		blockWeight := uint64(GetBlockWeight(btcutil.NewBlock(&block)))
 		numTxns := uint64(len(block.Transactions))
-		b.stateSnapshot = newBestState(b.bestNode, blockSize, blockWeight,
-			numTxns, state.totalTxns, b.bestNode.CalcPastMedianTime())
-		isStateInitialized = true
+		b.stateSnapshot = newBestState(tip, blockSize, blockWeight,
+			numTxns, state.totalTxns, tip.CalcPastMedianTime())
 
 		return nil
 	})
+}
+
+// deserializeBlockRow parses a value in the block index bucket into a block
+// header and block status bitfield.
+func deserializeBlockRow(blockRow []byte) (*wire.BlockHeader, blockStatus, error) {
+	buffer := bytes.NewReader(blockRow)
+
+	var header wire.BlockHeader
+	err := header.Deserialize(buffer)
 	if err != nil {
-		return err
+		return nil, statusNone, err
 	}
 
-	// There is nothing more to do if the chain state was initialized.
-	if isStateInitialized {
-		return nil
+	statusByte, err := buffer.ReadByte()
+	if err != nil {
+		return nil, statusNone, err
 	}
 
-	// At this point the database has not already been initialized, so
-	// initialize both it and the chain state to the genesis block.
-	return b.createChainState()
+	return &header, blockStatus(statusByte), nil
 }
 
 // dbFetchHeaderByHash uses an existing database transaction to retrieve the
@@ -1247,44 +1331,12 @@ func dbFetchHeaderByHeight(dbTx database.Tx, height int32) (*wire.BlockHeader, e
 	return dbFetchHeaderByHash(dbTx, hash)
 }
 
-// dbFetchBlockByHash uses an existing database transaction to retrieve the raw
-// block for the provided hash, deserialize it, retrieve the appropriate height
-// from the index, and return a btcutil.Block with the height set.
-func dbFetchBlockByHash(dbTx database.Tx, hash *chainhash.Hash) (*btcutil.Block, error) {
-	// First find the height associated with the provided hash in the index.
-	blockHeight, err := dbFetchHeightByHash(dbTx, hash)
-	if err != nil {
-		return nil, err
-	}
-
-	// Load the raw block bytes from the database.
-	blockBytes, err := dbTx.FetchBlock(hash)
-	if err != nil {
-		return nil, err
-	}
-
-	// Create the encapsulated block and set the height appropriately.
-	block, err := btcutil.NewBlockFromBytes(blockBytes)
-	if err != nil {
-		return nil, err
-	}
-	block.SetHeight(blockHeight)
-
-	return block, nil
-}
-
-// dbFetchBlockByHeight uses an existing database transaction to retrieve the
-// raw block for the provided height, deserialize it, and return a btcutil.Block
+// dbFetchBlockByNode uses an existing database transaction to retrieve the
+// raw block for the provided node, deserialize it, and return a btcutil.Block
 // with the height set.
-func dbFetchBlockByHeight(dbTx database.Tx, height int32) (*btcutil.Block, error) {
-	// First find the hash associated with the provided height in the index.
-	hash, err := dbFetchHashByHeight(dbTx, height)
-	if err != nil {
-		return nil, err
-	}
-
+func dbFetchBlockByNode(dbTx database.Tx, node *blockNode) (*btcutil.Block, error) {
 	// Load the raw block bytes from the database.
-	blockBytes, err := dbTx.FetchBlock(hash)
+	blockBytes, err := dbTx.FetchBlock(&node.hash)
 	if err != nil {
 		return nil, err
 	}
@@ -1294,67 +1346,72 @@ func dbFetchBlockByHeight(dbTx database.Tx, height int32) (*btcutil.Block, error
 	if err != nil {
 		return nil, err
 	}
-	block.SetHeight(height)
+	block.SetHeight(node.height)
 
 	return block, nil
 }
 
-// dbMainChainHasBlock uses an existing database transaction to return whether
-// or not the main chain contains the block identified by the provided hash.
-func dbMainChainHasBlock(dbTx database.Tx, hash *chainhash.Hash) bool {
-	hashIndex := dbTx.Metadata().Bucket(hashIndexBucketName)
-	return hashIndex.Get(hash[:]) != nil
+// dbStoreBlockNode stores the block header and validation status to the block
+// index bucket. This overwrites the current entry if there exists one.
+func dbStoreBlockNode(dbTx database.Tx, node *blockNode) error {
+	// Serialize block data to be stored.
+	w := bytes.NewBuffer(make([]byte, 0, blockHdrSize+1))
+	header := node.Header()
+	err := header.Serialize(w)
+	if err != nil {
+		return err
+	}
+	err = w.WriteByte(byte(node.status))
+	if err != nil {
+		return err
+	}
+	value := w.Bytes()
+
+	// Write block header data to block index bucket.
+	blockIndexBucket := dbTx.Metadata().Bucket(blockIndexBucketName)
+	key := blockIndexKey(&node.hash, uint32(node.height))
+	return blockIndexBucket.Put(key, value)
 }
 
-// MainChainHasBlock returns whether or not the block with the given hash is in
-// the main chain.
-//
-// This function is safe for concurrent access.
-func (b *BlockChain) MainChainHasBlock(hash *chainhash.Hash) (bool, error) {
-	var exists bool
-	err := b.db.View(func(dbTx database.Tx) error {
-		exists = dbMainChainHasBlock(dbTx, hash)
+// dbStoreBlock stores the provided block in the database if it is not already
+// there. The full block data is written to ffldb.
+func dbStoreBlock(dbTx database.Tx, block *btcutil.Block) error {
+	hasBlock, err := dbTx.HasBlock(block.Hash())
+	if err != nil {
+		return err
+	}
+	if hasBlock {
 		return nil
-	})
-	return exists, err
+	}
+	return dbTx.StoreBlock(block)
 }
 
-// BlockHeightByHash returns the height of the block with the given hash in the
-// main chain.
-//
-// This function is safe for concurrent access.
-func (b *BlockChain) BlockHeightByHash(hash *chainhash.Hash) (int32, error) {
-	var height int32
-	err := b.db.View(func(dbTx database.Tx) error {
-		var err error
-		height, err = dbFetchHeightByHash(dbTx, hash)
-		return err
-	})
-	return height, err
-}
-
-// BlockHashByHeight returns the hash of the block at the given height in the
-// main chain.
-//
-// This function is safe for concurrent access.
-func (b *BlockChain) BlockHashByHeight(blockHeight int32) (*chainhash.Hash, error) {
-	var hash *chainhash.Hash
-	err := b.db.View(func(dbTx database.Tx) error {
-		var err error
-		hash, err = dbFetchHashByHeight(dbTx, blockHeight)
-		return err
-	})
-	return hash, err
+// blockIndexKey generates the binary key for an entry in the block index
+// bucket. The key is composed of the block height encoded as a big-endian
+// 32-bit unsigned int followed by the 32 byte block hash.
+func blockIndexKey(blockHash *chainhash.Hash, blockHeight uint32) []byte {
+	indexKey := make([]byte, chainhash.HashSize+4)
+	binary.BigEndian.PutUint32(indexKey[0:4], blockHeight)
+	copy(indexKey[4:chainhash.HashSize+4], blockHash[:])
+	return indexKey
 }
 
 // BlockByHeight returns the block at the given height in the main chain.
 //
 // This function is safe for concurrent access.
 func (b *BlockChain) BlockByHeight(blockHeight int32) (*btcutil.Block, error) {
+	// Lookup the block height in the best chain.
+	node := b.bestChain.NodeByHeight(blockHeight)
+	if node == nil {
+		str := fmt.Sprintf("no block at height %d exists", blockHeight)
+		return nil, errNotInMainChain(str)
+	}
+
+	// Load the block from the database and return it.
 	var block *btcutil.Block
 	err := b.db.View(func(dbTx database.Tx) error {
 		var err error
-		block, err = dbFetchBlockByHeight(dbTx, blockHeight)
+		block, err = dbFetchBlockByNode(dbTx, node)
 		return err
 	})
 	return block, err
@@ -1365,70 +1422,20 @@ func (b *BlockChain) BlockByHeight(blockHeight int32) (*btcutil.Block, error) {
 //
 // This function is safe for concurrent access.
 func (b *BlockChain) BlockByHash(hash *chainhash.Hash) (*btcutil.Block, error) {
+	// Lookup the block hash in block index and ensure it is in the best
+	// chain.
+	node := b.index.LookupNode(hash)
+	if node == nil || !b.bestChain.Contains(node) {
+		str := fmt.Sprintf("block %s is not in the main chain", hash)
+		return nil, errNotInMainChain(str)
+	}
+
+	// Load the block from the database and return it.
 	var block *btcutil.Block
 	err := b.db.View(func(dbTx database.Tx) error {
 		var err error
-		block, err = dbFetchBlockByHash(dbTx, hash)
+		block, err = dbFetchBlockByNode(dbTx, node)
 		return err
 	})
 	return block, err
-}
-
-// HeightRange returns a range of block hashes for the given start and end
-// heights.  It is inclusive of the start height and exclusive of the end
-// height.  The end height will be limited to the current main chain height.
-//
-// This function is safe for concurrent access.
-func (b *BlockChain) HeightRange(startHeight, endHeight int32) ([]chainhash.Hash, error) {
-	// Ensure requested heights are sane.
-	if startHeight < 0 {
-		return nil, fmt.Errorf("start height of fetch range must not "+
-			"be less than zero - got %d", startHeight)
-	}
-	if endHeight < startHeight {
-		return nil, fmt.Errorf("end height of fetch range must not "+
-			"be less than the start height - got start %d, end %d",
-			startHeight, endHeight)
-	}
-
-	// There is nothing to do when the start and end heights are the same,
-	// so return now to avoid the chain lock and a database transaction.
-	if startHeight == endHeight {
-		return nil, nil
-	}
-
-	// Grab a lock on the chain to prevent it from changing due to a reorg
-	// while building the hashes.
-	b.chainLock.RLock()
-	defer b.chainLock.RUnlock()
-
-	// When the requested start height is after the most recent best chain
-	// height, there is nothing to do.
-	latestHeight := b.bestNode.height
-	if startHeight > latestHeight {
-		return nil, nil
-	}
-
-	// Limit the ending height to the latest height of the chain.
-	if endHeight > latestHeight+1 {
-		endHeight = latestHeight + 1
-	}
-
-	// Fetch as many as are available within the specified range.
-	var hashList []chainhash.Hash
-	err := b.db.View(func(dbTx database.Tx) error {
-		hashes := make([]chainhash.Hash, 0, endHeight-startHeight)
-		for i := startHeight; i < endHeight; i++ {
-			hash, err := dbFetchHashByHeight(dbTx, i)
-			if err != nil {
-				return err
-			}
-			hashes = append(hashes, *hash)
-		}
-
-		// Set the list to be returned to the constructed list.
-		hashList = hashes
-		return nil
-	})
-	return hashList, err
 }
