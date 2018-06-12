@@ -2271,7 +2271,7 @@ func (i *jsonAPIHandler) POSTReleaseEscrow(w http.ResponseWriter, r *http.Reques
 	}
 
 	if !(&repo.SaleRecord{Contract: contract}).SupportsTimedEscrowRelease() {
-		ErrorResponse(w, http.StatusBadRequest, "Escrow does not support automatic release of funds to vendor")
+		ErrorResponse(w, http.StatusBadRequest, "Escrowed currency does not support automatic release of funds to vendor")
 		return
 	}
 
