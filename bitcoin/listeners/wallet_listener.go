@@ -1,37 +1,33 @@
 package bitcoin
 
 import (
-	"encoding/hex"
+	"github.com/phoreproject/openbazaar-go/api/notifications"
 	"github.com/phoreproject/openbazaar-go/repo"
 	"github.com/phoreproject/wallet-interface"
-	"github.com/phoreproject/btcd/chaincfg/chainhash"
 )
 
 type WalletListener struct {
 	db        repo.Datastore
-	broadcast chan repo.Notifier
+	broadcast chan interface{}
 }
 
-func NewWalletListener(db repo.Datastore, broadcast chan repo.Notifier) *WalletListener {
+func NewWalletListener(db repo.Datastore, broadcast chan interface{}) *WalletListener {
 	l := &WalletListener{db, broadcast}
 	return l
 }
 
 func (l *WalletListener) OnTransactionReceived(cb wallet.TransactionCallback) {
 	if !cb.WatchOnly {
-		metadata, _ := l.db.TxMetadata().Get(cb.Txid)
+		txid := hex.EncodeToString(cb.Txid)
+		metadata, _ := l.db.TxMetadata().Get(txid)
 		status := "UNCONFIRMED"
 		confirmations := 0
 		if cb.Height > 0 {
 			status = "PENDING"
 			confirmations = 1
 		}
-		ch, err := chainhash.NewHash(cb.Txid)
-		if err != nil {
-			return
-		}
-		n := repo.IncomingTransaction{
-			Txid:          ch.String(),
+		n := notifications.IncomingTransaction{
+			Txid:          cb.Txid,
 			Value:         cb.Value,
 			Address:       metadata.Address,
 			Status:        status,
