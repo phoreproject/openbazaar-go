@@ -1,12 +1,6 @@
-# openbazaar-go
-![banner](https://i.imgur.com/iOnXDXK.png)
-OpenBazaar Server Daemon in Go
+# Phore Marketplace Server Daemon in Go
 
-[![Build Status](https://travis-ci.org/OpenBazaar/openbazaar-go.svg?branch=master)](https://travis-ci.org/OpenBazaar/openbazaar-go)
-[![Coverage Status](https://coveralls.io/repos/github/OpenBazaar/openbazaar-go/badge.svg?branch=master)](https://coveralls.io/github/OpenBazaar/openbazaar-go?branch=master)
-[![Go Report Card](https://goreportcard.com/badge/github.com/phoreproject/openbazaar-go)](https://goreportcard.com/report/github.com/phoreproject/openbazaar-go)
-
-This repository contains the OpenBazaar server daemon which handles the heavy lifting for the [OpenBazaar](https://openbazaar.org/) desktop application. The server combines several technologies: A modified [IPFS](https://ipfs.io) node, which itself combines ideas from Git, BitTorrent, and Kademlia. A lightweight SPV Bitcoin wallet for interacting with the Bitcoin network. And a JSON API which can be used by a user interface to control the node and browse the network. If you are looking for the OpenBazaar user interface code see [here](https://github.com/OpenBazaar/openbazaar-desktop).
+This repository contains the Phore Marketplace server daemon which handles the heavy lifting for the Phore Marketplace desktop application. The server combines several technologies: A modified [IPFS](https://ipfs.io) node, which itself combines ideas from Git, BitTorrent, and Kademlia. A lightweight RPC Phore wallet for interacting with the Phore network. And a JSON API which can be used by a user interface to control the node and browse the network. If you are looking for the Phore Marketplace user interface code see [here](https://github.com/phoreproject/openbazaar-desktop).
 
 ## Table of Contents
 
@@ -25,7 +19,7 @@ This repository contains the OpenBazaar server daemon which handles the heavy li
 
 ## Install
 
-A typical install of OpenBazaar contains a bundle of the server daemon and user interface. If this is what you are looking for you can find an installer at https://openbazaar.org/download.html. If you are looking to run the server daemon by itself or to contribute to developement see below for instructions.
+A typical install of PhoreMarketplace contains a bundle of the server daemon and user interface. If this is what you are looking for you can find an installer at https://github.com/phoreproject/openbazaar-desktop/releases. If you are looking to run the server daemon by itself or to contribute to developement see below for instructions.
 
 ### Install Pre-built Packages
 
@@ -92,10 +86,6 @@ Help Options:
           --storage=              set the outgoing message storage option
                                   [self-hosted, dropbox] default=self-hosted
 ```
-
-## Documentation
-
-When ready we will put up a full documentation of the OpenBazaar protocol and the JSON API at https://docs.openbazaar.org
 
 ## Contributing
 
