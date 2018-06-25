@@ -6,8 +6,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	ds "gx/ipfs/QmVSase1JP7cq9QkPT46oNwdp9pT6kBkG3oqS14y3QcZjG/go-datastore"
-	"gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
+	"github.com/phoreproject/openbazaar-go/ipfs"
+	ipnspb "github.com/ipfs/go-ipfs/namesys/pb"
+	npb "github.com/ipfs/go-ipfs/namesys/pb"
+	ipfspath "github.com/ipfs/go-ipfs/path"
+	ipnspath "github.com/ipfs/go-ipfs/path"
+	ds "gx/ipfs/QmXRKBQA4wXP7xWbFiZsR1GP4HV6wMDQ1aWFxZZ4uBcPX9/go-datastore"
+	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
 	"gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 	"io/ioutil"
@@ -15,12 +20,6 @@ import (
 	"net/http"
 	"strings"
 	"time"
-
-	ipnspb "github.com/ipfs/go-ipfs/namesys/pb"
-	npb "github.com/ipfs/go-ipfs/namesys/pb"
-	ipfspath "github.com/ipfs/go-ipfs/path"
-	ipnspath "github.com/ipfs/go-ipfs/path"
-	"github.com/phoreproject/openbazaar-go/ipfs"
 )
 
 /*
@@ -58,6 +57,7 @@ func (n *OpenBazaarNode) IPNSResolve(peerId string, timeout time.Duration) (stri
 		client := &http.Client{Transport: tbTransport, Timeout: time.Second * 5}
 		resp, err := client.Get(n.IPNSBackupAPI + peerId)
 		if err != nil {
+			log.Error(err)
 			return "", err
 		}
 		if resp.StatusCode != http.StatusOK {
@@ -66,6 +66,7 @@ func (n *OpenBazaarNode) IPNSResolve(peerId string, timeout time.Duration) (stri
 
 		b, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
+			log.Error(err)
 			return "", err
 		}
 
@@ -85,33 +86,40 @@ func (n *OpenBazaarNode) IPNSResolve(peerId string, timeout time.Duration) (stri
 		entry := new(ipnspb.IpnsEntry)
 		entryBytes, err := hex.DecodeString(rec.SerializedRecord)
 		if err != nil {
+			log.Error(err)
 			return "", err
 		}
 		err = proto.Unmarshal(entryBytes, entry)
 		if err != nil {
+			log.Error(err)
 			return "", err
 		}
 
 		pubkeyBytes, err := hex.DecodeString(rec.Pubkey)
 		if err != nil {
+			log.Error(err)
 			return "", err
 		}
 
 		pubkey, err := crypto.UnmarshalPublicKey(pubkeyBytes)
 		if err != nil {
+			log.Error(err)
 			return "", err
-		}
-
-		// check sig with pk
-		if ok, err := pubkey.Verify(ipnsEntryDataForSig(entry), entry.GetSignature()); err != nil || !ok {
-			return "", fmt.Errorf("Invalid value. Not signed by PrivateKey corresponding to %v", pubkey)
 		}
 		id, err := peer.IDB58Decode(peerId)
 		if err != nil {
+			log.Error(err)
 			return "", err
 		}
 		if !id.MatchesPublicKey(pubkey) {
+			log.Error(err)
 			return "", fmt.Errorf("Invalid key. Does not hash to %s", peerId)
+		}
+
+		// check sig with pk
+		if ok, err := pubkey.Verify(ipnsEntryDataForSig(entry), entry.Signature); err != nil || !ok {
+			log.Errorf("Signature on IPNS record from gateway validated to %t", ok)
+			return "", fmt.Errorf("Invalid value. Not signed by PrivateKey corresponding to %v", pubkey)
 		}
 
 		go func() {
@@ -121,6 +129,7 @@ func (n *OpenBazaarNode) IPNSResolve(peerId string, timeout time.Duration) (stri
 
 		p, err := ipnspath.ParsePath(string(entry.GetValue()))
 		if err != nil {
+			log.Error(err)
 			return "", err
 		}
 		val = strings.TrimPrefix(p.String(), "/ipfs/")

@@ -5,7 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/json"
 	"fmt"
-	mh "gx/ipfs/QmU9a9NV9RdPNwZQDYd5uKsm6N6LJLSvLbywDDYFbaaC6P/go-multihash"
+	mh "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -20,14 +20,16 @@ import (
 	"encoding/hex"
 
 	"crypto/sha256"
-	ps "gx/ipfs/QmPgDWmTmuzvP7QE5zwo1TmjbJme9pmZHNujB2453jkCTr/go-libp2p-peerstore"
-	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
+	ps "gx/ipfs/QmXauCuJzmzapetmC6W4TuDJLL1yFFrVzSHoWv8YdbmnxH/go-libp2p-peerstore"
+	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	"sync"
 
 	"bytes"
-	"gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
-	routing "gx/ipfs/QmUCS9EnqNq1kCnJds2eLDypBiS21aSiCf1MVzSUVB9TGA/go-libp2p-kad-dht"
+	routing "gx/ipfs/QmRaVcGchmC1stHHK7YhcgEuTk5k1JiGS568pfYWMgT91H/go-libp2p-kad-dht"
+	"gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 	"io/ioutil"
+
+	ds "gx/ipfs/QmXRKBQA4wXP7xWbFiZsR1GP4HV6wMDQ1aWFxZZ4uBcPX9/go-datastore"
 
 	"github.com/OpenBazaar/jsonpb"
 	"github.com/phoreproject/openbazaar-go/bitcoin/phored"
@@ -36,7 +38,7 @@ import (
 	"github.com/phoreproject/openbazaar-go/pb"
 	"github.com/phoreproject/openbazaar-go/repo"
 	"github.com/phoreproject/openbazaar-go/schema"
-	"github.com/phoreproject/wallet-interface"
+	"github.com/phoreproject/spvwallet"
 	"github.com/phoreproject/btcd/chaincfg/chainhash"
 	"github.com/phoreproject/btcutil/base58"
 	"github.com/golang/protobuf/proto"
@@ -44,8 +46,7 @@ import (
 	"github.com/ipfs/go-ipfs/core/coreunix"
 	ipnspb "github.com/ipfs/go-ipfs/namesys/pb"
 	ipnspath "github.com/ipfs/go-ipfs/path"
-	lockfile "github.com/ipfs/go-ipfs/repo/fsrepo/lock"
-	ds "gx/ipfs/QmVSase1JP7cq9QkPT46oNwdp9pT6kBkG3oqS14y3QcZjG/go-datastore"
+	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 )
 
 type JsonAPIConfig struct {
@@ -518,77 +519,18 @@ func (i *jsonAPIHandler) POSTListing(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if len(ld.Moderators) == 0 {
-		sd, err := i.node.Datastore.Settings().Get()
-		if err == nil && sd.StoreModerators != nil {
-			ld.Moderators = *sd.StoreModerators
-		}
-	}
-
-	// If the listing already exists tell them to use PUT
-	listingPath := path.Join(i.node.RepoPath, "root", "listings", ld.Slug+".json")
-	if ld.Slug != "" {
-		_, ferr := os.Stat(listingPath)
-		if !os.IsNotExist(ferr) {
+	err = i.node.CreateListing(ld)
+	if err != nil {
+		if err == core.ErrListingAlreadyExists {
 			ErrorResponse(w, http.StatusConflict, "Listing already exists. Use PUT.")
 			return
 		}
-	} else {
-		ld.Slug, err = i.node.GenerateSlug(ld.Item.Title)
-		if err != nil {
-			ErrorResponse(w, http.StatusInternalServerError, err.Error())
-			return
-		}
-	}
-	err = i.node.SetListingInventory(ld)
-	if err != nil {
-		ErrorResponse(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-	signedListing, err := i.node.SignListing(ld)
-	if err != nil {
-		ErrorResponse(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-	listingPath = path.Join(i.node.RepoPath, "root", "listings", signedListing.Listing.Slug+".json")
-	f, err := os.Create(listingPath)
-	if err != nil {
-		ErrorResponse(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-	m := jsonpb.Marshaler{
-		EnumsAsInts:  false,
-		EmitDefaults: false,
-		Indent:       "    ",
-		OrigName:     false,
-	}
-	out, err := m.MarshalToString(signedListing)
-	if err != nil {
+
 		ErrorResponse(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	if _, err := f.WriteString(out); err != nil {
-		ErrorResponse(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-	err = i.node.UpdateListingIndex(signedListing)
-	if err != nil {
-		ErrorResponse(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-	// Update followers/following
-	err = i.node.UpdateFollow()
-	if err != nil {
-		ErrorResponse(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-	if err := i.node.SeedNode(); err != nil {
-		ErrorResponse(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-	SanitizedResponse(w, fmt.Sprintf(`{"slug": "%s"}`, signedListing.Listing.Slug))
-	return
+	SanitizedResponse(w, fmt.Sprintf(`{"slug": "%s"}`, ld.Slug))
 }
 
 func (i *jsonAPIHandler) PUTListing(w http.ResponseWriter, r *http.Request) {
@@ -598,65 +540,18 @@ func (i *jsonAPIHandler) PUTListing(w http.ResponseWriter, r *http.Request) {
 		ErrorResponse(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	if len(ld.Moderators) == 0 {
-		sd, err := i.node.Datastore.Settings().Get()
-		if err == nil {
-			ld.Moderators = *sd.StoreModerators
+
+	err = i.node.UpdateListing(ld)
+	if err != nil {
+		if err == core.ErrListingDoesNotExist {
+			ErrorResponse(w, http.StatusNotFound, "Listing not found.")
+			return
 		}
-	}
-	listingPath := path.Join(i.node.RepoPath, "root", "listings", ld.Slug+".json")
-	_, ferr := os.Stat(listingPath)
-	if os.IsNotExist(ferr) {
-		ErrorResponse(w, http.StatusNotFound, "Listing not found.")
-		return
-	}
-	err = i.node.SetListingInventory(ld)
-	if err != nil {
-		ErrorResponse(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-	signedListing, err := i.node.SignListing(ld)
-	if err != nil {
-		ErrorResponse(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-	f, err := os.Create(listingPath)
-	if err != nil {
-		ErrorResponse(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-	m := jsonpb.Marshaler{
-		EnumsAsInts:  false,
-		EmitDefaults: false,
-		Indent:       "    ",
-		OrigName:     false,
-	}
-	out, err := m.MarshalToString(signedListing)
-	if err != nil {
+
 		ErrorResponse(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	if _, err := f.WriteString(out); err != nil {
-		ErrorResponse(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-	err = i.node.UpdateListingIndex(signedListing)
-	if err != nil {
-		ErrorResponse(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	// Update followers/following
-	err = i.node.UpdateFollow()
-	if err != nil {
-		ErrorResponse(w, http.StatusInternalServerError, "File Write Error: "+err.Error())
-		return
-	}
-	if err := i.node.SeedNode(); err != nil {
-		ErrorResponse(w, http.StatusInternalServerError, err.Error())
-		return
-	}
 	SanitizedResponse(w, `{}`)
 	return
 }
@@ -1278,28 +1173,27 @@ func (i *jsonAPIHandler) GETInventory(w http.ResponseWriter, r *http.Request) {
 	// If we want our own inventory get it from the local database and return
 	getPersonalInventory := (peerIDString == "" || peerIDString == i.node.IPFSIdentityString())
 	if getPersonalInventory {
-		type inv struct {
-			Slug     string `json:"slug"`
-			Variant  int    `json:"variant"`
-			Quantity int    `json:"quantity"`
+		var (
+			err       error
+			inventory interface{}
+		)
+
+		if slug == "" {
+			inventory, err = i.node.GetLocalInventory()
+		} else {
+			inventory, err = i.node.GetLocalInventoryForSlug(slug)
 		}
-		var invList []inv
-		inventory, err := i.node.Datastore.Inventory().GetAll()
 		if err != nil {
 			ErrorResponse(w, http.StatusInternalServerError, err.Error())
 			return
 		}
-		for itemSlug, m := range inventory {
-			for variant, count := range m {
-				if slug != "" && slug != itemSlug {
-					continue
-				}
 
-				i := inv{itemSlug, variant, count}
-				invList = append(invList, i)
-			}
+		ret, err := json.MarshalIndent(inventory, "", "    ")
+		if err != nil {
+			ErrorResponse(w, http.StatusInternalServerError, err.Error())
+			return
 		}
-		ret, _ := json.MarshalIndent(invList, "", "    ")
+
 		if string(ret) == "null" {
 			fmt.Fprint(w, `[]`)
 			return
@@ -2270,29 +2164,58 @@ func (i *jsonAPIHandler) POSTReleaseEscrow(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	if state != pb.OrderState_PENDING && state != pb.OrderState_FULFILLED {
-		ErrorResponse(w, http.StatusBadRequest, "Release escrow can only be called when sale is pending or fulfilled")
-		return
-	}
-
 	if !(&repo.SaleRecord{Contract: contract}).SupportsTimedEscrowRelease() {
 		ErrorResponse(w, http.StatusBadRequest, "Escrowed currency does not support automatic release of funds to vendor")
 		return
 	}
 
-	err = i.node.ReleaseFundsAfterTimeout(contract, records)
-	if err != nil {
-		switch err {
-		case core.ErrPrematureReleaseOfTimedoutEscrowFunds:
-			ErrorResponse(w, http.StatusUnauthorized, err.Error())
-			return
-		case core.EscrowTimeLockedError:
-			ErrorResponse(w, http.StatusUnauthorized, err.Error())
-			return
-		default:
-			ErrorResponse(w, http.StatusBadRequest, err.Error())
+	switch state {
+	case pb.OrderState_DISPUTED:
+		disputeStart, err := ptypes.Timestamp(contract.GetDispute().Timestamp)
+		if err != nil {
+			ErrorResponse(w, http.StatusInternalServerError, err.Error())
 			return
 		}
+
+		fourtyFiveDaysInHours := 45 * 24
+		disputeDuration := time.Duration(fourtyFiveDaysInHours) * time.Hour
+
+		// Time hack until we can stub this more nicely in test env
+		if i.node.TestNetworkEnabled() || i.node.RegressionNetworkEnabled() {
+			disputeDuration = time.Duration(10) * time.Second
+		}
+
+		disputeTimeout := disputeStart.Add(disputeDuration)
+		if time.Now().Before(disputeTimeout) {
+			expiresIn := disputeTimeout.Sub(time.Now())
+			ErrorResponse(w, http.StatusUnauthorized, fmt.Sprintf("releaseescrow can only be called when in dispute for %s or longer, expires in %s", disputeDuration.String(), expiresIn.String()))
+			return
+		}
+		err = i.node.ReleaseFundsAfterTimeout(contract, records)
+		if err != nil {
+			ErrorResponse(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+	case pb.OrderState_FULFILLED:
+		err = i.node.ReleaseFundsAfterTimeout(contract, records)
+		if err != nil {
+			if err == core.EscrowTimeLockedError {
+				ErrorResponse(w, http.StatusUnauthorized, err.Error())
+				return
+			} else {
+				ErrorResponse(w, http.StatusInternalServerError, err.Error())
+				return
+			}
+		}
+	default:
+		ErrorResponse(w, http.StatusBadRequest, "releaseescrow can only be called when in dispute for 45 days or fulfilled for longer than escrow timeout")
+		return
+	}
+
+	err = i.node.SendFundsReleasedByVendor(contract.BuyerOrder.BuyerID.PeerID, contract.BuyerOrder.BuyerID.Pubkeys.Identity, rel.OrderID)
+	if err != nil {
+		log.Errorf("SendFundsReleasedByVendor error: %s", err.Error())
+		log.Errorf("SendFundsReleasedByVendor: peerID: %s orderID: %s", contract.BuyerOrder.BuyerID.PeerID, rel.OrderID)
 	}
 
 	SanitizedResponse(w, `{}`)
