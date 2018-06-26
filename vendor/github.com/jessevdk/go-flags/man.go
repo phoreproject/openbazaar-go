@@ -38,8 +38,19 @@ func formatForMan(wr io.Writer, s string) {
 
 func writeManPageOptions(wr io.Writer, grp *Group) {
 	grp.eachGroup(func(group *Group) {
-		if group.Hidden {
+		if group.Hidden || len(group.options) == 0 {
 			return
+		}
+
+		// If the parent (grp) has any subgroups, display their descriptions as
+		// subsection headers similar to the output of --help.
+		if group.ShortDescription != "" && len(grp.groups) > 0 {
+			fmt.Fprintf(wr, ".SS %s\n", group.ShortDescription)
+
+			if group.LongDescription != "" {
+				formatForMan(wr, group.LongDescription)
+				fmt.Fprintln(wr, "")
+			}
 		}
 
 		for _, opt := range group.options {
@@ -72,11 +83,11 @@ func writeManPageOptions(wr io.Writer, grp *Group) {
 
 			if len(opt.Default) != 0 {
 				fmt.Fprintf(wr, " <default: \\fI%s\\fR>", manQuote(strings.Join(quoteV(opt.Default), ", ")))
-			} else if len(opt.EnvDefaultKey) != 0 {
+			} else if len(opt.EnvKeyWithNamespace()) != 0 {
 				if runtime.GOOS == "windows" {
-					fmt.Fprintf(wr, " <default: \\fI%%%s%%\\fR>", manQuote(opt.EnvDefaultKey))
+					fmt.Fprintf(wr, " <default: \\fI%%%s%%\\fR>", manQuote(opt.EnvKeyWithNamespace()))
 				} else {
-					fmt.Fprintf(wr, " <default: \\fI$%s\\fR>", manQuote(opt.EnvDefaultKey))
+					fmt.Fprintf(wr, " <default: \\fI$%s\\fR>", manQuote(opt.EnvKeyWithNamespace()))
 				}
 			}
 

@@ -37,7 +37,7 @@ type txValidator struct {
 }
 
 // sendResult sends the result of a script pair validation on the internal
-// result channel while respecting the quit channel.  The allows orderly
+// result channel while respecting the quit channel.  This allows orderly
 // shutdown when the validation process is aborted early due to a validation
 // error in one of the other goroutines.
 func (v *txValidator) sendResult(result error) {
@@ -55,31 +55,16 @@ out:
 	for {
 		select {
 		case txVI := <-v.validateChan:
-			// Ensure the referenced input transaction is available.
+			// Ensure the referenced input utxo is available.
 			txIn := txVI.txIn
-			originTxHash := &txIn.PreviousOutPoint.Hash
-			originTxIndex := txIn.PreviousOutPoint.Index
-			txEntry := v.utxoView.LookupEntry(originTxHash)
-			if txEntry == nil {
-				str := fmt.Sprintf("unable to find input "+
-					"transaction %v referenced from "+
-					"transaction %v", originTxHash,
-					txVI.tx.Hash())
-				err := ruleError(ErrMissingTxOut, str)
-				v.sendResult(err)
-				break out
-			}
-
-			// Ensure the referenced input transaction public key
-			// script is available.
-			pkScript := txEntry.PkScriptByIndex(originTxIndex)
-			if pkScript == nil {
+			utxo := v.utxoView.LookupEntry(txIn.PreviousOutPoint)
+			if utxo == nil {
 				str := fmt.Sprintf("unable to find unspent "+
-					"output %v script referenced from "+
+					"output %v referenced from "+
 					"transaction %s:%d",
 					txIn.PreviousOutPoint, txVI.tx.Hash(),
 					txVI.txInIndex)
-				err := ruleError(ErrBadTxInput, str)
+				err := ruleError(ErrMissingTxOut, str)
 				v.sendResult(err)
 				break out
 			}
@@ -87,18 +72,19 @@ out:
 			// Create a new script engine for the script pair.
 			sigScript := txIn.SignatureScript
 			witness := txIn.Witness
-			inputAmount := txEntry.AmountByIndex(originTxIndex)
+			pkScript := utxo.PkScript()
+			inputAmount := utxo.Amount()
 			vm, err := txscript.NewEngine(pkScript, txVI.tx.MsgTx(),
 				txVI.txInIndex, v.flags, v.sigCache, txVI.sigHashes,
 				inputAmount)
 			if err != nil {
 				str := fmt.Sprintf("failed to parse input "+
-					"%s:%d which references output %s:%d - "+
+					"%s:%d which references output %v - "+
 					"%v (input witness %x, input script "+
 					"bytes %x, prev output script bytes %x)",
-					txVI.tx.Hash(), txVI.txInIndex, originTxHash,
-					originTxIndex, err, witness, sigScript,
-					pkScript)
+					txVI.tx.Hash(), txVI.txInIndex,
+					txIn.PreviousOutPoint, err, witness,
+					sigScript, pkScript)
 				err := ruleError(ErrScriptMalformed, str)
 				v.sendResult(err)
 				break out
@@ -107,12 +93,12 @@ out:
 			// Execute the script pair.
 			if err := vm.Execute(); err != nil {
 				str := fmt.Sprintf("failed to validate input "+
-					"%s:%d which references output %s:%d - "+
+					"%s:%d which references output %v - "+
 					"%v (input witness %x, input script "+
 					"bytes %x, prev output script bytes %x)",
 					txVI.tx.Hash(), txVI.txInIndex,
-					originTxHash, originTxIndex, err,
-					witness, sigScript, pkScript)
+					txIn.PreviousOutPoint, err, witness,
+					sigScript, pkScript)
 				err := ruleError(ErrScriptValidation, str)
 				v.sendResult(err)
 				break out
@@ -135,7 +121,7 @@ func (v *txValidator) Validate(items []*txValidateItem) error {
 	}
 
 	// Limit the number of goroutines to do script validation based on the
-	// number of processor cores.  This help ensure the system stays
+	// number of processor cores.  This helps ensure the system stays
 	// reasonably responsive under heavy load.
 	maxGoRoutines := runtime.NumCPU() * 3
 	if maxGoRoutines <= 0 {

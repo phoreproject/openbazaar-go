@@ -1,6 +1,7 @@
 btclog
 ======
 
+<<<<<<< HEAD
 [![Build Status](https://travis-ci.org/btcsuite/btclog.png?branch=master)]
 (https://travis-ci.org/btcsuite/btclog)
 
@@ -23,6 +24,14 @@ http://godoc.org/github.com/btcsuite/btclog
 You can also view the documentation locally once the package is installed with
 the `godoc` tool by running `godoc -http=":6060"` and pointing your browser to
 http://localhost:6060/pkg/github.com/btcsuite/btclog
+=======
+[![Build Status](http://img.shields.io/travis/btcsuite/btclog.svg)](https://travis-ci.org/btcsuite/btclog)
+[![ISC License](http://img.shields.io/badge/license-ISC-blue.svg)](http://copyfree.org)
+[![GoDoc](https://img.shields.io/badge/godoc-reference-blue.svg)](http://godoc.org/github.com/btcsuite/btclog)
+
+Package btclog defines a logger interface and provides a default implementation
+of a subsystem-aware leveled logger implementing the same interface.
+>>>>>>> 159c03b9... IPFS rebase second pass
 
 ## Installation
 
@@ -52,4 +61,9 @@ verify the signature perform the following:
 
 ## License
 
+<<<<<<< HEAD
 Package btclog is licensed under the liberal ISC License.
+=======
+Package btclog is licensed under the [copyfree](http://copyfree.org) ISC
+License.
+>>>>>>> 159c03b9... IPFS rebase second pass

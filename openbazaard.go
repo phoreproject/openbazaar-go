@@ -38,13 +38,14 @@ func main() {
 			log.Info("OpenBazaar Server shutting down...")
 			if core.Node != nil {
 				if core.Node.MessageRetriever != nil {
+					core.Node.RecordAgingNotifier.Stop()
 					close(core.Node.MessageRetriever.DoneChan)
 					core.Node.MessageRetriever.Wait()
 				}
 				core.OfflineMessageWaitGroup.Wait()
 				core.PublishLock.Lock()
 				core.Node.Datastore.Close()
-				repoLockFile := filepath.Join(core.Node.RepoPath, lockfile.LockFile)
+				repoLockFile := filepath.Join(core.Node.RepoPath, fsrepo.LockFile)
 				os.Remove(repoLockFile)
 				core.Node.Wallet.Close()
 				core.Node.IpfsNode.Close()
