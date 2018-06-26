@@ -12,16 +12,16 @@ import (
 	"time"
 
 	"fmt"
-
 	"github.com/OpenBazaar/jsonpb"
-	"github.com/golang/protobuf/proto"
-	"github.com/golang/protobuf/ptypes"
+	"github.com/phoreproject/openbazaar-go/ipfs"
+	"github.com/phoreproject/openbazaar-go/pb"
+	"github.com/phoreproject/openbazaar-go/repo"
+	"github.com/phoreproject/wallet-interface"
 	"github.com/phoreproject/btcd/chaincfg/chainhash"
 	"github.com/phoreproject/btcd/wire"
 	hd "github.com/phoreproject/btcutil/hdkeychain"
-	"github.com/phoreproject/openbazaar-go/ipfs"
-	"github.com/phoreproject/openbazaar-go/pb"
-	"github.com/phoreproject/wallet-interface"
+	"github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/ptypes"
 )
 
 const (
@@ -268,9 +268,32 @@ func (n *OpenBazaarNode) CompleteOrder(orderRatings *OrderRatings, contract *pb.
 	return nil
 }
 
-var EscrowTimeLockedError error
+var (
+	EscrowTimeLockedError                    error
+	ErrPrematureReleaseOfTimedoutEscrowFunds = errors.New(fmt.Sprintf("Escrow can only be released when in dispute for %s days", (time.Duration(repo.DisputeTotalDurationHours) * time.Hour).String()))
+)
 
 func (n *OpenBazaarNode) ReleaseFundsAfterTimeout(contract *pb.RicardianContract, records []*wallet.TransactionRecord) error {
+	var (
+		dispute         = contract.GetDispute()
+		disputeDuration = time.Duration(repo.DisputeTotalDurationHours) * time.Hour
+	)
+	if dispute == nil {
+		return fmt.Errorf("contract missing dispute")
+	}
+	disputeStart, err := ptypes.Timestamp(dispute.Timestamp)
+	if err != nil {
+		return fmt.Errorf("sale dispute timestamp: %s", err.Error())
+	}
+	if n.TestnetEnable {
+		// Time hack until we can stub this more nicely in test env
+		disputeDuration = time.Duration(10) * time.Second
+	}
+	disputeExpiration := disputeStart.Add(disputeDuration)
+	if time.Now().Before(disputeExpiration) {
+		return ErrPrematureReleaseOfTimedoutEscrowFunds
+	}
+
 	minConfirms := contract.VendorListings[0].Metadata.EscrowTimeoutHours * ConfirmationsPerHour
 	var utxos []wallet.Utxo
 	for _, r := range records {
