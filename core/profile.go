@@ -53,8 +53,7 @@ func (n *OpenBazaarNode) FetchProfile(peerID string, useCache bool) (pb.Profile,
 		var profile []byte
 		var err error
 		if rootHash == "" {
-
-			profile, err = n.IPNSResolveThenCat(ipnspath.FromString(path.Join(peerID, "profile.json")), time.Minute)
+			profile, err = n.IPNSResolveThenCat(ipnspath.FromString(path.Join(peerId, "profile.json")), time.Minute)
 			if err != nil || len(profile) == 0 {
 				return pro, err
 			}
@@ -249,9 +248,6 @@ func (n *OpenBazaarNode) PatchProfile(patch map[string]interface{}) error {
 
 	// Execute UpdateProfile with new profile
 	newProfile, err := json.Marshal(patch)
-	if err != nil {
-		return err
-	}
 	p := new(pb.Profile)
 	if err := jsonpb.Unmarshal(bytes.NewReader(newProfile), p); err != nil {
 		return err
