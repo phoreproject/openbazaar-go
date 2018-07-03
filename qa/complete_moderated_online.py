@@ -242,6 +242,7 @@ class CompleteModeratedOnlineTest(OpenBazaarTestFramework):
 
         print("CompleteModeratedOnlineTest - PASS")
 
+
 if __name__ == '__main__':
     print("Running CompleteModeratedOnlineTest")
     CompleteModeratedOnlineTest().main(["--regtest", "--disableexchangerates"])
