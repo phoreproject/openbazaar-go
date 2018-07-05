@@ -35,12 +35,12 @@ dist
 
 # Development environment files
 .ackrc
-.vscode
 .tags*
 *.sw?
 debug
 .vscode
+config*
+openbazaar-go*
 
 # macOS
 .DS_Store
-*.pyc
