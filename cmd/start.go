@@ -17,11 +17,10 @@ import (
 	"strconv"
 
 	"crypto/rand"
+	"github.com/OpenBazaar/bitcoind-wallet"
 	bstk "github.com/OpenBazaar/go-blockstackclient"
 	"github.com/OpenBazaar/openbazaar-go/api"
 	"github.com/OpenBazaar/openbazaar-go/bitcoin"
-	"github.com/OpenBazaar/openbazaar-go/bitcoin/bitcoind"
-	"github.com/OpenBazaar/openbazaar-go/bitcoin/exchange"
 	lis "github.com/OpenBazaar/openbazaar-go/bitcoin/listeners"
 	"github.com/OpenBazaar/openbazaar-go/bitcoin/resync"
 	"github.com/OpenBazaar/openbazaar-go/core"
@@ -31,12 +30,12 @@ import (
 	"github.com/OpenBazaar/openbazaar-go/net/service"
 	"github.com/OpenBazaar/openbazaar-go/repo"
 	"github.com/OpenBazaar/openbazaar-go/repo/db"
-	"github.com/OpenBazaar/openbazaar-go/repo/migrations"
 	"github.com/OpenBazaar/openbazaar-go/schema"
 	sto "github.com/OpenBazaar/openbazaar-go/storage"
 	"github.com/OpenBazaar/openbazaar-go/storage/dropbox"
 	"github.com/OpenBazaar/openbazaar-go/storage/selfhosted"
 	"github.com/OpenBazaar/spvwallet"
+	exchange "github.com/phoreproject/spvwallet/exchangerates"
 	"github.com/OpenBazaar/wallet-interface"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcutil/base58"
@@ -55,7 +54,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/OpenBazaar/openbazaar-go/bitcoin/zcashd"
+	"github.com/OpenBazaar/zcashd-wallet"
 	"github.com/ipfs/go-ipfs/repo/config"
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
 	"github.com/natefinch/lumberjack"
@@ -152,6 +151,11 @@ func (x *Start) Execute(args []string) error {
 	repoLockFile := filepath.Join(repoPath, fsrepo.LockFile)
 	os.Remove(repoLockFile)
 
+	sqliteDB, err := InitializeRepo(repoPath, x.Password, "", isTestnet, time.Now())
+	if err != nil && err != repo.ErrRepoExists {
+		return err
+	}
+
 	// Logging
 	w := &lumberjack.Logger{
 		Filename:   path.Join(repoPath, "logs", "ob.log"),
@@ -208,6 +212,26 @@ func (x *Start) Execute(args []string) error {
 		return err
 	}
 
+	// If the database cannot be decrypted, exit
+	if sqliteDB.Config().IsEncrypted() {
+		sqliteDB.Close()
+		fmt.Print("Database is encrypted, enter your password: ")
+		bytePassword, _ := terminal.ReadPassword(int(syscall.Stdin))
+		fmt.Println("")
+		pw := string(bytePassword)
+		sqliteDB, err = InitializeRepo(repoPath, pw, "", isTestnet, time.Now())
+		if err != nil && err != repo.ErrRepoExists {
+			return err
+		}
+		if sqliteDB.Config().IsEncrypted() {
+			log.Error("Invalid password")
+			os.Exit(3)
+		}
+	}
+
+	// Get creation date. Ignore the error and use a default timestamp.
+	creationDate, _ := sqliteDB.Config().GetCreationDate()
+
 	// Create user-agent file
 	userAgentBytes := []byte(core.USERAGENT + x.UserAgent)
 	ioutil.WriteFile(path.Join(repoPath, "root", "user_agent"), userAgentBytes, os.ModePerm)
@@ -254,47 +278,6 @@ func (x *Start) Execute(args []string) error {
 		log.Error("scan republish interval config:", err)
 		return err
 	}
-
-	if x.BitcoinCash {
-		walletCfg.Type = "bitcoincash"
-	} else if x.ZCash != "" {
-		walletCfg.Type = "zcashd"
-		walletCfg.Binary = x.ZCash
-	}
-
-	ct := wallet.Bitcoin
-	switch walletCfg.Type {
-	case "bitcoincash":
-		ct = wallet.BitcoinCash
-	case "zcashd":
-		ct = wallet.Zcash
-	}
-
-	migrations.WalletCoinType = ct
-	sqliteDB, err := InitializeRepo(repoPath, x.Password, "", isTestnet, time.Now(), ct)
-	if err != nil && err != repo.ErrRepoExists {
-		return err
-	}
-
-	// If the database cannot be decrypted, exit
-	if sqliteDB.Config().IsEncrypted() {
-		sqliteDB.Close()
-		fmt.Print("Database is encrypted, enter your password: ")
-		bytePassword, _ := terminal.ReadPassword(int(syscall.Stdin))
-		fmt.Println("")
-		pw := string(bytePassword)
-		sqliteDB, err = InitializeRepo(repoPath, pw, "", isTestnet, time.Now(), ct)
-		if err != nil && err != repo.ErrRepoExists {
-			return err
-		}
-		if sqliteDB.Config().IsEncrypted() {
-			log.Error("Invalid password")
-			os.Exit(3)
-		}
-	}
-
-	// Get creation date. Ignore the error and use a default timestamp.
-	creationDate, _ := sqliteDB.Config().GetCreationDate()
 
 	// IPFS node setup
 	r, err := fsrepo.Open(repoPath)
@@ -1073,9 +1056,9 @@ func serveHTTPApi(cctx *commands.Context) (<-chan error, error) {
 	return errc, nil
 }
 
-func InitializeRepo(dataDir, password, mnemonic string, testnet bool, creationDate time.Time, coinType wallet.CoinType) (*db.SQLiteDatastore, error) {
+func InitializeRepo(dataDir, password, mnemonic string, testnet bool, creationDate time.Time) (*db.SQLiteDatastore, error) {
 	// Database
-	sqliteDB, err := db.Create(dataDir, password, testnet, coinType)
+	sqliteDB, err := db.Create(dataDir, password, testnet)
 	if err != nil {
 		return sqliteDB, err
 	}
