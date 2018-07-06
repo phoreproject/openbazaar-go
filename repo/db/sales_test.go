@@ -1,15 +1,16 @@
-package db
+package db_test
 
 import (
-	"database/sql"
 	"reflect"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
 	"sync"
 
 	"github.com/OpenBazaar/jsonpb"
+<<<<<<< HEAD
 	"github.com/phoreproject/openbazaar-go/pb"
 	"github.com/phoreproject/openbazaar-go/repo"
 	"github.com/phoreproject/openbazaar-go/schema"
@@ -29,13 +30,49 @@ func init() {
 
 	var err error
 	contract, err = newContract()
-	if err != nil {
-		return
+=======
+	"github.com/OpenBazaar/openbazaar-go/pb"
+	"github.com/OpenBazaar/openbazaar-go/repo"
+	"github.com/OpenBazaar/openbazaar-go/repo/db"
+	"github.com/OpenBazaar/openbazaar-go/schema"
+	"github.com/OpenBazaar/openbazaar-go/test/factory"
+	"github.com/OpenBazaar/wallet-interface"
+	"github.com/btcsuite/btcd/chaincfg"
+	"github.com/btcsuite/btcutil"
+	"github.com/golang/protobuf/ptypes"
+)
+
+func buildNewSaleStore() (repo.SaleStore, func(), error) {
+	appSchema := schema.MustNewCustomSchemaManager(schema.SchemaContext{
+		DataPath:        schema.GenerateTempPath(),
+		TestModeEnabled: true,
+	})
+	if err := appSchema.BuildSchemaDirectories(); err != nil {
+		return nil, nil, err
 	}
+	if err := appSchema.InitializeDatabase(); err != nil {
+		return nil, nil, err
+	}
+	database, err := appSchema.OpenDatabase()
+>>>>>>> 32782651... [#1004] Isolate dependencies repo/db/purchases_test.go and sales_test.go
+	if err != nil {
+		return nil, nil, err
+	}
+<<<<<<< HEAD
+=======
+	return db.NewSaleStore(database, new(sync.Mutex)), appSchema.DestroySchemaDirectories, nil
+>>>>>>> 32782651... [#1004] Isolate dependencies repo/db/purchases_test.go and sales_test.go
 }
 
 func TestSalesDB_Count(t *testing.T) {
-	err := saldb.Put("orderID", *contract, 0, false)
+	saldb, teardown, err := buildNewSaleStore()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer teardown()
+
+	contract := mustNewContract()
+	err = saldb.Put("orderID", *contract, 0, false)
 	if err != nil {
 		t.Error(err)
 	}
@@ -46,7 +83,18 @@ func TestSalesDB_Count(t *testing.T) {
 }
 
 func TestPutSale(t *testing.T) {
+<<<<<<< HEAD
 	contract, err := newContract()
+=======
+	saldb, teardown, err := buildNewSaleStore()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer teardown()
+
+	contract := mustNewContract()
+	err = saldb.Put("orderID", *contract, 0, false)
+>>>>>>> 32782651... [#1004] Isolate dependencies repo/db/purchases_test.go and sales_test.go
 	if err != nil {
 		t.Error(err)
 	}
@@ -117,8 +165,15 @@ func TestPutSale(t *testing.T) {
 }
 
 func TestDeleteSale(t *testing.T) {
+	saldb, teardown, err := buildNewSaleStore()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer teardown()
+
+	contract := mustNewContract()
 	saldb.Put("orderID", *contract, 0, false)
-	err := saldb.Delete("orderID")
+	err = saldb.Delete("orderID")
 	if err != nil {
 		t.Error("Sale delete failed")
 	}
@@ -127,17 +182,24 @@ func TestDeleteSale(t *testing.T) {
 	defer stmt.Close()
 
 	var orderID string
-	var contract []byte
+	var contractStr []byte
 	var state int
-	err = stmt.QueryRow("orderID").Scan(&orderID, &contract, &state)
+	err = stmt.QueryRow("orderID").Scan(&orderID, &contractStr, &state)
 	if err == nil {
 		t.Error("Sale delete failed")
 	}
 }
 
 func TestMarkSaleAsRead(t *testing.T) {
+	saldb, teardown, err := buildNewSaleStore()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer teardown()
+
+	contract := mustNewContract()
 	saldb.Put("orderID", *contract, 0, false)
-	err := saldb.MarkAsRead("orderID")
+	err = saldb.MarkAsRead("orderID")
 	if err != nil {
 		t.Error(err)
 	}
@@ -155,8 +217,15 @@ func TestMarkSaleAsRead(t *testing.T) {
 }
 
 func TestMarkSaleAsUnread(t *testing.T) {
+	saldb, teardown, err := buildNewSaleStore()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer teardown()
+
+	contract := mustNewContract()
 	saldb.Put("orderID", *contract, 0, false)
-	err := saldb.MarkAsRead("orderID")
+	err = saldb.MarkAsRead("orderID")
 	if err != nil {
 		t.Error(err)
 	}
@@ -178,7 +247,14 @@ func TestMarkSaleAsUnread(t *testing.T) {
 }
 
 func TestUpdateSaleFunding(t *testing.T) {
-	err := saldb.Put("orderID", *contract, 1, false)
+	saldb, teardown, err := buildNewSaleStore()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer teardown()
+
+	contract := mustNewContract()
+	err = saldb.Put("orderID", *contract, 1, false)
 	if err != nil {
 		t.Error(err)
 	}
@@ -214,7 +290,14 @@ func TestUpdateSaleFunding(t *testing.T) {
 }
 
 func TestSalePutAfterFundingUpdate(t *testing.T) {
-	err := saldb.Put("orderID", *contract, 1, false)
+	saldb, teardown, err := buildNewSaleStore()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer teardown()
+
+	contract := mustNewContract()
+	err = saldb.Put("orderID", *contract, 1, false)
 	if err != nil {
 		t.Error(err)
 	}
@@ -253,6 +336,13 @@ func TestSalePutAfterFundingUpdate(t *testing.T) {
 }
 
 func TestSalesGetByPaymentAddress(t *testing.T) {
+	saldb, teardown, err := buildNewSaleStore()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer teardown()
+
+	contract := mustNewContract()
 	saldb.Put("orderID", *contract, 0, false)
 	addr, err := btcutil.DecodeAddress(contract.BuyerOrder.Payment.Address, &chaincfg.MainNetParams)
 	if err != nil {
@@ -273,8 +363,15 @@ func TestSalesGetByPaymentAddress(t *testing.T) {
 }
 
 func TestSalesGetByOrderId(t *testing.T) {
+	saldb, teardown, err := buildNewSaleStore()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer teardown()
+
+	contract := mustNewContract()
 	saldb.Put("orderID", *contract, 0, false)
-	_, _, _, _, _, err := saldb.GetByOrderId("orderID")
+	_, _, _, _, _, err = saldb.GetByOrderId("orderID")
 	if err != nil {
 		t.Error(err)
 	}
@@ -285,18 +382,24 @@ func TestSalesGetByOrderId(t *testing.T) {
 }
 
 func TestSalesDB_GetAll(t *testing.T) {
-	c0 := *contract
+	saldb, teardown, err := buildNewSaleStore()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer teardown()
+
+	c0 := mustNewContract()
 	ts, _ := ptypes.TimestampProto(time.Now())
 	c0.BuyerOrder.Timestamp = ts
-	saldb.Put("orderID", c0, 0, false)
-	c1 := *contract
+	saldb.Put("orderID", *c0, 0, false)
+	c1 := mustNewContract()
 	ts, _ = ptypes.TimestampProto(time.Now().Add(time.Minute))
 	c1.BuyerOrder.Timestamp = ts
-	saldb.Put("orderID2", c1, 1, false)
-	c2 := *contract
+	saldb.Put("orderID2", *c1, 1, false)
+	c2 := mustNewContract()
 	ts, _ = ptypes.TimestampProto(time.Now().Add(time.Hour))
 	c2.BuyerOrder.Timestamp = ts
-	saldb.Put("orderID3", c2, 1, false)
+	saldb.Put("orderID3", *c2, 1, false)
 	// Test no offset no limit
 	sales, ct, err := saldb.GetAll([]pb.OrderState{}, "", false, false, -1, []string{})
 	if err != nil {
@@ -383,8 +486,15 @@ func TestSalesDB_GetAll(t *testing.T) {
 }
 
 func TestSalesDB_SetNeedsResync(t *testing.T) {
+	saldb, teardown, err := buildNewSaleStore()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer teardown()
+
+	contract := mustNewContract()
 	saldb.Put("orderID", *contract, 0, false)
-	err := saldb.SetNeedsResync("orderID", true)
+	err = saldb.SetNeedsResync("orderID", true)
 	if err != nil {
 		t.Error(err)
 	}
@@ -412,9 +522,16 @@ func TestSalesDB_SetNeedsResync(t *testing.T) {
 }
 
 func TestSalesDB_GetNeedsResync(t *testing.T) {
+	saldb, teardown, err := buildNewSaleStore()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer teardown()
+
+	contract := mustNewContract()
 	saldb.Put("orderID", *contract, 1, false)
 	saldb.Put("orderID1", *contract, 1, false)
-	err := saldb.SetNeedsResync("orderID", true)
+	err = saldb.SetNeedsResync("orderID", true)
 	if err != nil {
 		t.Error(err)
 	}
@@ -510,7 +627,7 @@ func TestGetSalesForDisputeTimeoutReturnsRelevantRecords(t *testing.T) {
 		}
 	}
 
-	saleDatabase := NewSaleStore(database, new(sync.Mutex))
+	saleDatabase := db.NewSaleStore(database, new(sync.Mutex))
 	sales, err := saleDatabase.GetSalesForDisputeTimeoutNotification()
 	if err != nil {
 		t.Fatal(err)
@@ -593,7 +710,7 @@ func TestUpdateSaleLastDisputeTimeoutNotifiedAt(t *testing.T) {
 	// Simulate LastDisputeTimeoutNotifiedAt has been changed
 	saleOne.LastDisputeTimeoutNotifiedAt = time.Unix(987, 0)
 	saleTwo.LastDisputeTimeoutNotifiedAt = time.Unix(765, 0)
-	saleDatabase := NewSaleStore(database, new(sync.Mutex))
+	saleDatabase := db.NewSaleStore(database, new(sync.Mutex))
 	err = saleDatabase.UpdateSalesLastDisputeTimeoutNotifiedAt(existingSales)
 	if err != nil {
 		t.Fatal(err)
