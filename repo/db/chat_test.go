@@ -1,48 +1,62 @@
-package db
+package db_test
 
 import (
-	"database/sql"
-	"github.com/phoreproject/openbazaar-go/repo"
+	"sync"
 	"testing"
 	"time"
-	"sync"
+
+	"github.com/phoreproject/openbazaar-go/repo"
+	"github.com/phoreproject/openbazaar-go/repo/db"
+	"github.com/phoreproject/openbazaar-go/schema"
 )
 
-var chdb repo.ChatStore
-
-func init() {
-	setupDB()
-}
-
-func setupDB() {
-	conn, _ := sql.Open("sqlite3", ":memory:")
-	initDatabaseTables(conn, "")
-	chdb = NewChatStore(conn, new(sync.Mutex))
+func buildNewChatStore() (repo.ChatStore, func(), error) {
+	appSchema := schema.MustNewCustomSchemaManager(schema.SchemaContext{
+		DataPath:        schema.GenerateTempPath(),
+		TestModeEnabled: true,
+	})
+	if err := appSchema.BuildSchemaDirectories(); err != nil {
+		return nil, nil, err
+	}
+	if err := appSchema.InitializeDatabase(); err != nil {
+		return nil, nil, err
+	}
+	database, err := appSchema.OpenDatabase()
+	if err != nil {
+		return nil, nil, err
+	}
+	return db.NewChatStore(database, new(sync.Mutex)), appSchema.DestroySchemaDirectories, nil
 }
 
 func TestChatDB_Put(t *testing.T) {
-	err := chdb.Put("12345", "abc", "", "mess", time.Now(), true, true)
+	var chdb, teardown, err = buildNewChatStore()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer teardown()
+
+	err = chdb.Put("12345", "abc", "", "mess", time.Now(), true, true)
 	if err != nil {
 		t.Error(err)
 	}
 	stmt, err := chdb.PrepareQuery("select messageID, peerID, subject, message, read, timestamp, outgoing from chat where peerID=?")
 	defer stmt.Close()
 	var msgId string
-	var peerID string
+	var peerId string
 	var subject string
 	var message string
 	var read int
 	var timestamp int
 	var outgoing int
-	err = stmt.QueryRow("abc").Scan(&msgId, &peerID, &subject, &message, &read, &timestamp, &outgoing)
+	err = stmt.QueryRow("abc").Scan(&msgId, &peerId, &subject, &message, &read, &timestamp, &outgoing)
 	if err != nil {
 		t.Error(err)
 	}
 	if msgId != "12345" {
-		t.Errorf(`Expected "abc" got %s`, peerID)
+		t.Errorf(`Expected "abc" got %s`, peerId)
 	}
-	if peerID != "abc" {
-		t.Errorf(`Expected "abc" got %s`, peerID)
+	if peerId != "abc" {
+		t.Errorf(`Expected "abc" got %s`, peerId)
 	}
 	if subject != "" {
 		t.Errorf(`Expected "" got %s`, subject)
@@ -62,7 +76,13 @@ func TestChatDB_Put(t *testing.T) {
 }
 
 func TestChatDB_GetConversations(t *testing.T) {
-	err := chdb.Put("11111", "abc", "", "mess", time.Now(), false, true)
+	var chdb, teardown, err = buildNewChatStore()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer teardown()
+
+	err = chdb.Put("11111", "abc", "", "mess", time.Now(), false, true)
 	if err != nil {
 		t.Error(err)
 	}
@@ -95,8 +115,13 @@ func TestChatDB_GetConversations(t *testing.T) {
 }
 
 func TestChatDB_GetMessages(t *testing.T) {
-	setupDB()
-	err := chdb.Put("11111", "abc", "", "mess", time.Now(), false, true)
+	var chdb, teardown, err = buildNewChatStore()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer teardown()
+
+	err = chdb.Put("11111", "abc", "", "mess", time.Now(), false, true)
 	if err != nil {
 		t.Error(err)
 	}
@@ -173,8 +198,13 @@ func TestChatDB_GetMessages(t *testing.T) {
 }
 
 func TestChatDB_MarkAsRead(t *testing.T) {
-	setupDB()
-	err := chdb.Put("11111", "abc", "", "mess", time.Now(), false, true)
+	var chdb, teardown, err = buildNewChatStore()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer teardown()
+
+	err = chdb.Put("11111", "abc", "", "mess", time.Now(), false, true)
 	if err != nil {
 		t.Error(err)
 	}
@@ -277,8 +307,13 @@ func TestChatDB_MarkAsRead(t *testing.T) {
 }
 
 func TestChatDB_GetUnreadCount(t *testing.T) {
-	setupDB()
-	err := chdb.Put("11111", "abc", "sub", "mess", time.Now(), false, false)
+	var chdb, teardown, err = buildNewChatStore()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer teardown()
+
+	err = chdb.Put("11111", "abc", "sub", "mess", time.Now(), false, false)
 	if err != nil {
 		t.Error(err)
 	}
@@ -296,8 +331,13 @@ func TestChatDB_GetUnreadCount(t *testing.T) {
 }
 
 func TestChatDB_DeleteMessage(t *testing.T) {
-	setupDB()
-	err := chdb.Put("11111", "abc", "", "mess", time.Now(), false, true)
+	var chdb, teardown, err = buildNewChatStore()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer teardown()
+
+	err = chdb.Put("11111", "abc", "", "mess", time.Now(), false, true)
 	if err != nil {
 		t.Error(err)
 	}
@@ -320,8 +360,13 @@ func TestChatDB_DeleteMessage(t *testing.T) {
 }
 
 func TestChatDB_DeleteConversation(t *testing.T) {
-	setupDB()
-	err := chdb.Put("11111", "abc", "", "mess", time.Now(), false, true)
+	var chdb, teardown, err = buildNewChatStore()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer teardown()
+
+	err = chdb.Put("11111", "abc", "", "mess", time.Now(), false, true)
 	if err != nil {
 		t.Error(err)
 	}
