@@ -4,7 +4,6 @@ set -e
 pwd
 go test -coverprofile=api.cover.out ./api
 go test -coverprofile=bitcoin.cover.out ./bitcoin
-go test -coverprofile=bitcoin.exchange.cover.out ./bitcoin/exchange
 go test -coverprofile=bitcoin.listeners.cover.out ./bitcoin/listeners
 go test -coverprofile=bitcoin.phored.cover.out ./bitcoin/phored
 go test -coverprofile=core.cover.out ./core
