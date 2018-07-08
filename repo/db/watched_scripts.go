@@ -5,16 +5,18 @@ import (
 	"encoding/hex"
 	"github.com/phoreproject/openbazaar-go/repo"
 	"sync"
+	"github.com/OpenBazaar/wallet-interface"
 )
 
 // WatchScriptsDB type definition.
 // Sets a pointer to SQL database and syncs reader/writer mutex-based lock.
 type WatchedScriptsDB struct {
 	modelStore
+	coinType wallet.CoinType
 }
 
-func NewWatchedScriptStore(db *sql.DB, lock *sync.Mutex) repo.WatchedScriptStore {
-	return &WatchedScriptsDB{modelStore{db, lock}}
+func NewWatchedScriptStore(db *sql.DB, lock *sync.Mutex, coinType wallet.CoinType) repo.WatchedScriptStore {
+	return &WatchedScriptsDB{modelStore{db, lock}, coinType}
 }
 
 // WatchdScriptsDB Put method insert and replace operations based on watched script public keys.
@@ -22,7 +24,7 @@ func (w *WatchedScriptsDB) Put(scriptPubKey []byte) error {
 	w.lock.Lock()
 	defer w.lock.Unlock()
 	tx, _ := w.db.Begin()
-	stmt, err := tx.Prepare("insert or replace into watchedscripts(scriptPubKey) values(?)")
+	stmt, err := tx.Prepare("insert or replace into watchedscripts(coin, scriptPubKey) values(?,?)")
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -42,7 +44,7 @@ func (w *WatchedScriptsDB) GetAll() ([][]byte, error) {
 	w.lock.Lock()
 	defer w.lock.Unlock()
 	var ret [][]byte
-	stm := "select scriptPubKey from watchedscripts"
+	stm := "select scriptPubKey from watchedscripts where coin=" + w.coinType.CurrencyCode()
 	rows, err := w.db.Query(stm)
 	if err != nil {
 		return ret, err
@@ -66,7 +68,7 @@ func (w *WatchedScriptsDB) GetAll() ([][]byte, error) {
 func (w *WatchedScriptsDB) Delete(scriptPubKey []byte) error {
 	w.lock.Lock()
 	defer w.lock.Unlock()
-	_, err := w.db.Exec("delete from watchedscripts where scriptPubKey=?", hex.EncodeToString(scriptPubKey))
+	_, err := w.db.Exec("delete from watchedscripts where scriptPubKey=? and coin=?", hex.EncodeToString(scriptPubKey), w.coinType.CurrencyCode())
 	if err != nil {
 		return err
 	}
