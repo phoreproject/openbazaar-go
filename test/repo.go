@@ -8,6 +8,7 @@ import (
 
 	"github.com/phoreproject/openbazaar-go/repo"
 	"github.com/phoreproject/openbazaar-go/repo/db"
+	"github.com/phoreproject/wallet-interface"
 )
 
 // Repository represents a test (temporary/volitile) repository
@@ -27,7 +28,7 @@ func NewRepository() (*Repository, error) {
 
 	// Create database
 	var err error
-	r.DB, err = db.Create(r.Path, "", true)
+	r.DB, err = db.Create(r.Path, "", true, wallet.Bitcoin)
 	if err != nil {
 		return nil, err
 	}
