@@ -22,6 +22,8 @@ import (
 	"github.com/phoreproject/openbazaar-go/repo"
 	"github.com/phoreproject/openbazaar-go/repo/db"
 	"github.com/phoreproject/openbazaar-go/schema"
+	"github.com/phoreproject/wallet-interface"
+	"github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/core/coreunix"
 	ipfspath "github.com/ipfs/go-ipfs/path"
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
@@ -269,16 +271,6 @@ func (x *Restore) Execute(args []string) error {
 		return err
 	}
 
-	ctx := commands.Context{}
-	ctx.Online = true
-	ctx.ConfigRoot = repoPath
-	ctx.LoadConfig = func(path string) (*config.Config, error) {
-		return fsrepo.ConfigAt(repoPath)
-	}
-	ctx.ConstructNode = func() (*ipfscore.IpfsNode, error) {
-		return nd, nil
-	}
-
 	// Set IPNS query size
 	querySize := cfg.Ipns.QuerySize
 	if querySize <= 20 && querySize > 0 {
@@ -291,7 +283,12 @@ func (x *Restore) Execute(args []string) error {
 	<-dht.DefaultBootstrapConfig.DoneChan
 	wg := new(sync.WaitGroup)
 	wg.Add(10)
-	k, err := ipfs.Resolve(ctx, identity.PeerID, time.Minute)
+	pid, err := peer.IDB58Decode(identity.PeerID)
+	if err != nil {
+		PrintError(err.Error())
+		return err
+	}
+	k, err := ipfs.Resolve(nd, pid, time.Minute)
 	if err != nil || k == "" {
 		PrintError(fmt.Sprintf("IPNS record for %s not found on network\n", identity.PeerID))
 		return err
@@ -301,20 +298,22 @@ func (x *Restore) Execute(args []string) error {
 		PrintError(err.Error())
 		return err
 	}
-	links, err := nd.DAG.GetLinks(context.Background(), c)
+	node, err := nd.DAG.Get(context.Background(), c)
 	if err != nil {
 		PrintError(err.Error())
 		return err
 	}
+	links := node.Links()
 	for _, l := range links {
 		if l.Name == "listings" || l.Name == "ratings" || l.Name == "feed" || l.Name == "channel" || l.Name == "files" {
 			go RestoreDirectory(repoPath, l.Name, nd, l.Cid, wg)
 		} else if l.Name == "images" {
-			ilinks, err := nd.DAG.GetLinks(context.Background(), l.Cid)
+			node, err := nd.DAG.Get(context.Background(), l.Cid)
 			if err != nil {
 				PrintError(err.Error())
 				return err
 			}
+			ilinks := node.Links()
 			for _, link := range ilinks {
 				wg.Add(1)
 				go RestoreDirectory(repoPath, path.Join("images", link.Name), nd, link.Cid, wg)
@@ -322,19 +321,19 @@ func (x *Restore) Execute(args []string) error {
 		}
 	}
 
-	go RestoreFile(repoPath, identity.PeerID, "profile.json", ctx, wg)
-	go RestoreFile(repoPath, identity.PeerID, "ratings.json", ctx, wg)
-	go RestoreFile(repoPath, identity.PeerID, "listings.json", ctx, wg)
-	go RestoreFile(repoPath, identity.PeerID, "following.json", ctx, wg)
-	go RestoreFile(repoPath, identity.PeerID, "followers.json", ctx, wg)
+	go RestoreFile(repoPath, identity.PeerID, "profile.json", nd, wg)
+	go RestoreFile(repoPath, identity.PeerID, "ratings.json", nd, wg)
+	go RestoreFile(repoPath, identity.PeerID, "listings.json", nd, wg)
+	go RestoreFile(repoPath, identity.PeerID, "following.json", nd, wg)
+	go RestoreFile(repoPath, identity.PeerID, "followers.json", nd, wg)
 	wg.Wait()
 	fmt.Println("Finished")
 	return nil
 }
 
-func RestoreFile(repoPath, peerID, filename string, ctx commands.Context, wg *sync.WaitGroup) {
+func RestoreFile(repoPath, peerID, filename string, n *core.IpfsNode, wg *sync.WaitGroup) {
 	defer wg.Done()
-	b, err := ipfs.ResolveThenCat(ctx, ipfspath.FromString(path.Join(peerID, filename)), time.Minute)
+	b, err := ipfs.ResolveThenCat(n, ipfspath.FromString(path.Join(peerID, filename)), time.Minute)
 	if err != nil {
 		PrintError(fmt.Sprintf("Failed to find %s\n", filename))
 	} else {
@@ -348,12 +347,12 @@ func RestoreFile(repoPath, peerID, filename string, ctx commands.Context, wg *sy
 
 func RestoreDirectory(repoPath, directory string, nd *ipfscore.IpfsNode, id *cid.Cid, wg *sync.WaitGroup) {
 	defer wg.Done()
-	links, err := nd.DAG.GetLinks(context.Background(), id)
+	node, err := nd.DAG.Get(context.Background(), id)
 	if err != nil {
 		PrintError(err.Error())
 		return
 	}
-	for _, l := range links {
+	for _, l := range node.Links() {
 		wg.Add(1)
 		go func(link *ipld.Link) {
 			defer wg.Done()

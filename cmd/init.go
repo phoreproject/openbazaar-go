@@ -5,11 +5,11 @@ import (
 	"errors"
 	"fmt"
 	"github.com/phoreproject/openbazaar-go/repo"
+	"github.com/phoreproject/wallet-interface"
 	"github.com/op/go-logging"
 	"os"
 	"strings"
 	"time"
-	"github.com/OpenBazaar/wallet-interface"
 )
 
 var log = logging.MustGetLogger("cmd")

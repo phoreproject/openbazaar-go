@@ -4,8 +4,8 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"github.com/phoreproject/openbazaar-go/repo"
+	"github.com/phoreproject/wallet-interface"
 	"sync"
-	"github.com/OpenBazaar/wallet-interface"
 )
 
 // WatchScriptsDB type definition.

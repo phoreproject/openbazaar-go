@@ -11,9 +11,9 @@ import (
 
 	"github.com/phoreproject/openbazaar-go/repo"
 	"github.com/phoreproject/openbazaar-go/repo/db"
+	"github.com/phoreproject/wallet-interface"
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
 	"golang.org/x/crypto/ssh/terminal"
-	"github.com/OpenBazaar/wallet-interface"
 )
 
 type EncryptDatabase struct {
