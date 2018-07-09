@@ -28,6 +28,7 @@ import (
 	"github.com/phoreproject/openbazaar-go/ipfs"
 	obnet "github.com/phoreproject/openbazaar-go/net"
 	"github.com/phoreproject/openbazaar-go/repo/db"
+	"github.com/phoreproject/openbazaar-go/repo/migrations"
 	"github.com/phoreproject/openbazaar-go/schema"
 	"github.com/phoreproject/openbazaar-go/storage/selfhosted"
 	"github.com/phoreproject/spvwallet"
@@ -358,9 +359,9 @@ func (n *Node) Stop() error {
 	return nil
 }
 
-func initializeRepo(dataDir, password, mnemonic string, testnet bool, creationDate time.Time) (*db.SQLiteDatastore, error) {
+func initializeRepo(dataDir, password, mnemonic string, testnet bool, creationDate time.Time, coinType wallet.CoinType) (*db.SQLiteDatastore, error) {
 	// Database
-	sqliteDB, err := db.Create(dataDir, password, testnet)
+	sqliteDB, err := db.Create(dataDir, password, testnet, coinType)
 	if err != nil {
 		return sqliteDB, err
 	}
