@@ -7,16 +7,17 @@ from test_framework.test_framework import OpenBazaarTestFramework, TestFailure
 class ListingsTest(OpenBazaarTestFramework):
     def __init__(self):
         super().__init__()
-        self.num_nodes = 1
+        self.num_nodes = 2
 
     def setup_network(self):
         self.setup_nodes()
 
     def run_test(self):
-        node = self.nodes[0]
+        vendor = self.nodes[0]
+        browser = self.nodes[1]
 
         # no listings POSTed
-        api_url = node["gateway_url"] + "ob/listings"
+        api_url = vendor["gateway_url"] + "ob/listings"
         r = requests.get(api_url)
         if r.status_code == 200:
             if len(json.loads(r.text)) == 0:
@@ -32,7 +33,9 @@ class ListingsTest(OpenBazaarTestFramework):
         # POST listing
         with open('testdata/listing.json') as listing_file:
             ljson = json.load(listing_file, object_pairs_hook=OrderedDict)
-        api_url = node["gateway_url"] + "ob/listing"
+        if self.bitcoincash:
+            ljson["metadata"]["pricingCurrency"] = "tbch"
+        api_url = vendor["gateway_url"] + "ob/listing"
         r = requests.post(api_url, data=json.dumps(ljson, indent=4))
         if r.status_code == 200:
             pass
@@ -42,20 +45,65 @@ class ListingsTest(OpenBazaarTestFramework):
             resp = json.loads(r.text)
             raise TestFailure("ListingsTest - FAIL: Listing POST failed. Reason: %s", resp["reason"])
 
-        # one listing POSTed
-        api_url = node["gateway_url"] + "ob/listings"
+        # one listing POSTed and index returning correct data
+        api_url = vendor["gateway_url"] + "ob/listings"
         r = requests.get(api_url)
-        if r.status_code == 200:
-            if len(json.loads(r.text)) == 1:
-                print("ListingsTest - PASS")
-            else:
-                raise TestFailure("ListingsTest - FAIL: One listing should be returned")
-        elif r.status_code == 404:
+        if r.status_code == 404:
             raise TestFailure("ListingsTest - FAIL: Listings get endpoint not found")
-        else:
+        elif r.status_code != 200:
             resp = json.loads(r.text)
             raise TestFailure("ListingsTest - FAIL: Listings GET failed. Reason: %s", resp["reason"])
 
+        resp = json.loads(r.text)
+        if len(resp) != 1:
+            raise TestFailure("ListingsTest - FAIL: One listing should be returned")
+
+        listing = resp[0]
+        if listing["acceptedCurrencies"] != ["tbtc"]:
+            raise TestFailure("ListingsTest - FAIL: Listing should have acceptedCurrences")
+
+        # listing show endpoint returning correct data
+        slug = listing["slug"]
+        api_url = vendor["gateway_url"] + "ob/listing/" + slug
+        r = requests.get(api_url)
+        if r.status_code == 404:
+            raise TestFailure("ListingsTest - FAIL: Listings get endpoint not found")
+        elif r.status_code != 200:
+            resp = json.loads(r.text)
+            raise TestFailure("ListingsTest - FAIL: Listings GET failed. Reason: %s", resp["reason"])
+
+        resp = json.loads(r.text)
+        if resp["listing"]["metadata"]["acceptedCurrencies"] != ["TBTC"]:
+            raise TestFailure("ListingsTest - FAIL: Listing should have acceptedCurrences in metadata")
+
+        # check vendor's index from another node
+        api_url = browser["gateway_url"] + "ob/listings/" + vendor["peerId"]
+        r = requests.get(api_url)
+        if r.status_code == 404:
+            raise TestFailure("ListingsTest - FAIL: Listings get endpoint not found")
+        elif r.status_code != 200:
+            resp = json.loads(r.text)
+            raise TestFailure("ListingsTest - FAIL: Listings GET failed. Reason: %s", resp["reason"])
+        resp = json.loads(r.text)
+        if len(resp) != 1:
+            raise TestFailure("ListingsTest - FAIL: One listing should be returned")
+        if resp[0]["acceptedCurrencies"] != ["tbtc"]:
+            raise TestFailure("ListingsTest - FAIL: Listing should have acceptedCurrences")
+
+        # check listing show page from another node
+        api_url = vendor["gateway_url"] + "ob/listing/" + vendor["peerId"] + "/" + slug
+        r = requests.get(api_url)
+        if r.status_code == 404:
+            raise TestFailure("ListingsTest - FAIL: Listings get endpoint not found")
+        elif r.status_code != 200:
+            resp = json.loads(r.text)
+            raise TestFailure("ListingsTest - FAIL: Listings GET failed. Reason: %s", resp["reason"])
+
+        resp = json.loads(r.text)
+        if resp["listing"]["metadata"]["acceptedCurrencies"] != ["TBTC"]:
+            raise TestFailure("ListingsTest - FAIL: Listing should have acceptedCurrences in metadata")
+
+        print("ListingsTest - PASS")
 
 if __name__ == '__main__':
     print("Running ListingTest")
