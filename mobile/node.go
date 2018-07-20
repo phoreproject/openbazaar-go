@@ -23,15 +23,14 @@ import (
 	"fmt"
 	bstk "github.com/OpenBazaar/go-blockstackclient"
 	"github.com/phoreproject/openbazaar-go/bitcoin"
-	"github.com/phoreproject/openbazaar-go/bitcoin/exchange"
 	"github.com/phoreproject/openbazaar-go/core"
 	"github.com/phoreproject/openbazaar-go/ipfs"
 	obnet "github.com/phoreproject/openbazaar-go/net"
 	"github.com/phoreproject/openbazaar-go/repo/db"
-	"github.com/phoreproject/openbazaar-go/repo/migrations"
 	"github.com/phoreproject/openbazaar-go/schema"
 	"github.com/phoreproject/openbazaar-go/storage/selfhosted"
 	"github.com/phoreproject/spvwallet"
+	"github.com/phoreproject/spvwallet/exchangerates"
 	"github.com/phoreproject/wallet-interface"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/ipfs/go-ipfs/commands"
@@ -181,7 +180,7 @@ func NewNode(config NodeConfig) (*Node, error) {
 
 	wallet := phored.NewRPCWallet(mn, &params, config.RepoPath, sqliteDB, "rpc.phore.io")
 
-	exchangeRates := exchange.NewBitcoinPriceFetcher(nil)
+	exchangeRates := exchangerates.NewBitcoinPriceFetcher(nil)
 
 	// Set up the ban manager
 	settings, err := sqliteDB.Settings().Get()
@@ -359,9 +358,9 @@ func (n *Node) Stop() error {
 	return nil
 }
 
-func initializeRepo(dataDir, password, mnemonic string, testnet bool, creationDate time.Time, coinType wallet.CoinType) (*db.SQLiteDatastore, error) {
+func initializeRepo(dataDir, password, mnemonic string, testnet bool, creationDate time.Time) (*db.SQLiteDatastore, error) {
 	// Database
-	sqliteDB, err := db.Create(dataDir, password, testnet, coinType)
+	sqliteDB, err := db.Create(dataDir, password, testnet)
 	if err != nil {
 		return sqliteDB, err
 	}
