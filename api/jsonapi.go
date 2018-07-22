@@ -39,6 +39,7 @@ import (
 	"github.com/phoreproject/openbazaar-go/repo"
 	"github.com/phoreproject/openbazaar-go/schema"
 	"github.com/phoreproject/spvwallet"
+	"github.com/phoreproject/wallet-interface"
 	"github.com/phoreproject/btcd/chaincfg/chainhash"
 	"github.com/phoreproject/btcutil/base58"
 	"github.com/golang/protobuf/proto"
@@ -1671,7 +1672,7 @@ func (i *jsonAPIHandler) POSTShutdown(w http.ResponseWriter, r *http.Request) {
 		time.Sleep(time.Second)
 		if core.Node != nil {
 			core.Node.Datastore.Close()
-			repoLockFile := filepath.Join(core.Node.RepoPath, lockfile.LockFile)
+			repoLockFile := filepath.Join(core.Node.RepoPath, fsrepo.LockFile)
 			os.Remove(repoLockFile)
 			core.Node.Wallet.Close()
 			core.Node.IpfsNode.Close()
@@ -2162,52 +2163,39 @@ func (i *jsonAPIHandler) POSTReleaseEscrow(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	if state != pb.OrderState_PENDING && state != pb.OrderState_FULFILLED && state != pb.OrderState_DISPUTED {
+		ErrorResponse(w, http.StatusBadRequest, "Release escrow can only be called when sale is pending, fulfilled, or disputed")
+		return
+	}
+
+	activeDispute, err := i.node.DisputeIsActive(contract)
+	if err != nil {
+		ErrorResponse(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	if activeDispute {
+		ErrorResponse(w, http.StatusBadRequest, "Release escrow can only be called after dispute has expired")
+		return
+	}
+
 	if !(&repo.SaleRecord{Contract: contract}).SupportsTimedEscrowRelease() {
 		ErrorResponse(w, http.StatusBadRequest, "Escrowed currency does not support automatic release of funds to vendor")
 		return
 	}
 
-	switch state {
-	case pb.OrderState_DISPUTED:
-		disputeStart, err := ptypes.Timestamp(contract.GetDispute().Timestamp)
-		if err != nil {
-			ErrorResponse(w, http.StatusInternalServerError, err.Error())
+	err = i.node.ReleaseFundsAfterTimeout(contract, records)
+	if err != nil {
+		switch err {
+		case core.ErrPrematureReleaseOfTimedoutEscrowFunds:
+			ErrorResponse(w, http.StatusUnauthorized, err.Error())
+			return
+		case core.EscrowTimeLockedError:
+			ErrorResponse(w, http.StatusUnauthorized, err.Error())
+			return
+		default:
+			ErrorResponse(w, http.StatusBadRequest, err.Error())
 			return
 		}
-
-		fourtyFiveDaysInHours := 45 * 24
-		disputeDuration := time.Duration(fourtyFiveDaysInHours) * time.Hour
-
-		// Time hack until we can stub this more nicely in test env
-		if i.node.TestNetworkEnabled() || i.node.RegressionNetworkEnabled() {
-			disputeDuration = time.Duration(10) * time.Second
-		}
-
-		disputeTimeout := disputeStart.Add(disputeDuration)
-		if time.Now().Before(disputeTimeout) {
-			expiresIn := disputeTimeout.Sub(time.Now())
-			ErrorResponse(w, http.StatusUnauthorized, fmt.Sprintf("releaseescrow can only be called when in dispute for %s or longer, expires in %s", disputeDuration.String(), expiresIn.String()))
-			return
-		}
-		err = i.node.ReleaseFundsAfterTimeout(contract, records)
-		if err != nil {
-			ErrorResponse(w, http.StatusInternalServerError, err.Error())
-			return
-		}
-	case pb.OrderState_FULFILLED:
-		err = i.node.ReleaseFundsAfterTimeout(contract, records)
-		if err != nil {
-			if err == core.EscrowTimeLockedError {
-				ErrorResponse(w, http.StatusUnauthorized, err.Error())
-				return
-			} else {
-				ErrorResponse(w, http.StatusInternalServerError, err.Error())
-				return
-			}
-		}
-	default:
-		ErrorResponse(w, http.StatusBadRequest, "releaseescrow can only be called when in dispute for 45 days or fulfilled for longer than escrow timeout")
-		return
 	}
 
 	err = i.node.SendFundsReleasedByVendor(contract.BuyerOrder.BuyerID.PeerID, contract.BuyerOrder.BuyerID.Pubkeys.Identity, rel.OrderID)
