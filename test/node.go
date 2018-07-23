@@ -12,6 +12,7 @@ import (
 	"github.com/tyler-smith/go-bip39"
 	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	"gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
+	inet "net"
 )
 
 // NewNode creates a new *core.OpenBazaarNode prepared for testing
@@ -53,6 +54,10 @@ func NewNode() (*core.OpenBazaarNode, error) {
 
 	// Create test wallet
 	mnemonic, err := repository.DB.Config().GetMnemonic()
+	if err != nil {
+		return nil, err
+	}
+	tp, err := inet.ResolveTCPAddr("tcp4", "127.0.0.1:8333")
 	if err != nil {
 		return nil, err
 	}
