@@ -2,7 +2,6 @@ package db_test
 
 import (
 	"reflect"
-	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -44,7 +43,7 @@ func TestPurchasesDB_Count(t *testing.T) {
 	}
 	defer teardown()
 
-	contract := mustNewContract()
+	contract := factory.NewContract()
 	err = purdb.Put("orderID", *contract, 0, false)
 	if err != nil {
 		t.Error(err)
@@ -62,7 +61,7 @@ func TestPutPurchase(t *testing.T) {
 	}
 	defer teardown()
 
-	contract := mustNewContract()
+	contract := factory.NewContract()
 	err = purdb.Put("orderID", *contract, 0, false)
 	if err != nil {
 		t.Error(err)
@@ -113,11 +112,11 @@ func TestPutPurchase(t *testing.T) {
 	if title != contract.VendorListings[0].Item.Title {
 		t.Errorf(`Expected %s got %s`, contract.VendorListings[0].Item.Title, title)
 	}
-	if shippingName != strings.ToLower(contract.BuyerOrder.Shipping.ShipTo) {
-		t.Errorf(`Expected %s got %s`, strings.ToLower(contract.BuyerOrder.Shipping.ShipTo), shippingName)
+	if shippingName != contract.BuyerOrder.Shipping.ShipTo {
+		t.Errorf(`Expected %s got %s`, contract.BuyerOrder.Shipping.ShipTo, shippingName)
 	}
-	if shippingAddress != strings.ToLower(contract.BuyerOrder.Shipping.Address) {
-		t.Errorf(`Expected %s got %s`, strings.ToLower(contract.BuyerOrder.Shipping.Address), shippingAddress)
+	if shippingAddress != contract.BuyerOrder.Shipping.Address {
+		t.Errorf(`Expected %s got %s`, contract.BuyerOrder.Shipping.Address, shippingAddress)
 	}
 }
 
@@ -128,7 +127,7 @@ func TestDeletePurchase(t *testing.T) {
 	}
 	defer teardown()
 
-	contract := mustNewContract()
+	contract := factory.NewContract()
 	purdb.Put("orderID", *contract, 0, false)
 	err = purdb.Delete("orderID")
 	if err != nil {
@@ -155,7 +154,7 @@ func TestMarkPurchaseAsRead(t *testing.T) {
 	}
 	defer teardown()
 
-	contract := mustNewContract()
+	contract := factory.NewContract()
 	purdb.Put("orderID", *contract, 0, false)
 	err = purdb.MarkAsRead("orderID")
 	if err != nil {
@@ -181,7 +180,7 @@ func TestMarkPurchaseAsUnread(t *testing.T) {
 	}
 	defer teardown()
 
-	contract := mustNewContract()
+	contract := factory.NewContract()
 	purdb.Put("orderID", *contract, 0, false)
 	err = purdb.MarkAsRead("orderID")
 	if err != nil {
@@ -212,7 +211,7 @@ func TestUpdatePurchaseFunding(t *testing.T) {
 	}
 	defer teardown()
 
-	contract := mustNewContract()
+	contract := factory.NewContract()
 	err = purdb.Put("orderID", *contract, 1, false)
 	if err != nil {
 		t.Error(err)
@@ -254,7 +253,7 @@ func TestPurchasePutAfterFundingUpdate(t *testing.T) {
 	}
 	defer teardown()
 
-	contract := mustNewContract()
+	contract := factory.NewContract()
 	err = purdb.Put("orderID", *contract, 1, false)
 	if err != nil {
 		t.Error(err)
@@ -300,7 +299,7 @@ func TestPurchasesGetByPaymentAddress(t *testing.T) {
 	}
 	defer teardown()
 
-	contract := mustNewContract()
+	contract := factory.NewContract()
 	purdb.Put("orderID", *contract, 0, false)
 	addr, err := btcutil.DecodeAddress(contract.BuyerOrder.Payment.Address, &chaincfg.MainNetParams)
 	if err != nil {
@@ -328,7 +327,7 @@ func TestPurchasesGetByOrderId(t *testing.T) {
 	}
 	defer teardown()
 
-	contract := mustNewContract()
+	contract := factory.NewContract()
 	purdb.Put("orderID", *contract, 0, false)
 	_, _, _, _, _, err = purdb.GetByOrderId("orderID")
 	if err != nil {
@@ -347,15 +346,15 @@ func TestPurchasesDB_GetAll(t *testing.T) {
 	}
 	defer teardown()
 
-	c0 := mustNewContract()
+	c0 := factory.NewContract()
 	ts, _ := ptypes.TimestampProto(time.Now())
 	c0.BuyerOrder.Timestamp = ts
 	purdb.Put("orderID", *c0, 0, false)
-	c1 := mustNewContract()
+	c1 := factory.NewContract()
 	ts, _ = ptypes.TimestampProto(time.Now().Add(time.Minute))
 	c1.BuyerOrder.Timestamp = ts
 	purdb.Put("orderID2", *c1, 1, false)
-	c2 := mustNewContract()
+	c2 := factory.NewContract()
 	ts, _ = ptypes.TimestampProto(time.Now().Add(time.Hour))
 	c2.BuyerOrder.Timestamp = ts
 	purdb.Put("orderID3", *c2, 1, false)
@@ -850,5 +849,83 @@ func TestUpdatePurchaseLastDisputeExpiryNotifiedAt(t *testing.T) {
 			t.Error(orderID, lastDisputeExpiryNotifiedAt)
 		}
 
+	}
+}
+func TestPurchasesDB_Put_PaymentCoin(t *testing.T) {
+	var (
+		contract = factory.NewContract()
+		tests    = []struct {
+			acceptedCurrencies []string
+			paymentCoin        string
+			expected           string
+		}{
+			{[]string{"TBTC"}, "TBTC", "TBTC"},
+			{[]string{"TBTC", "TBCH"}, "TBTC", "TBTC"},
+			{[]string{"TBCH", "TBTC"}, "TBTC", "TBTC"},
+			{[]string{"TBTC", "TBCH"}, "TBCH", "TBCH"},
+			{[]string{"TBTC", "TBCH"}, "", "TBTC"},
+			{[]string{"TBCH", "TBTC"}, "", "TBCH"},
+			{[]string{}, "", ""},
+		}
+	)
+
+	for _, test := range tests {
+		var purdb, teardown, err = buildNewPurchaseStore()
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		contract.VendorListings[0].Metadata.AcceptedCurrencies = test.acceptedCurrencies
+		contract.BuyerOrder.Payment.Coin = test.paymentCoin
+
+		err = purdb.Put("orderID", *contract, 0, false)
+		if err != nil {
+			t.Error(err)
+		}
+
+		purchases, count, err := purdb.GetAll(nil, "", false, false, 1, nil)
+		if err != nil {
+			t.Error(err)
+		}
+		if count != 1 {
+			t.Errorf(`Expected %d record got %d`, 1, count)
+		}
+		if purchases[0].PaymentCoin != test.expected {
+			t.Errorf(`Expected %s got %s`, test.expected, purchases[0].PaymentCoin)
+		}
+		teardown()
+	}
+}
+
+func TestPurchasesDB_Put_CoinType(t *testing.T) {
+	var (
+		contract   = factory.NewContract()
+		testsCoins = []string{"", "TBTC", "TETH"}
+	)
+
+	for _, testCoin := range testsCoins {
+		var purdb, teardown, err = buildNewPurchaseStore()
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		contract.VendorListings[0].Metadata.CoinType = testCoin
+
+		err = purdb.Put("orderID", *contract, 0, false)
+		if err != nil {
+			t.Error(err)
+		}
+
+		purchases, count, err := purdb.GetAll(nil, "", false, false, 1, nil)
+		if err != nil {
+			t.Error(err)
+		}
+		if count != 1 {
+			t.Errorf(`Expected %d record got %d`, 1, count)
+		}
+		if purchases[0].CoinType != testCoin {
+			t.Errorf(`Expected %s got %s`, testCoin, purchases[0].CoinType)
+		}
+		teardown()
 	}
 }
