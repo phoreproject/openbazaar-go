@@ -3,16 +3,16 @@ package core
 import (
 	"encoding/hex"
 	"errors"
+
 	"time"
 
+	"github.com/phoreproject/openbazaar-go/pb"
 	"github.com/phoreproject/wallet-interface"
+	hd "github.com/btcsuite/btcutil/hdkeychain"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
-
-	"github.com/phoreproject/openbazaar-go/pb"
 )
 
-// RefundOrder - refund buyer
 func (n *OpenBazaarNode) RefundOrder(contract *pb.RicardianContract, records []*wallet.TransactionRecord) error {
 	refundMsg := new(pb.Refund)
 	orderID, err := n.CalcOrderID(contract.BuyerOrder)
@@ -44,15 +44,20 @@ func (n *OpenBazaarNode) RefundOrder(contract *pb.RicardianContract, records []*
 		if err != nil {
 			return err
 		}
-		output := wallet.TransactionOutput{
-			Address: refundAddress,
-			Value:   outValue,
+		var output wallet.TransactionOutput
+
+		outputScript, err := n.Wallet.AddressToScript(refundAddress)
+		if err != nil {
+			return err
 		}
+		output.ScriptPubKey = outputScript
+		output.Value = outValue
 
 		chaincode, err := hex.DecodeString(contract.BuyerOrder.Payment.Chaincode)
 		if err != nil {
 			return err
 		}
+		parentFP := []byte{0x00, 0x00, 0x00, 0x00}
 		mPrivKey := n.Wallet.MasterPrivateKey()
 		if err != nil {
 			return err
@@ -61,7 +66,16 @@ func (n *OpenBazaarNode) RefundOrder(contract *pb.RicardianContract, records []*
 		if err != nil {
 			return err
 		}
-		vendorKey, err := n.Wallet.ChildKey(mECKey.Serialize(), chaincode, true)
+		hdKey := hd.NewExtendedKey(
+			n.Wallet.Params().HDPrivateKeyID[:],
+			mECKey.Serialize(),
+			chaincode,
+			parentFP,
+			0,
+			0,
+			true)
+
+		vendorKey, err := hdKey.Child(0)
 		if err != nil {
 			return err
 		}
@@ -106,7 +120,7 @@ func (n *OpenBazaarNode) RefundOrder(contract *pb.RicardianContract, records []*
 		return err
 	}
 	n.SendRefund(contract.BuyerOrder.BuyerID.PeerID, contract)
-	n.Datastore.Sales().Put(orderID, *contract, pb.OrderState_REFUNDED, true)
+	n.Datastore.Sales().Put(orderId, *contract, pb.OrderState_REFUNDED, true)
 	return nil
 }
 
