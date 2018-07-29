@@ -7,12 +7,13 @@ import (
 	"time"
 
 	"github.com/phoreproject/wallet-interface"
+	hd "github.com/btcsuite/btcutil/hdkeychain"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 
 	crypto "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 
-	"github.com/OpenBazaar/openbazaar-go/pb"
+	"github.com/phoreproject/openbazaar-go/pb"
 )
 
 var (
@@ -47,14 +48,20 @@ func (n *OpenBazaarNode) FulfillOrder(fulfillment *pb.OrderFulfillment, contract
 			}
 		}
 
-		var output = wallet.TransactionOutput{
-			Address: currentAddress,
-			Value:   outValue,
+		var output wallet.TransactionOutput
+
+		outputScript, err := n.Wallet.AddressToScript(currentAddress)
+		if err != nil {
+			return err
 		}
+		output.ScriptPubKey = outputScript
+		output.Value = outValue
+
 		chaincode, err := hex.DecodeString(contract.BuyerOrder.Payment.Chaincode)
 		if err != nil {
 			return err
 		}
+		parentFP := []byte{0x00, 0x00, 0x00, 0x00}
 		mPrivKey := n.Wallet.MasterPrivateKey()
 		if err != nil {
 			return err
@@ -63,7 +70,16 @@ func (n *OpenBazaarNode) FulfillOrder(fulfillment *pb.OrderFulfillment, contract
 		if err != nil {
 			return err
 		}
-		vendorKey, err := n.Wallet.ChildKey(mECKey.Serialize(), chaincode, true)
+		hdKey := hd.NewExtendedKey(
+			n.Wallet.Params().HDPrivateKeyID[:],
+			mECKey.Serialize(),
+			chaincode,
+			parentFP,
+			0,
+			0,
+			true)
+
+		vendorKey, err := hdKey.Child(0)
 		if err != nil {
 			return err
 		}

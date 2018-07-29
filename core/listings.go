@@ -70,6 +70,8 @@ const (
 
 	// DefaultCoinDivisibility - decimals for price
 	DefaultCoinDivisibility uint32 = 1e8
+
+	priceModifierListingVersion = 4
 )
 
 type price struct {
@@ -175,7 +177,7 @@ func (n *OpenBazaarNode) SignListing(listing *pb.Listing) (*pb.SignedListing, er
 	}
 
 	// Set listing version
-	listing.Metadata.Version = ListingVersion
+	listing.Metadata.Version = versionForNewListing(listing)
 
 	// Add the vendor ID to the listing
 	id := new(pb.ID)
@@ -523,17 +525,17 @@ func (n *OpenBazaarNode) updateListingOnDisk(index []ListingData, ld ListingData
 	var avgRating float32
 	var ratingCount uint32
 	for i, d := range index {
-		if d.Slug == ld.Slug {
-			avgRating = d.AverageRating
-			ratingCount = d.RatingCount
+		if d.Slug != ld.Slug {
+			continue
+		}
+		avgRating = d.AverageRating
+		ratingCount = d.RatingCount
 
-			if len(index) == 1 {
-				index = []ListingData{}
-				break
-			}
-			index = append(index[:i], index[i+1:]...)
+		if len(index) == 1 {
+			index = []ListingData{}
 			break
 		}
+		index = append(index[:i], index[i+1:]...)
 	}
 
 	// Append our listing with the new hash to the list
@@ -569,11 +571,11 @@ func (n *OpenBazaarNode) updateRatingInListingIndex(rating *pb.Rating) error {
 	var ld ListingData
 	exists := false
 	for _, l := range index {
-		if l.Slug == rating.RatingData.VendorSig.Metadata.ListingSlug {
-			ld = l
-			exists = true
-			break
+		if l.Slug != rating.RatingData.VendorSig.Metadata.ListingSlug {
+			continue
 		}
+		ld = l
+		exists = true
 	}
 	if !exists {
 		return errors.New("Listing for rating does not exist in index")
@@ -1342,4 +1344,15 @@ func verifySignaturesOnListing(sl *pb.SignedListing) error {
 		}
 	}
 	return nil
+}
+
+func versionForNewListing(listing *pb.Listing) uint32 {
+	// Don't use newer version number of the listing doesn't have new features
+	if ListingVersion == priceModifierListingVersion &&
+		listing.Metadata.Format == pb.Listing_Metadata_MARKET_PRICE &&
+		listing.Metadata.PriceModifier != 0 {
+		return priceModifierListingVersion - 1
+	}
+
+	return ListingVersion
 }
