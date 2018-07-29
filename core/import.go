@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/OpenBazaar/jsonpb"
+	"github.com/OpenBazaar/openbazaar-go/pb"
 	"github.com/golang/protobuf/ptypes"
 
 	"github.com/phoreproject/openbazaar-go/pb"
@@ -22,7 +23,6 @@ import (
 
 const bufferSize = 5
 
-// ImportListings - upload/read listings
 func (n *OpenBazaarNode) ImportListings(r io.ReadCloser) error {
 	reader := csv.NewReader(r)
 	columns, err := reader.Read()
