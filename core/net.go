@@ -6,6 +6,10 @@ import (
 	libp2p "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 
 	"errors"
+	"gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
+	"sync"
+	"time"
+
 	"github.com/phoreproject/openbazaar-go/ipfs"
 	"github.com/phoreproject/openbazaar-go/pb"
 	"github.com/golang/protobuf/proto"
@@ -118,7 +122,7 @@ func (n *OpenBazaarNode) SendOfflineAck(peerID string, pointerID peer.ID) error 
 	m := pb.Message{
 		MessageType: pb.Message_OFFLINE_ACK,
 		Payload:     a}
-	return n.sendMessage(peerId, nil, m)
+	return n.sendMessage(peerID, nil, m)
 }
 
 // GetPeerStatus - check if a peer is online/offline
@@ -203,7 +207,7 @@ func (n *OpenBazaarNode) Unfollow(peerID string) error {
 		return err
 	}
 	data := &pb.SignedData_Command{
-		PeerID:    peerId,
+		PeerID:    peerID,
 		Type:      pb.Message_UNFOLLOW,
 		Timestamp: ts,
 	}
@@ -332,7 +336,7 @@ func (n *OpenBazaarNode) SendReject(peerID string, rejectMessage *pb.OrderReject
 		}
 		kp = &k
 	}
-	return n.sendMessage(peerId, kp, m)
+	return n.sendMessage(peerID, kp, m)
 }
 
 // SendRefund - send refund msg to peer
