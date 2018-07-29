@@ -3,16 +3,17 @@ package core
 import (
 	"encoding/hex"
 	"errors"
-
 	"time"
 
-	"github.com/phoreproject/openbazaar-go/pb"
 	"github.com/phoreproject/wallet-interface"
 	hd "github.com/btcsuite/btcutil/hdkeychain"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
+
+	"github.com/phoreproject/openbazaar-go/pb"
 )
 
+// RefundOrder - refund buyer
 func (n *OpenBazaarNode) RefundOrder(contract *pb.RicardianContract, records []*wallet.TransactionRecord) error {
 	refundMsg := new(pb.Refund)
 	orderID, err := n.CalcOrderID(contract.BuyerOrder)
@@ -120,7 +121,7 @@ func (n *OpenBazaarNode) RefundOrder(contract *pb.RicardianContract, records []*
 		return err
 	}
 	n.SendRefund(contract.BuyerOrder.BuyerID.PeerID, contract)
-	n.Datastore.Sales().Put(orderId, *contract, pb.OrderState_REFUNDED, true)
+	n.Datastore.Sales().Put(orderID, *contract, pb.OrderState_REFUNDED, true)
 	return nil
 }
 
