@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	ipnspath "github.com/ipfs/go-ipfs/path"
+	"gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 	"io/ioutil"
 	"os"
 	"path"
@@ -13,20 +15,19 @@ import (
 	"time"
 
 	"github.com/OpenBazaar/jsonpb"
+	"github.com/phoreproject/openbazaar-go/pb"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/imdario/mergo"
 	ipnspath "github.com/ipfs/go-ipfs/path"
 
 	"gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 
-	"github.com/phoreproject/openbazaar-go/pb"
+	"github.com/OpenBazaar/openbazaar-go/pb"
 )
 
-// KeyCachePrefix - cache prefix for public key
 const KeyCachePrefix = "/pubkey/"
 
-// ErrorProfileNotFound - profile not found error
-var ErrorProfileNotFound = errors.New("profile not found")
+var ErrorProfileNotFound error = errors.New("Profile not found")
 
 // GetProfile - fetch user profile
 func (n *OpenBazaarNode) GetProfile() (pb.Profile, error) {
