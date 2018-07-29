@@ -7,6 +7,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
 
 	"github.com/OpenBazaar/jsonpb"
 	"golang.org/x/net/context"
