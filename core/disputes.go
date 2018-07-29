@@ -5,19 +5,10 @@ import (
 	"encoding/hex"
 	"errors"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
-	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
-	libp2p "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
-
-	dht "gx/ipfs/QmRaVcGchmC1stHHK7YhcgEuTk5k1JiGS568pfYWMgT91H/go-libp2p-kad-dht"
-	"strings"
-
-	"github.com/phoreproject/openbazaar-go/net"
-	"github.com/phoreproject/openbazaar-go/pb"
-	"github.com/phoreproject/openbazaar-go/repo"
-	"github.com/phoreproject/openbazaar-go/repo/db"
 	"github.com/phoreproject/wallet-interface"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcutil"
@@ -25,6 +16,15 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"golang.org/x/net/context"
+
+	dht "gx/ipfs/QmRaVcGchmC1stHHK7YhcgEuTk5k1JiGS568pfYWMgT91H/go-libp2p-kad-dht"
+	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
+	libp2p "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
+
+	"github.com/phoreproject/openbazaar-go/net"
+	"github.com/phoreproject/openbazaar-go/pb"
+	"github.com/phoreproject/openbazaar-go/repo"
+	"github.com/phoreproject/openbazaar-go/repo/db"
 )
 
 // ConfirmationsPerHour is temporary until the Wallet interface has Attributes() to provide this value
@@ -33,10 +33,16 @@ const ConfirmationsPerHour = 6
 // DisputeWg - waitgroup for disputes
 var DisputeWg = new(sync.WaitGroup)
 
-var ErrCaseNotFound = errors.New("Case not found")
-var ErrCloseFailureCaseExpired = errors.New("Unable to close case. Case has expired.")
-var ErrOpenFailureOrderExpired = errors.New("Unable to open case. Order is too old to dispute.")
+// ErrCaseNotFound - case not found err
+var ErrCaseNotFound = errors.New("case not found")
 
+// ErrCloseFailureCaseExpired - tried closing expired case err
+var ErrCloseFailureCaseExpired = errors.New("unable to close expired case")
+
+// ErrOpenFailureOrderExpired - tried disputing expired order err
+var ErrOpenFailureOrderExpired = errors.New("unable to open case beacuse order is too old to dispute")
+
+// OpenDispute - open a dispute
 func (n *OpenBazaarNode) OpenDispute(orderID string, contract *pb.RicardianContract, records []*wallet.TransactionRecord, claim string) error {
 	if !n.verifyEscrowFundsAreDisputeable(contract, records) {
 		return ErrOpenFailureOrderExpired
@@ -394,7 +400,17 @@ func (n *OpenBazaarNode) ProcessDisputeOpen(rc *pb.RicardianContract, peerID str
 		return errors.New("We are not involved in this dispute")
 	}
 
-	notif := repo.DisputeOpenNotification{repo.NewNotificationID(), "disputeOpen", orderID, repo.Thumbnail{thumbnailTiny, thumbnailSmall}, DisputerID, DisputerHandle, DisputeeID, DisputeeHandle, buyer}
+	notif := repo.DisputeOpenNotification{
+		ID:             repo.NewNotificationID(),
+		Type:           "disputeOpen",
+		OrderId:        orderID,
+		Thumbnail:      repo.Thumbnail{Tiny: thumbnailTiny, Small: thumbnailSmall},
+		DisputerID:     DisputerID,
+		DisputerHandle: DisputerHandle,
+		DisputeeID:     DisputeeID,
+		DisputeeHandle: DisputeeHandle,
+		Buyer:          buyer,
+	}
 	n.Broadcast <- notif
 	n.Datastore.Notifications().PutRecord(repo.NewNotification(notif, time.Now(), false))
 	return nil
@@ -435,7 +451,7 @@ func (n *OpenBazaarNode) CloseDispute(orderID string, buyerPercentage, vendorPer
 	d.Timestamp = ts
 
 	// Add orderId
-	d.OrderId = orderID
+	d.OrderId = orderId
 
 	// Set self (moderator) as the party that made the resolution proposal
 	d.ProposedBy = n.IpfsNode.Identity.Pretty()
