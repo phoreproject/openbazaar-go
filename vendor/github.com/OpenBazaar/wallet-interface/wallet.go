@@ -31,7 +31,7 @@ type Wallet interface {
 
 	// Generate a child key using the given chaincode. The key is used in multisig transactions.
 	// For most implementations this should just be child key 0.
-	ChildKey(keyBytes []byte, chaincode []byte, isPrivateKey bool) (*hd.ExtendedKey, error)
+	ChildKey(chaincode []byte) (*hd.ExtendedKey, error)
 
 	// Get the current address for the given purpose
 	CurrentAddress(purpose KeyPurpose) btc.Address
@@ -41,9 +41,6 @@ type Wallet interface {
 
 	// Parse the address string and return an address interface
 	DecodeAddress(addr string) (btc.Address, error)
-
-	// Turn the given output script into an address
-	ScriptToAddress(script []byte) (btc.Address, error)
 
 	// Returns if the wallet has the key for the given address
 	HasKey(addr btc.Address) bool
@@ -76,7 +73,7 @@ type Wallet interface {
 	EstimateSpendFee(amount int64, feeLevel FeeLevel) (uint64, error)
 
 	// Build and broadcast a transaction that sweeps all coins from an address. If it is a p2sh multisig, the redeemScript must be included
-	SweepAddress(ins []TransactionInput, address *btc.Address, key *hd.ExtendedKey, redeemScript *[]byte, feeLevel FeeLevel) (*chainhash.Hash, error)
+	SweepAddress(utxos []Utxo, address *btc.Address, key *hd.ExtendedKey, redeemScript *[]byte, feeLevel FeeLevel) (*chainhash.Hash, error)
 
 	// Create a signature for a multisig transaction.
 	CreateMultisigSignature(ins []TransactionInput, outs []TransactionOutput, key *hd.ExtendedKey, redeemScript []byte, feePerByte uint64) ([]Signature, error)
