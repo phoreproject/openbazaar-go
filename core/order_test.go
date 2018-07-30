@@ -307,8 +307,9 @@ func TestOpenBazaarNode_CalculateOrderTotal(t *testing.T) {
 					Type:    pb.Listing_ShippingOption_FIXED_PRICE,
 					Services: []*pb.Listing_ShippingOption_Service{
 						{
-							Name:  "Standard shipping",
-							Price: 25000,
+							Name:                "Standard shipping",
+							Price:               25000,
+							AdditionalItemPrice: 10000,
 						},
 					},
 				},
@@ -316,7 +317,7 @@ func TestOpenBazaarNode_CalculateOrderTotal(t *testing.T) {
 		}},
 	}
 
-	ser, err = proto.Marshal(contract.VendorListings[0])
+	ser, err = proto.Marshal(contract2.VendorListings[0])
 	if err != nil {
 		t.Error(err)
 	}
@@ -328,7 +329,7 @@ func TestOpenBazaarNode_CalculateOrderTotal(t *testing.T) {
 		Items: []*pb.Order_Item{
 			{
 				ListingHash: listingID.String(),
-				Quantity:    1,
+				Quantity64:  10,
 				ShippingOption: &pb.Order_Item_ShippingOption{
 					Name:    "UPS",
 					Service: "Standard shipping",
@@ -340,4 +341,13 @@ func TestOpenBazaarNode_CalculateOrderTotal(t *testing.T) {
 		},
 	}
 	contract2.BuyerOrder = order2
+
+	// Test quantity64
+	total, err = node.CalculateOrderTotal(contract2)
+	if err != nil {
+		t.Error(err)
+	}
+	if total != 1115000 {
+		t.Error("Calculated wrong order total")
+	}
 }
