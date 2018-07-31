@@ -477,7 +477,7 @@ func (w *SPVWallet) SweepAddress(ins []wallet.TransactionInput, address *btc.Add
 		if err != nil {
 			return nil, err
 		}
-		script, err := bchutil.PayToAddrScript(in.LinkedAddress)
+		script, err := txscript.PayToAddrScript(in.LinkedAddress)
 		if err != nil {
 			return nil, err
 		}
