@@ -2,16 +2,39 @@ package migrations
 
 import (
 	"encoding/json"
-	"errors"
 	"io/ioutil"
 	"os"
 	"path"
 )
 
-// migration011ModeratorsKey is the key we want to manipulate in the JSON
-const migration011ModeratorsKey = "moderators"
-
 type Migration011 struct{}
+
+type Migration011_listingIndexListing struct {
+	Hash         string   `json:"hash"`
+	Slug         string   `json:"slug"`
+	Title        string   `json:"title"`
+	Categories   []string `json:"categories"`
+	NSFW         bool     `json:"nsfw"`
+	CoinType     string   `json:"coinType"`
+	ContractType string   `json:"contractType"`
+	Description  string   `json:"description"`
+	Thumbnail    struct {
+		Tiny   string `json:"tiny"`
+		Small  string `json:"small"`
+		Medium string `json:"medium"`
+	} `json:"thumbnail"`
+	Price struct {
+		CurrencyCode string `json:"currencyCode"`
+		Amount       uint64 `json:"amount"`
+	} `json:"price"`
+	ShipsTo            []string `json:"shipsTo"`
+	FreeShipping       []string `json:"freeShipping"`
+	Language           string   `json:"language"`
+	AverageRating      float32  `json:"averageRating"`
+	RatingCount        uint32   `json:"ratingCount"`
+	AcceptedCurrencies []string `json:"acceptedCurrencies"`
+	ModeratorIDs       []string `json:"moderators"`
+}
 
 type Migration011_listing struct {
 	Listing Migration011_listing_listing `json:"listing"`
@@ -25,13 +48,13 @@ func (Migration011) Up(repoPath string, dbPassword string, testnet bool) error {
 		err              error
 		listingJSON      []byte
 		listingsJSON     []byte
-		listingRecords   []map[string]interface{}
+		listingRecords   []*Migration011_listingIndexListing
 		listingsFilePath = path.Join(repoPath, "root", "listings.json")
 	)
 
 	// Don't do anything if no listing index exists
 	if _, err := os.Stat(listingsFilePath); os.IsNotExist(err) {
-		return writeRepoVer(repoPath, 12)
+		return nil
 	}
 
 	// Load index
@@ -46,17 +69,11 @@ func (Migration011) Up(repoPath string, dbPassword string, testnet bool) error {
 	// Iterate over listing. If a listing is missing moderators then load the full
 	// listing file and populate the listing index abstract
 	for _, listing := range listingRecords {
-		if listing[migration011ModeratorsKey] != nil {
+		if len(listing.ModeratorIDs) > 0 {
 			continue
 		}
 
-		iSlug := listing["slug"]
-		slug, ok := iSlug.(string)
-		if !ok {
-			return errors.New("'slug' is not a string")
-		}
-
-		listingFilePath := path.Join(repoPath, "root", "listings", slug+".json")
+		listingFilePath := path.Join(repoPath, "root", "listings", listing.Slug+".json")
 		listingJSON, err = ioutil.ReadFile(listingFilePath)
 		if err != nil {
 			return err
@@ -66,7 +83,7 @@ func (Migration011) Up(repoPath string, dbPassword string, testnet bool) error {
 		if err = json.Unmarshal(listingJSON, &listingRecord); err != nil {
 			return err
 		}
-		listing[migration011ModeratorsKey] = listingRecord.Listing.ModeratorIDs
+		listing.ModeratorIDs = listingRecord.Listing.ModeratorIDs
 	}
 
 	// Write updated index back to disk
