@@ -23,7 +23,7 @@ func TestMigration011(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer os.RemoveAll("./repover")
-	assertCorrectRepoVer(t, "./repover", "12")
+	assertCorrectRepoVer(t, "12")
 	assertCorrectFileContents(t, path.Join(".", "root", "listings.json"), testMigration011ExpectedListingIndexAfterMigration)
 
 	// Test migration down
@@ -31,7 +31,7 @@ func TestMigration011(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	assertCorrectRepoVer(t, "./repover", "11")
+	assertCorrectRepoVer(t, "11")
 }
 
 func testMigration011SetupFixtures(t *testing.T) func() {
@@ -85,80 +85,80 @@ func testMigration011SetupFixtures(t *testing.T) func() {
 
 var testMigration011ExpectedListingIndexAfterMigration = `[
     {
-        "acceptedCurrencies": [
-            "TBTC"
-        ],
-        "averageRating": 5,
+        "hash": "Listing1",
+        "slug": "slug-1",
+        "title": "Listing 1",
         "categories": [
             "category-1"
         ],
+        "nsfw": false,
         "coinType": "BTC",
         "contractType": "PHYSICAL_GOOD",
         "description": "test",
-        "freeShipping": [
-            "US"
-        ],
-        "hash": "Listing1",
-        "language": "en",
-        "moderators": [
-            "a",
-            "b"
-        ],
-        "nsfw": false,
-        "price": {
-            "amount": 10,
-            "currencyCode": "BCH"
+        "thumbnail": {
+            "tiny": "a",
+            "small": "b",
+            "medium": "c"
         },
-        "ratingCount": 999,
+        "price": {
+            "currencyCode": "BCH",
+            "amount": 10
+        },
         "shipsTo": [
             "US"
         ],
-        "slug": "slug-1",
-        "thumbnail": {
-            "medium": "c",
-            "small": "b",
-            "tiny": "a"
-        },
-        "title": "Listing 1"
-    },
-    {
+        "freeShipping": [
+            "US"
+        ],
+        "language": "en",
+        "averageRating": 5,
+        "ratingCount": 999,
         "acceptedCurrencies": [
             "TBTC"
         ],
-        "averageRating": 5,
+        "moderators": [
+            "a",
+            "b"
+        ]
+    },
+    {
+        "hash": "Listing2",
+        "slug": "slug-2",
+        "title": "Listing 2",
         "categories": [
             "category-1",
             "category-2"
         ],
+        "nsfw": true,
         "coinType": "BTC",
         "contractType": "PHYSICAL_GOOD",
         "description": "test",
+        "thumbnail": {
+            "tiny": "a",
+            "small": "b",
+            "medium": "c"
+        },
+        "price": {
+            "currencyCode": "BCH",
+            "amount": 10
+        },
+        "shipsTo": [
+            "US"
+        ],
         "freeShipping": [
             "US"
         ],
-        "hash": "Listing2",
         "language": "en",
+        "averageRating": 5,
+        "ratingCount": 999,
+        "acceptedCurrencies": [
+            "TBTC"
+        ],
         "moderators": [
             "c",
             "d",
             "e"
-        ],
-        "nsfw": true,
-        "price": {
-            "amount": 10,
-            "currencyCode": "BCH"
-        },
-        "ratingCount": 999,
-        "shipsTo": [
-            "US"
-        ],
-        "slug": "slug-2",
-        "thumbnail": {
-            "medium": "c",
-            "small": "b",
-            "tiny": "a"
-        },
-        "title": "Listing 2"
+        ]
     }
 ]`
 
@@ -175,13 +175,13 @@ var testMigration011ExpectedListingIndexBeforeMigration = `[
         "contractType": "PHYSICAL_GOOD",
         "description": "test",
         "thumbnail": {
-            "medium": "c",
+            "tiny": "a",
             "small": "b",
-            "tiny": "a"
+            "medium": "c"
         },
         "price": {
-            "amount": 10,
-            "currencyCode": "BCH"
+            "currencyCode": "BCH",
+            "amount": 10
         },
         "shipsTo": ["US"],
         "freeShipping": ["US"],
@@ -206,13 +206,13 @@ var testMigration011ExpectedListingIndexBeforeMigration = `[
         "contractType": "PHYSICAL_GOOD",
         "description": "test",
         "thumbnail": {
-            "medium": "c",
+            "tiny": "a",
             "small": "b",
-            "tiny": "a"
+            "medium": "c"
         },
         "price": {
-            "amount": 10,
-            "currencyCode": "BCH"
+            "currencyCode": "BCH",
+            "amount": 10
         },
         "shipsTo": ["US"],
         "freeShipping": ["US"],
