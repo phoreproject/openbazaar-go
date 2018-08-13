@@ -7,12 +7,10 @@ import (
 	"os"
 	"path"
 
-	"gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
-
 	"github.com/OpenBazaar/jsonpb"
-	"github.com/OpenBazaar/openbazaar-go/ipfs"
-	"github.com/OpenBazaar/openbazaar-go/pb"
-	"github.com/golang/protobuf/proto"
+	"github.com/phoreproject/openbazaar-go/ipfs"
+	"github.com/phoreproject/openbazaar-go/pb"
+	"github.com/gogo/protobuf/proto"
 	ipfscore "github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
 )
@@ -50,12 +48,8 @@ type Migration012_ListingData struct {
 }
 
 func Migration012_listingHasNewFeaturesAndOldVersion(sl *pb.SignedListing) bool {
-	metadata := sl.Listing.Metadata
-	if metadata == nil {
-		return false
-	}
-	return metadata.Version == 3 &&
-		metadata.PriceModifier != 0
+	return sl.Listing.Metadata.Version == 3 &&
+		sl.Listing.Metadata.PriceModifier != 0
 }
 
 func Migration012_GetIdentityKey(repoPath, databasePassword string, testnetEnabled bool) ([]byte, error) {
@@ -79,10 +73,6 @@ func (Migration012) Up(repoPath, databasePassword string, testnetEnabled bool) e
 	listingsIndexFilePath := path.Join(repoPath, "root", "listings.json")
 
 	// Find all crypto listings
-	if _, err := os.Stat(listingsIndexFilePath); os.IsNotExist(err) {
-		// Finish early if no listings are found
-		return writeRepoVer(repoPath, 13)
-	}
 	listingsIndexJSONBytes, err := ioutil.ReadFile(listingsIndexFilePath)
 	if err != nil {
 		return err
@@ -109,7 +99,7 @@ func (Migration012) Up(repoPath, databasePassword string, testnetEnabled bool) e
 	// Check each crypto listing for markup
 	markupListings := []*pb.SignedListing{}
 	for _, listingAbstract := range cryptoListings {
-		listingJSONBytes, err := ioutil.ReadFile(migration012_listingFilePath(repoPath, listingAbstract.Slug))
+		listingJSONBytes, err := ioutil.ReadFile(path.Join(repoPath, "root", "listings", migration012_filenameForSlug(listingAbstract.Slug)))
 		if err != nil {
 			return err
 		}
@@ -157,7 +147,7 @@ func (Migration012) Up(repoPath, databasePassword string, testnetEnabled bool) e
 
 	ncfg := &ipfscore.BuildCfg{
 		Repo:   r,
-		Online: false,
+		Online: true,
 		ExtraOpts: map[string]bool{
 			"mplex": true,
 		},
@@ -175,11 +165,6 @@ func (Migration012) Up(repoPath, databasePassword string, testnetEnabled bool) e
 	// Save the new hashes for each changed listing so we can update the index.
 	hashes := make(map[string]string)
 
-	privKey, err := crypto.UnmarshalPrivateKey(identityKey)
-	if err != nil {
-		return err
-	}
-
 	for _, sl := range markupListings {
 		sl.Listing.Metadata.Version = migration012_ListingVersionForMarkupListings
 
@@ -187,8 +172,7 @@ func (Migration012) Up(repoPath, databasePassword string, testnetEnabled bool) e
 		if err != nil {
 			return err
 		}
-
-		idSig, err := privKey.Sign(serializedListing)
+		idSig, err := nd.PrivateKey.Sign(serializedListing)
 		if err != nil {
 			return err
 		}
@@ -205,11 +189,11 @@ func (Migration012) Up(repoPath, databasePassword string, testnetEnabled bool) e
 			return err
 		}
 
-		filename := migration012_listingFilePath(repoPath, sl.Listing.Slug)
-		if err := ioutil.WriteFile(filename, []byte(out), os.ModePerm); err != nil {
+		filename := migration012_filenameForSlug(sl.Listing.Slug)
+		if err := ioutil.WriteFile(path.Join(repoPath, "root", "listings", filename), []byte(out), os.ModePerm); err != nil {
 			return err
 		}
-		h, err := ipfs.GetHashOfFile(nd, filename)
+		h, err := ipfs.GetHashOfFile(nd, path.Join(repoPath, "root", "listings", filename))
 		if err != nil {
 			return err
 		}
@@ -264,8 +248,8 @@ func (Migration012) Up(repoPath, databasePassword string, testnetEnabled bool) e
 	return writeRepoVer(repoPath, 13)
 }
 
-func migration012_listingFilePath(datadir string, slug string) string {
-	return path.Join(datadir, "root", "listings", slug+".json")
+func migration012_filenameForSlug(slug string) string {
+	return slug + ".json"
 }
 
 func (Migration012) Down(repoPath, databasePassword string, testnetEnabled bool) error {

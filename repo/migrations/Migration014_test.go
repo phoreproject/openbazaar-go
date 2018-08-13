@@ -3,9 +3,9 @@ package migrations_test
 import (
 	"bytes"
 	"database/sql"
-	"github.com/OpenBazaar/openbazaar-go/repo/migrations"
-	"github.com/OpenBazaar/openbazaar-go/schema"
-	"github.com/OpenBazaar/wallet-interface"
+	"github.com/phoreproject/openbazaar-go/repo/migrations"
+	"github.com/phoreproject/openbazaar-go/schema"
+	"github.com/phoreproject/wallet-interface"
 	"io/ioutil"
 	"os"
 	"strings"

@@ -3,7 +3,7 @@ package migrations
 import (
 	"database/sql"
 	"fmt"
-	"github.com/OpenBazaar/wallet-interface"
+	"github.com/phoreproject/wallet-interface"
 	"path"
 	"strings"
 )

@@ -7,7 +7,7 @@ import (
 	"path"
 	"testing"
 
-	"github.com/OpenBazaar/openbazaar-go/repo/migrations"
+	"github.com/phoreproject/openbazaar-go/repo/migrations"
 )
 
 func TestMigration011(t *testing.T) {
