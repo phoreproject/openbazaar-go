@@ -2,29 +2,30 @@ package core
 
 import (
 	"errors"
-	routing "gx/ipfs/QmTiWLZ6Fo5j4KcTVutZJ5KWRRJrbxzmxA4td8NfEdrPh7/go-libp2p-routing"
-	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
-	libp2p "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 	"path"
+	"sync"
 	"time"
 
+	"github.com/phoreproject/wallet-interface"
+	"github.com/ipfs/go-ipfs/core"
+	"github.com/op/go-logging"
+	"golang.org/x/net/context"
+	"golang.org/x/net/proxy"
+
+	routing "gx/ipfs/QmTiWLZ6Fo5j4KcTVutZJ5KWRRJrbxzmxA4td8NfEdrPh7/go-libp2p-routing"
 	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
 	ds "gx/ipfs/QmXRKBQA4wXP7xWbFiZsR1GP4HV6wMDQ1aWFxZZ4uBcPX9/go-datastore"
+	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
+	libp2p "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 	"gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
-	"sync"
 
-	"github.com/OpenBazaar/openbazaar-go/ipfs"
+	"github.com/phoreproject/openbazaar-go/ipfs"
 	"github.com/phoreproject/openbazaar-go/namesys"
 	"github.com/phoreproject/openbazaar-go/net"
 	rep "github.com/phoreproject/openbazaar-go/net/repointer"
 	ret "github.com/phoreproject/openbazaar-go/net/retriever"
 	"github.com/phoreproject/openbazaar-go/repo"
 	sto "github.com/phoreproject/openbazaar-go/storage"
-	"github.com/phoreproject/wallet-interface"
-	"github.com/ipfs/go-ipfs/core"
-	"github.com/op/go-logging"
-	"golang.org/x/net/context"
-	"golang.org/x/net/proxy"
 )
 
 var (
@@ -105,10 +106,12 @@ type OpenBazaarNode struct {
 	RegressionTestEnable bool
 }
 
-// Unpin the current node repo, re-add it, then publish to IPNS
-var seedLock sync.Mutex
+// PublishLock seedLock - Unpin the current node repo, re-add it, then publish to IPNS
 var PublishLock sync.Mutex
-var InitalPublishComplete bool = false
+var seedLock sync.Mutex
+
+// InitalPublishComplete - indicate publish completion
+var InitalPublishComplete bool // = false
 
 // TestNetworkEnabled indicates whether the node is operating with test parameters
 func (n *OpenBazaarNode) TestNetworkEnabled() bool { return n.TestnetEnable }
@@ -152,7 +155,7 @@ func (n *OpenBazaarNode) publish(hash string) {
 	}
 
 	if inflightPublishRequests == 0 {
-		n.Broadcast <- repo.StatusNotification{"publishing"}
+		n.Broadcast <- repo.StatusNotification{Status: "publishing"}
 	}
 
 	err := n.sendToPushNodes(hash)
@@ -168,9 +171,9 @@ func (n *OpenBazaarNode) publish(hash string) {
 	if inflightPublishRequests == 0 {
 		if err != nil {
 			log.Error(err)
-			n.Broadcast <- repo.StatusNotification{"error publishing"}
+			n.Broadcast <- repo.StatusNotification{Status: "error publishing"}
 		} else {
-			n.Broadcast <- repo.StatusNotification{"publish complete"}
+			n.Broadcast <- repo.StatusNotification{Status: "publish complete"}
 		}
 	}
 }
@@ -232,9 +235,9 @@ func (n *OpenBazaarNode) SetUpRepublisher(interval time.Duration) {
 	}()
 }
 
-/* This is a placeholder until the libsignal is operational.
-   For now we will just encrypt outgoing offline messages with the long lived identity key.
-   Optionally you may provide a public key, to avoid doing an IPFS lookup */
+/*EncryptMessage This is a placeholder until the libsignal is operational.
+  For now we will just encrypt outgoing offline messages with the long lived identity key.
+  Optionally you may provide a public key, to avoid doing an IPFS lookup */
 func (n *OpenBazaarNode) EncryptMessage(peerID peer.ID, peerKey *libp2p.PubKey, message []byte) (ct []byte, rerr error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -262,10 +265,9 @@ func (n *OpenBazaarNode) EncryptMessage(peerID peer.ID, peerKey *libp2p.PubKey, 
 			return nil, err
 		}
 		return ciphertext, nil
-	} else {
-		log.Errorf("peer public key and id do not match for peer: %s", peerID.Pretty())
-		return nil, errors.New("peer public key and id do not match")
 	}
+	log.Errorf("peer public key and id do not match for peer: %s", peerID.Pretty())
+	return nil, errors.New("peer public key and id do not match")
 }
 
 // IPFSIdentityString - IPFS identifier
