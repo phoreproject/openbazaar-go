@@ -4,15 +4,17 @@ import (
 	"bytes"
 	"encoding/hex"
 	"errors"
-	crypto "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
-
+	"fmt"
 	"time"
 
-	"github.com/phoreproject/openbazaar-go/pb"
 	"github.com/phoreproject/wallet-interface"
 	hd "github.com/btcsuite/btcutil/hdkeychain"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
+
+	crypto "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
+
+	"github.com/phoreproject/openbazaar-go/pb"
 )
 
 // NewOrderConfirmation - add order confirmation to the contract
@@ -165,13 +167,13 @@ func (n *OpenBazaarNode) ConfirmOfflineOrder(contract *pb.RicardianContract, rec
 func (n *OpenBazaarNode) RejectOfflineOrder(contract *pb.RicardianContract, records []*wallet.TransactionRecord) error {
 	orderID, err := n.CalcOrderID(contract.BuyerOrder)
 	if err != nil {
-		return err
+		return fmt.Errorf("generate order id: %s", err.Error())
 	}
 	rejectMsg := new(pb.OrderReject)
 	rejectMsg.OrderID = orderID
 	ts, err := ptypes.TimestampProto(time.Now())
 	if err != nil {
-		return err
+		return fmt.Errorf("marshal timestamp: %s", err.Error())
 	}
 	rejectMsg.Timestamp = ts
 	if contract.BuyerOrder.Payment.Method == pb.Order_Payment_MODERATED {
@@ -181,7 +183,7 @@ func (n *OpenBazaarNode) RejectOfflineOrder(contract *pb.RicardianContract, reco
 			if !r.Spent && r.Value > 0 {
 				addr, err := n.Wallet.DecodeAddress(r.Address)
 				if err != nil {
-					return err
+					return fmt.Errorf("decode prior transactions address: %s", err.Error())
 				}
 				outValue += r.Value
 				in := wallet.TransactionInput{
@@ -196,7 +198,7 @@ func (n *OpenBazaarNode) RejectOfflineOrder(contract *pb.RicardianContract, reco
 
 		refundAddress, err := n.Wallet.DecodeAddress(contract.BuyerOrder.RefundAddress)
 		if err != nil {
-			return err
+			return fmt.Errorf("decode refund address: %s", err.Error())
 		}
 		var output wallet.TransactionOutput
 
@@ -205,16 +207,16 @@ func (n *OpenBazaarNode) RejectOfflineOrder(contract *pb.RicardianContract, reco
 
 		chaincode, err := hex.DecodeString(contract.BuyerOrder.Payment.Chaincode)
 		if err != nil {
-			return err
+			return fmt.Errorf("decode buyer chaincode: %s", err.Error())
 		}
 		parentFP := []byte{0x00, 0x00, 0x00, 0x00}
 		mPrivKey := n.Wallet.MasterPrivateKey()
 		if err != nil {
-			return err
+			return fmt.Errorf("acquire wallet private key: %s", err.Error())
 		}
 		mECKey, err := mPrivKey.ECPrivKey()
 		if err != nil {
-			return err
+			return fmt.Errorf("generate ec private key: %s", err.Error())
 		}
 		hdKey := hd.NewExtendedKey(
 			n.Wallet.Params().HDPrivateKeyID[:],
@@ -227,15 +229,15 @@ func (n *OpenBazaarNode) RejectOfflineOrder(contract *pb.RicardianContract, reco
 
 		vendorKey, err := hdKey.Child(0)
 		if err != nil {
-			return err
+			return fmt.Errorf("generate child key: %s", err.Error())
 		}
 		redeemScript, err := hex.DecodeString(contract.BuyerOrder.Payment.RedeemScript)
 		if err != nil {
-			return err
+			return fmt.Errorf("generate child key: %s", err.Error())
 		}
 		signatures, err := n.Wallet.CreateMultisigSignature(ins, []wallet.TransactionOutput{output}, vendorKey, redeemScript, contract.BuyerOrder.RefundFee)
 		if err != nil {
-			return err
+			return fmt.Errorf("generate multisig: %s", err.Error())
 		}
 		var sigs []*pb.BitcoinSignature
 		for _, s := range signatures {
@@ -246,15 +248,17 @@ func (n *OpenBazaarNode) RejectOfflineOrder(contract *pb.RicardianContract, reco
 	}
 	err = n.SendReject(contract.BuyerOrder.BuyerID.PeerID, rejectMsg)
 	if err != nil {
-		return err
+		return fmt.Errorf("sending rejection: %s", err.Error())
 	}
-	n.Datastore.Sales().Put(orderId, *contract, pb.OrderState_DECLINED, true)
+	if err := n.Datastore.Sales().Put(orderID, *contract, pb.OrderState_DECLINED, true); err != nil {
+		return fmt.Errorf("updating sale state: %s", err.Error())
+	}
 	return nil
 }
 
 // ValidateOrderConfirmation - validate address and signatures for order confirmation
 func (n *OpenBazaarNode) ValidateOrderConfirmation(contract *pb.RicardianContract, validateAddress bool) error {
-	orderID, err := n.CalcOrderId(contract.BuyerOrder)
+	orderID, err := n.CalcOrderID(contract.BuyerOrder)
 	if err != nil {
 		return err
 	}
