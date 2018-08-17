@@ -21,9 +21,6 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
-	"gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
-	blocks "gx/ipfs/Qmej7nf81hi2x2tvjRBF3mcp74sQyuDH4VMYDGd1YtXjb2/go-block-format"
-	"strconv"
 )
 
 func (service *OpenBazaarService) HandlerForMsgType(t pb.Message_MessageType) func(peer.ID, *pb.Message, interface{}) (*pb.Message, error) {
@@ -542,7 +539,7 @@ func (service *OpenBazaarService) handleReject(p peer.ID, pmes *pb.Message, opti
 		var txInputs []wallet.TransactionInput
 		for _, r := range records {
 			if !r.Spent && r.Value > 0 {
-				hash, err := chainhash.NewHashFromStr(r.Txid)
+				hash, err := hex.DecodeString(r.Txid)
 				if err != nil {
 					return nil, err
 				}
@@ -550,10 +547,9 @@ func (service *OpenBazaarService) handleReject(p peer.ID, pmes *pb.Message, opti
 				if err != nil {
 					return nil, err
 				}
-				outpoint := wire.NewOutPoint(hash, r.Index)
 				u := wallet.TransactionInput{
-					OutpointHash:  outpoint.Hash.CloneBytes(),
-					OutpointIndex: outpoint.Index,
+					OutpointHash:  hash,
+					OutpointIndex: r.Index,
 					LinkedAddress: addr,
 					Value:         r.Value,
 				}
