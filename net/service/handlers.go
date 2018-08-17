@@ -18,7 +18,6 @@ import (
 	"github.com/phoreproject/openbazaar-go/repo"
 	"github.com/phoreproject/wallet-interface"
 	"github.com/btcsuite/btcutil"
-	hd "github.com/btcsuite/btcutil/hdkeychain"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
@@ -567,7 +566,6 @@ func (service *OpenBazaarService) handleReject(p peer.ID, pmes *pb.Message, opti
 		if err != nil {
 			return nil, err
 		}
-		parentFP := []byte{0x00, 0x00, 0x00, 0x00}
 		mPrivKey := service.node.Wallet.MasterPrivateKey()
 		if err != nil {
 			return nil, err
@@ -576,16 +574,7 @@ func (service *OpenBazaarService) handleReject(p peer.ID, pmes *pb.Message, opti
 		if err != nil {
 			return nil, err
 		}
-		hdKey := hd.NewExtendedKey(
-			service.node.Wallet.Params().HDPrivateKeyID[:],
-			mECKey.Serialize(),
-			chaincode,
-			parentFP,
-			0,
-			0,
-			true)
-
-		buyerKey, err := hdKey.Child(0)
+		buyerKey, err := service.node.Wallet.ChildKey(mECKey.Serialize(), chaincode, true)
 		if err != nil {
 			return nil, err
 		}
@@ -626,7 +615,6 @@ func (service *OpenBazaarService) handleReject(p peer.ID, pmes *pb.Message, opti
 		if err != nil {
 			return nil, err
 		}
-		parentFP := []byte{0x00, 0x00, 0x00, 0x00}
 		mPrivKey := service.node.Wallet.MasterPrivateKey()
 		if err != nil {
 			return nil, err
@@ -635,16 +623,7 @@ func (service *OpenBazaarService) handleReject(p peer.ID, pmes *pb.Message, opti
 		if err != nil {
 			return nil, err
 		}
-		hdKey := hd.NewExtendedKey(
-			service.node.Wallet.Params().HDPrivateKeyID[:],
-			mECKey.Serialize(),
-			chaincode,
-			parentFP,
-			0,
-			0,
-			true)
-
-		buyerKey, err := hdKey.Child(0)
+		buyerKey, err := service.node.Wallet.ChildKey(mECKey.Serialize(), chaincode, true)
 		if err != nil {
 			return nil, err
 		}
@@ -747,7 +726,6 @@ func (service *OpenBazaarService) handleRefund(p peer.ID, pmes *pb.Message, opti
 		if err != nil {
 			return nil, err
 		}
-		parentFP := []byte{0x00, 0x00, 0x00, 0x00}
 		mPrivKey := service.node.Wallet.MasterPrivateKey()
 		if err != nil {
 			return nil, err
@@ -756,16 +734,7 @@ func (service *OpenBazaarService) handleRefund(p peer.ID, pmes *pb.Message, opti
 		if err != nil {
 			return nil, err
 		}
-		hdKey := hd.NewExtendedKey(
-			service.node.Wallet.Params().HDPrivateKeyID[:],
-			mECKey.Serialize(),
-			chaincode,
-			parentFP,
-			0,
-			0,
-			true)
-
-		buyerKey, err := hdKey.Child(0)
+		buyerKey, err := service.node.Wallet.ChildKey(mECKey.Serialize(), chaincode, true)
 		if err != nil {
 			return nil, err
 		}
