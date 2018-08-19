@@ -233,6 +233,7 @@ func (c *ChatDB) MarkAsRead(peerID string, subject string, outgoing bool, messag
 	tx.Commit()
 
 	var peerStm string
+
 	if peerID != "" {
 		peerStm = " and peerID=?"
 	}
@@ -241,17 +242,19 @@ func (c *ChatDB) MarkAsRead(peerID string, subject string, outgoing bool, messag
 		return "", updated, err
 	}
 	defer stmt2.Close()
-	var ts int
-	var msgId string
+	var (
+		timestamp sql.NullInt64
+		msgId     sql.NullString
+	)
 	if peerID != "" {
-		err = stmt2.QueryRow(subject, peerID, outgoingInt).Scan(&ts, &msgId)
+		err = stmt2.QueryRow(subject, peerID, outgoingInt).Scan(&timestamp, &msgId)
 	} else {
-		err = stmt2.QueryRow(subject, outgoingInt).Scan(&ts, &msgId)
+		err = stmt2.QueryRow(subject, outgoingInt).Scan(&timestamp, &msgId)
 	}
 	if err != nil {
 		return "", updated, err
 	}
-	return msgId, updated, nil
+	return msgId.String, updated, nil
 }
 
 func (c *ChatDB) GetUnreadCount(subject string) (int, error) {

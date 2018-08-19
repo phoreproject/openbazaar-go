@@ -3,22 +3,24 @@ package core
 import (
 	"crypto/sha256"
 	"errors"
+	"strings"
+	"time"
+
+	"github.com/phoreproject/wallet-interface"
+	"github.com/btcsuite/btcd/chaincfg/chainhash"
+	"github.com/golang/protobuf/ptypes"
+	google_protobuf "github.com/golang/protobuf/ptypes/timestamp"
+
 	util "gx/ipfs/QmNiJuT8Ja3hMVpBHXv3Q6dwmperaQ6JjLtpMQgMCD7xvx/go-ipfs-util"
 	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
 	ps "gx/ipfs/QmXauCuJzmzapetmC6W4TuDJLL1yFFrVzSHoWv8YdbmnxH/go-libp2p-peerstore"
 	mh "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
 	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
-	"strings"
-	"time"
 
-	"github.com/golang/protobuf/ptypes"
-	google_protobuf "github.com/golang/protobuf/ptypes/timestamp"
-	"github.com/phoreproject/btcd/chaincfg/chainhash"
 	"github.com/phoreproject/openbazaar-go/pb"
-	"github.com/phoreproject/wallet-interface"
 )
 
-// Hash with SHA-256 and encode as a multihash
+// EncodeCID - Hash with SHA-256 and encode as a multihash
 func EncodeCID(b []byte) (*cid.Cid, error) {
 	multihash, err := EncodeMultihash(b)
 	if err != nil {
@@ -28,6 +30,7 @@ func EncodeCID(b []byte) (*cid.Cid, error) {
 	return id, err
 }
 
+// EncodeMultihash - sha256 encode
 func EncodeMultihash(b []byte) (*mh.Multihash, error) {
 	h := sha256.Sum256(b)
 	encoded, err := mh.Encode(h[:], mh.SHA2_256)
@@ -41,7 +44,7 @@ func EncodeMultihash(b []byte) (*mh.Multihash, error) {
 	return &multihash, err
 }
 
-// Certain pointers, such as moderators, contain a peerID. This function
+// ExtractIDFromPointer Certain pointers, such as moderators, contain a peerID. This function
 // will extract the ID from the underlying PeerInfo object.
 func ExtractIDFromPointer(pi ps.PeerInfo) (string, error) {
 	if len(pi.Addrs) == 0 {
@@ -64,7 +67,7 @@ func FormatRFC3339PB(ts google_protobuf.Timestamp) string {
 	return util.FormatRFC3339(time.Unix(ts.Seconds, int64(ts.Nanos)).UTC())
 }
 
-// BuildTransactionRecords is used by the GET order API to build transaction records suitable to be included in the order response
+// BuildTransactionRecords - Used by the GET order API to build transaction records suitable to be included in the order response
 func (n *OpenBazaarNode) BuildTransactionRecords(contract *pb.RicardianContract, records []*wallet.TransactionRecord, state pb.OrderState) ([]*pb.TransactionRecord, *pb.TransactionRecord, error) {
 	paymentRecords := []*pb.TransactionRecord{}
 	payments := make(map[string]*pb.TransactionRecord)
@@ -120,11 +123,11 @@ func (n *OpenBazaarNode) BuildTransactionRecords(contract *pb.RicardianContract,
 			// Direct we need to use the transaction info in the contract's refund object
 			ch, err := chainhash.NewHashFromStr(contract.Refund.RefundTransaction.Txid)
 			if err != nil {
-				return paymentRecords, refundRecord, nil
+				return paymentRecords, refundRecord, err
 			}
 			confirmations, height, err := n.Wallet.GetConfirmations(*ch)
 			if err != nil {
-				return paymentRecords, refundRecord, err
+				return paymentRecords, refundRecord, nil
 			}
 			refundRecord.Txid = contract.Refund.RefundTransaction.Txid
 			refundRecord.Value = int64(contract.Refund.RefundTransaction.Value)

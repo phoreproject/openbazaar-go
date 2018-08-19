@@ -767,7 +767,7 @@ func (i *jsonAPIHandler) POSTSpendCoins(w http.ResponseWriter, r *http.Request) 
 	var title string
 	contract, _, _, _, err := i.node.Datastore.Purchases().GetByPaymentAddress(addr)
 	if contract != nil && err == nil {
-		orderId, _ = i.node.CalcOrderId(contract.BuyerOrder)
+		orderId, _ = i.node.CalcOrderID(contract.BuyerOrder)
 		if contract.VendorListings[0].Item != nil && len(contract.VendorListings[0].Item.Images) > 0 {
 			thumbnail = contract.VendorListings[0].Item.Images[0].Tiny
 			title = contract.VendorListings[0].Item.Title
@@ -1767,7 +1767,7 @@ func (i *jsonAPIHandler) GETModerators(w http.ResponseWriter, r *http.Request) {
 						wg.Done()
 						return
 					}
-					resp := &pb.PeerAndProfile{m, &profile}
+					resp := &pb.PeerAndProfile{PeerId: m, Profile: &profile}
 					mar := jsonpb.Marshaler{
 						EnumsAsInts:  false,
 						EmitDefaults: true,
@@ -1853,7 +1853,7 @@ func (i *jsonAPIHandler) GETModerators(w http.ResponseWriter, r *http.Request) {
 						if err != nil {
 							return
 						}
-						resp := pb.PeerAndProfileWithID{id, pid, &profile}
+						resp := pb.PeerAndProfileWithID{Id: id, PeerId: pid, Profile: &profile}
 						m := jsonpb.Marshaler{
 							EnumsAsInts:  false,
 							EmitDefaults: true,
@@ -1928,7 +1928,7 @@ func (i *jsonAPIHandler) POSTOrderComplete(w http.ResponseWriter, r *http.Reques
 		ErrorResponse(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	contract, state, _, records, _, err := i.node.Datastore.Purchases().GetByOrderId(or.OrderId)
+	contract, state, _, records, _, err := i.node.Datastore.Purchases().GetByOrderId(or.OrderID)
 	if err != nil {
 		ErrorResponse(w, http.StatusNotFound, "order not found")
 		return
@@ -2616,7 +2616,7 @@ func (i *jsonAPIHandler) POSTFetchProfiles(w http.ResponseWriter, r *http.Reques
 					wg.Done()
 					return
 				}
-				obj := pb.PeerAndProfile{pid, &pro}
+				obj := pb.PeerAndProfile{PeerId: pid, Profile: &pro}
 				m := jsonpb.Marshaler{
 					EnumsAsInts:  false,
 					EmitDefaults: true,
@@ -2688,7 +2688,7 @@ func (i *jsonAPIHandler) POSTFetchProfiles(w http.ResponseWriter, r *http.Reques
 						respondWithError("Not found")
 						return
 					}
-					obj := pb.PeerAndProfileWithID{id, pid, &pro}
+					obj := pb.PeerAndProfileWithID{Id: id, PeerId: pid, Profile: &pro}
 					m := jsonpb.Marshaler{
 						EnumsAsInts:  false,
 						EmitDefaults: true,
