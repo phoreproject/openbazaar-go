@@ -15,11 +15,11 @@ const (
 )
 
 type recordAgingNotifier struct {
-	// PerformTask dependancies
+	// PerformTask dependencies
 	datastore repo.Datastore
 	broadcast chan repo.Notifier
 
-	// Worker-handling dependancies
+	// Worker-handling dependencies
 	intervalDelay time.Duration
 	logger        *logging.Logger
 	watchdogTimer *time.Ticker
