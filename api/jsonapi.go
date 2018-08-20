@@ -289,7 +289,6 @@ func (i *jsonAPIHandler) POSTProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	SanitizedResponseM(w, out, new(pb.Profile))
-	return
 }
 
 func (i *jsonAPIHandler) PUTProfile(w http.ResponseWriter, r *http.Request) {
@@ -355,7 +354,6 @@ func (i *jsonAPIHandler) PUTProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	SanitizedResponseM(w, out, new(pb.Profile))
-	return
 }
 
 func (i *jsonAPIHandler) PATCHProfile(w http.ResponseWriter, r *http.Request) {
@@ -399,7 +397,6 @@ func (i *jsonAPIHandler) PATCHProfile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	SanitizedResponse(w, `{}`)
-	return
 }
 
 func (i *jsonAPIHandler) POSTAvatar(w http.ResponseWriter, r *http.Request) {
@@ -437,7 +434,6 @@ func (i *jsonAPIHandler) POSTAvatar(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	SanitizedResponse(w, string(jsonHashes))
-	return
 }
 
 func (i *jsonAPIHandler) POSTHeader(w http.ResponseWriter, r *http.Request) {
@@ -475,7 +471,6 @@ func (i *jsonAPIHandler) POSTHeader(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	SanitizedResponse(w, string(jsonHashes))
-	return
 }
 
 func (i *jsonAPIHandler) POSTImage(w http.ResponseWriter, r *http.Request) {
@@ -510,7 +505,6 @@ func (i *jsonAPIHandler) POSTImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	SanitizedResponse(w, string(jsonHashes))
-	return
 }
 
 func (i *jsonAPIHandler) POSTListing(w http.ResponseWriter, r *http.Request) {
@@ -555,7 +549,6 @@ func (i *jsonAPIHandler) PUTListing(w http.ResponseWriter, r *http.Request) {
 	}
 
 	SanitizedResponse(w, `{}`)
-	return
 }
 
 func (i *jsonAPIHandler) DELETEListing(w http.ResponseWriter, r *http.Request) {
@@ -581,7 +574,6 @@ func (i *jsonAPIHandler) DELETEListing(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	SanitizedResponse(w, `{}`)
-	return
 }
 
 func (i *jsonAPIHandler) POSTPurchase(w http.ResponseWriter, r *http.Request) {
@@ -610,7 +602,6 @@ func (i *jsonAPIHandler) POSTPurchase(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	SanitizedResponse(w, string(b))
-	return
 }
 
 func (i *jsonAPIHandler) GETStatus(w http.ResponseWriter, r *http.Request) {
@@ -654,7 +645,6 @@ func (i *jsonAPIHandler) POSTFollow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	SanitizedResponse(w, `{}`)
-	return
 }
 
 func (i *jsonAPIHandler) POSTUnfollow(w http.ResponseWriter, r *http.Request) {
@@ -673,7 +663,6 @@ func (i *jsonAPIHandler) POSTUnfollow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	SanitizedResponse(w, `{}`)
-	return
 }
 
 func (i *jsonAPIHandler) GETAddress(w http.ResponseWriter, r *http.Request) {
@@ -818,7 +807,6 @@ func (i *jsonAPIHandler) POSTSpendCoins(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	SanitizedResponse(w, string(ser))
-	return
 }
 
 func (i *jsonAPIHandler) GETConfig(w http.ResponseWriter, r *http.Request) {
@@ -899,7 +887,6 @@ func (i *jsonAPIHandler) POSTSettings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	SanitizedResponse(w, string(ser))
-	return
 }
 
 func (i *jsonAPIHandler) PUTSettings(w http.ResponseWriter, r *http.Request) {
@@ -946,7 +933,6 @@ func (i *jsonAPIHandler) PUTSettings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	SanitizedResponse(w, `{}`)
-	return
 }
 
 func (i *jsonAPIHandler) GETSettings(w http.ResponseWriter, r *http.Request) {
@@ -1269,7 +1255,6 @@ func (i *jsonAPIHandler) POSTInventory(w http.ResponseWriter, r *http.Request) {
 	}
 
 	SanitizedResponse(w, `{}`)
-	return
 }
 
 func (i *jsonAPIHandler) PUTModerator(w http.ResponseWriter, r *http.Request) {
@@ -1308,7 +1293,6 @@ func (i *jsonAPIHandler) PUTModerator(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	SanitizedResponse(w, "{}")
-	return
 }
 
 func (i *jsonAPIHandler) DELETEModerator(w http.ResponseWriter, r *http.Request) {
@@ -1338,7 +1322,6 @@ func (i *jsonAPIHandler) DELETEModerator(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	SanitizedResponse(w, "{}")
-	return
 }
 
 func (i *jsonAPIHandler) GETListings(w http.ResponseWriter, r *http.Request) {
@@ -1573,7 +1556,6 @@ func (i *jsonAPIHandler) POSTOrderConfirmation(w http.ResponseWriter, r *http.Re
 		}
 	}
 	SanitizedResponse(w, `{}`)
-	return
 }
 
 func (i *jsonAPIHandler) POSTOrderCancel(w http.ResponseWriter, r *http.Request) {
@@ -1603,7 +1585,6 @@ func (i *jsonAPIHandler) POSTOrderCancel(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	SanitizedResponse(w, `{}`)
-	return
 }
 
 func (i *jsonAPIHandler) POSTResyncBlockchain(w http.ResponseWriter, r *http.Request) {
@@ -1614,7 +1595,6 @@ func (i *jsonAPIHandler) POSTResyncBlockchain(w http.ResponseWriter, r *http.Req
 	}
 	i.node.Wallet.ReSyncBlockchain(creationDate)
 	SanitizedResponse(w, `{}`)
-	return
 }
 
 func (i *jsonAPIHandler) GETOrder(w http.ResponseWriter, r *http.Request) {
@@ -1690,7 +1670,6 @@ func (i *jsonAPIHandler) POSTShutdown(w http.ResponseWriter, r *http.Request) {
 	}
 	go shutdown()
 	SanitizedResponse(w, `{}`)
-	return
 }
 
 func (i *jsonAPIHandler) POSTRefund(w http.ResponseWriter, r *http.Request) {
@@ -1719,7 +1698,6 @@ func (i *jsonAPIHandler) POSTRefund(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	SanitizedResponse(w, `{}`)
-	return
 }
 
 func (i *jsonAPIHandler) GETModerators(w http.ResponseWriter, r *http.Request) {
@@ -1910,7 +1888,6 @@ func (i *jsonAPIHandler) POSTOrderFulfill(w http.ResponseWriter, r *http.Request
 		return
 	}
 	SanitizedResponse(w, `{}`)
-	return
 }
 
 func (i *jsonAPIHandler) POSTOrderComplete(w http.ResponseWriter, r *http.Request) {
@@ -1983,7 +1960,6 @@ func (i *jsonAPIHandler) POSTOrderComplete(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	SanitizedResponse(w, `{}`)
-	return
 }
 
 func (i *jsonAPIHandler) POSTOpenDispute(w http.ResponseWriter, r *http.Request) {
@@ -2036,7 +2012,6 @@ func (i *jsonAPIHandler) POSTOpenDispute(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	SanitizedResponse(w, `{}`)
-	return
 }
 
 func (i *jsonAPIHandler) POSTCloseDispute(w http.ResponseWriter, r *http.Request) {
@@ -2067,7 +2042,6 @@ func (i *jsonAPIHandler) POSTCloseDispute(w http.ResponseWriter, r *http.Request
 		return
 	}
 	SanitizedResponse(w, `{}`)
-	return
 }
 
 func (i *jsonAPIHandler) GETCase(w http.ResponseWriter, r *http.Request) {
@@ -2151,7 +2125,6 @@ func (i *jsonAPIHandler) POSTReleaseFunds(w http.ResponseWriter, r *http.Request
 		return
 	}
 	SanitizedResponse(w, `{}`)
-	return
 }
 
 func (i *jsonAPIHandler) POSTReleaseEscrow(w http.ResponseWriter, r *http.Request) {
@@ -2219,7 +2192,6 @@ func (i *jsonAPIHandler) POSTReleaseEscrow(w http.ResponseWriter, r *http.Reques
 	}
 
 	SanitizedResponse(w, `{}`)
-	return
 }
 
 func (i *jsonAPIHandler) POSTChat(w http.ResponseWriter, r *http.Request) {
@@ -2284,7 +2256,6 @@ func (i *jsonAPIHandler) POSTChat(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	SanitizedResponse(w, fmt.Sprintf(`{"messageId": "%s"}`, msgId.B58String()))
-	return
 }
 
 func (i *jsonAPIHandler) POSTGroupChat(w http.ResponseWriter, r *http.Request) {
@@ -2355,7 +2326,6 @@ func (i *jsonAPIHandler) POSTGroupChat(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	SanitizedResponse(w, fmt.Sprintf(`{"messageId": "%s"}`, msgId.B58String()))
-	return
 }
 
 func (i *jsonAPIHandler) GETChatMessages(w http.ResponseWriter, r *http.Request) {
@@ -2384,7 +2354,6 @@ func (i *jsonAPIHandler) GETChatMessages(w http.ResponseWriter, r *http.Request)
 		ret = []byte("[]")
 	}
 	SanitizedResponse(w, string(ret))
-	return
 }
 
 func (i *jsonAPIHandler) GETChatConversations(w http.ResponseWriter, r *http.Request) {
@@ -2398,7 +2367,6 @@ func (i *jsonAPIHandler) GETChatConversations(w http.ResponseWriter, r *http.Req
 		ret = []byte("[]")
 	}
 	SanitizedResponse(w, string(ret))
-	return
 }
 
 func (i *jsonAPIHandler) POSTMarkChatAsRead(w http.ResponseWriter, r *http.Request) {
@@ -2509,7 +2477,6 @@ func (i *jsonAPIHandler) GETNotifications(w http.ResponseWriter, r *http.Request
 		retString = strings.Replace(retString, "null", "[]", -1)
 	}
 	SanitizedResponse(w, retString)
-	return
 }
 
 func (i *jsonAPIHandler) POSTMarkNotificationAsRead(w http.ResponseWriter, r *http.Request) {
@@ -2680,7 +2647,6 @@ func (i *jsonAPIHandler) POSTFetchProfiles(w http.ResponseWriter, r *http.Reques
 							return
 						}
 						i.node.Broadcast <- repo.PremarshalledNotifier{ret}
-						return
 					}
 
 					pro, err := i.node.FetchProfile(pid, useCache)
@@ -2827,7 +2793,6 @@ func (i *jsonAPIHandler) GETPurchases(w http.ResponseWriter, r *http.Request) {
 		ret = []byte("[]")
 	}
 	SanitizedResponse(w, string(ret))
-	return
 }
 
 func (i *jsonAPIHandler) GETSales(w http.ResponseWriter, r *http.Request) {
@@ -2863,7 +2828,6 @@ func (i *jsonAPIHandler) GETSales(w http.ResponseWriter, r *http.Request) {
 		ret = []byte("[]")
 	}
 	SanitizedResponse(w, string(ret))
-	return
 }
 
 func (i *jsonAPIHandler) GETCases(w http.ResponseWriter, r *http.Request) {
@@ -2898,7 +2862,6 @@ func (i *jsonAPIHandler) GETCases(w http.ResponseWriter, r *http.Request) {
 		ret = []byte("[]")
 	}
 	SanitizedResponse(w, string(ret))
-	return
 }
 
 func (i *jsonAPIHandler) POSTPurchases(w http.ResponseWriter, r *http.Request) {
@@ -2935,7 +2898,6 @@ func (i *jsonAPIHandler) POSTPurchases(w http.ResponseWriter, r *http.Request) {
 		ret = []byte("[]")
 	}
 	SanitizedResponse(w, string(ret))
-	return
 }
 
 func (i *jsonAPIHandler) POSTSales(w http.ResponseWriter, r *http.Request) {
@@ -2973,7 +2935,6 @@ func (i *jsonAPIHandler) POSTSales(w http.ResponseWriter, r *http.Request) {
 		ret = []byte("[]")
 	}
 	SanitizedResponse(w, string(ret))
-	return
 }
 
 func (i *jsonAPIHandler) POSTCases(w http.ResponseWriter, r *http.Request) {
@@ -3010,7 +2971,6 @@ func (i *jsonAPIHandler) POSTCases(w http.ResponseWriter, r *http.Request) {
 		ret = []byte("[]")
 	}
 	SanitizedResponse(w, string(ret))
-	return
 }
 
 func (i *jsonAPIHandler) POSTBlockNode(w http.ResponseWriter, r *http.Request) {
@@ -3183,7 +3143,6 @@ func (i *jsonAPIHandler) GETEstimateFee(w http.ResponseWriter, r *http.Request) 
 		}
 	}
 	fmt.Fprintf(w, `{"estimatedFee": %d}`, (fee))
-	return
 }
 
 func (i *jsonAPIHandler) GETFees(w http.ResponseWriter, r *http.Request) {
@@ -3191,7 +3150,6 @@ func (i *jsonAPIHandler) GETFees(w http.ResponseWriter, r *http.Request) {
 	normal := i.node.Wallet.GetFeePerByte(wallet.NORMAL)
 	economic := i.node.Wallet.GetFeePerByte(wallet.ECONOMIC)
 	fmt.Fprintf(w, `{"priority": %d, "normal": %d, "economic": %d}`, int(priority), int(normal), int(economic))
-	return
 }
 
 func (i *jsonAPIHandler) POSTEstimateTotal(w http.ResponseWriter, r *http.Request) {
@@ -3208,7 +3166,6 @@ func (i *jsonAPIHandler) POSTEstimateTotal(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	fmt.Fprintf(w, "%d", int(amount))
-	return
 }
 
 func (i *jsonAPIHandler) GETRatings(w http.ResponseWriter, r *http.Request) {
@@ -3407,7 +3364,6 @@ func (i *jsonAPIHandler) POSTFetchRatings(w http.ResponseWriter, r *http.Request
 						return
 					}
 					i.node.Broadcast <- repo.PremarshalledNotifier{ret}
-					return
 				}
 				ratingBytes, err := ipfs.Cat(i.node.IpfsNode, rid, time.Minute)
 				if err != nil {
@@ -3731,7 +3687,6 @@ func (i *jsonAPIHandler) POSTPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	SanitizedResponse(w, fmt.Sprintf(`{"slug": "%s"}`, signedPost.Post.Slug))
-	return
 }
 
 // PUT a post
@@ -3799,7 +3754,6 @@ func (i *jsonAPIHandler) PUTPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	SanitizedResponse(w, `{}`)
-	return
 }
 
 // DELETE a post
@@ -3826,7 +3780,6 @@ func (i *jsonAPIHandler) DELETEPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	SanitizedResponse(w, `{}`)
-	return
 }
 
 // GET a list of posts (self or peer)
