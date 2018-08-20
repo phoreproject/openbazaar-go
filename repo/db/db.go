@@ -5,12 +5,13 @@ import (
 	"path"
 	"sync"
 
+	"time"
+
 	"github.com/phoreproject/openbazaar-go/repo"
 	"github.com/phoreproject/openbazaar-go/schema"
 	"github.com/phoreproject/wallet-interface"
 	_ "github.com/mutecomm/go-sqlcipher"
 	"github.com/op/go-logging"
-	"time"
 )
 
 var log = logging.MustGetLogger("db")
@@ -218,7 +219,7 @@ func (s *SQLiteDatastore) InitTables(password string) error {
 
 func initDatabaseTables(db *sql.DB, password string) (err error) {
 	_, err = db.Exec(schema.InitializeDatabaseSQL(password))
-	return
+	return err
 }
 
 type ConfigDB struct {
