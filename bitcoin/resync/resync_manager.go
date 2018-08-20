@@ -3,9 +3,9 @@ package resync
 import (
 	"time"
 
-	"github.com/op/go-logging"
 	"github.com/phoreproject/openbazaar-go/repo"
 	"github.com/phoreproject/wallet-interface"
+	"github.com/op/go-logging"
 )
 
 var log = logging.MustGetLogger("ResyncManager")
@@ -24,11 +24,11 @@ func NewResyncManager(salesDB repo.SaleStore, w wallet.Wallet) *ResyncManager {
 func (r *ResyncManager) Start() {
 	t := time.NewTicker(ResyncInterval)
 	for ; true; <-t.C {
-		r.checkUnfunded()
+		r.CheckUnfunded()
 	}
 }
 
-func (r *ResyncManager) checkUnfunded() {
+func (r *ResyncManager) CheckUnfunded() {
 	unfunded, err := r.sales.GetNeedsResync()
 	if err != nil {
 		log.Error(err)
@@ -45,7 +45,7 @@ func (r *ResyncManager) checkUnfunded() {
 		r.sales.SetNeedsResync(uf.OrderId, false)
 	}
 	if r.w != nil {
-		log.Infof("Rolling back blockchain %s looking for payments for %d orders\n", time.Now().Sub(rollbackTime), len(unfunded))
+		log.Infof("Rolling back blockchain %s looking for payments for %d orders\n", time.Since(rollbackTime), len(unfunded))
 		r.w.ReSyncBlockchain(rollbackTime)
 	}
 }
