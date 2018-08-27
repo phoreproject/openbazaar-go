@@ -1356,8 +1356,8 @@ func (i *jsonAPIHandler) GETListings(w http.ResponseWriter, r *http.Request) {
 			ErrorResponse(w, http.StatusNotFound, err.Error())
 			return
 		}
-		SanitizedResponse(w, string(listingsBytes))
 		w.Header().Set("Cache-Control", fmt.Sprintf("public, max-age=%s, immutable", maxAge))
+		SanitizedResponse(w, string(listingsBytes))
 	}
 }
 
