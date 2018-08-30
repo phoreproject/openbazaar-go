@@ -1717,7 +1717,7 @@ func (i *jsonAPIHandler) GETModerators(w http.ResponseWriter, r *http.Request) {
 
 	ctx := context.Background()
 	if !async {
-		removeDuplicates := func(xs []string) {
+		removeDuplicates := func(xs []string) []string {
 			found := make(map[string]bool)
 			j := 0
 			for i, x := range xs {
@@ -1727,6 +1727,7 @@ func (i *jsonAPIHandler) GETModerators(w http.ResponseWriter, r *http.Request) {
 					j++
 				}
 			}
+			return xs[:j]
 		}
 		peerInfoList, err := ipfs.FindPointers(i.node.IpfsNode.Routing.(*routing.IpfsDHT), ctx, core.ModeratorPointerID, 64)
 		if err != nil {
