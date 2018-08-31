@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/phoreproject/openbazaar-go/cmd"
 	"github.com/phoreproject/openbazaar-go/core"
-	lockfile "github.com/ipfs/go-ipfs/repo/fsrepo/lock"
+	"github.com/ipfs/go-ipfs/repo/fsrepo"
 	"github.com/jessevdk/go-flags"
 	"github.com/op/go-logging"
 	"os"

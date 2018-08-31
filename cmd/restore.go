@@ -9,8 +9,8 @@ import (
 	"path"
 	"strconv"
 
-	"github.com/OpenBazaar/openbazaar-go/ipfs"
-	obnet "github.com/OpenBazaar/openbazaar-go/net"
+	"github.com/phoreproject/openbazaar-go/ipfs"
+	obnet "github.com/phoreproject/openbazaar-go/net"
 	ipfscore "github.com/ipfs/go-ipfs/core"
 	bitswap "github.com/ipfs/go-ipfs/exchange/bitswap/network"
 	"io/ioutil"
@@ -44,7 +44,6 @@ import (
 	"sync"
 	"syscall"
 	"time"
-	"github.com/OpenBazaar/wallet-interface"
 )
 
 type Restore struct {
