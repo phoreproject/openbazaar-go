@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/phoreproject/jsonpb"
+	"github.com/OpenBazaar/jsonpb"
 	"github.com/phoreproject/openbazaar-go/pb"
 	"github.com/phoreproject/openbazaar-go/repo"
 	"github.com/phoreproject/openbazaar-go/schema"
