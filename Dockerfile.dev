@@ -21,7 +21,7 @@ RUN wget https://github.com/google/protobuf/releases/download/v3.6.0/protoc-3.6.
     mv ./bin/protoc /usr/local/bin/ && \
     rm -rf ./include ./bin
 
-WORKDIR /go/src/github.com/OpenBazaar/openbazaar-go
+WORKDIR /go/src/github.com/phoreproject/openbazaar-go
 RUN go get -u github.com/gogo/protobuf/proto \
               github.com/golang/protobuf/protoc-gen-go \
               github.com/icrowley/fake \
