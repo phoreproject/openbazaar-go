@@ -2,7 +2,7 @@ package ipfs
 
 import (
 	"context"
-	"github.com/phoreproject/go-ipfs/core/corerepo"
+	"github.com/ipfs/go-ipfs/core/corerepo"
 	"github.com/ipfs/go-ipfs/core"
 )
 
