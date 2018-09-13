@@ -4,45 +4,6 @@
 
 package btclog
 
-import (
-	"fmt"
-)
-
-// LogLevel is the level at which a logger is configured.  All messages sent
-// to a level which is below the current level are filtered.
-type LogLevel uint8
-
-// LogLevel contants.
-const (
-	TraceLvl LogLevel = iota
-	DebugLvl
-	InfoLvl
-	WarnLvl
-	ErrorLvl
-	CriticalLvl
-	Off
-)
-
-// Map of log levels to string representations.
-var logLevelStrings = map[LogLevel]string{
-	TraceLvl:    "trace",
-	DebugLvl:    "debug",
-	InfoLvl:     "info",
-	WarnLvl:     "warn",
-	ErrorLvl:    "error",
-	CriticalLvl: "critical",
-	Off:         "off",
-}
-
-// String converts level to a human-readable string.
-func (level LogLevel) String() string {
-	if s, ok := logLevelStrings[level]; ok {
-		return s
-	}
-
-	return fmt.Sprintf("Unknown LogLevel (%d)", uint8(level))
-}
-
 // Logger is an interface which describes a level-based logger.  A default
 // implementation of Logger is implemented by this package and can be created
 // by calling (*Backend).Logger.
