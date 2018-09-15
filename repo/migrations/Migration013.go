@@ -8,11 +8,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/OpenBazaar/zcashd-wallet"
-	"github.com/btcsuite/btcd/chaincfg"
-	"github.com/btcsuite/btcd/txscript"
-	"github.com/btcsuite/btcutil"
-	"github.com/cpacia/bchutil"
+	"github.com/phoreproject/bchutil"
+	"github.com/phoreproject/btcd/chaincfg"
+	"github.com/phoreproject/btcd/txscript"
+	"github.com/phoreproject/btcutil"
 )
 
 type Migration013 struct{}
@@ -233,12 +232,12 @@ func Migration013_ScriptToAddress(coinType string, script []byte, testmodeEnanab
 			return "", fmt.Errorf("converting %s script to address: %s", coinType, err.Error())
 		}
 		return btcutil.Address(addr).String(), nil
-	case "zec", "tzec":
-		addr, err := zcashd.ExtractPkScriptAddrs(script, params)
-		if err != nil {
-			return "", fmt.Errorf("converting %s script to address: %s", coinType, err.Error())
-		}
-		return addr.String(), nil
+	//case "zec", "tzec":
+	//	addr, err := zcashd.ExtractPkScriptAddrs(script, params)
+	//	if err != nil {
+	//		return "", fmt.Errorf("converting %s script to address: %s", coinType, err.Error())
+	//	}
+	//	return addr.String(), nil
 	}
 	return "", fmt.Errorf("unable to migrate coinType %s", coinType)
 }
@@ -286,16 +285,16 @@ func Migration013_AddressToScript(coinType string, addr string, testmodeEnanable
 			return nil, fmt.Errorf("converting %s address to script: %s", coinType, err.Error())
 		}
 		return script, nil
-	case "zec", "tzec":
-		addr, err := zcashd.DecodeAddress(addr, params)
-		if err != nil {
-			return nil, fmt.Errorf("decoding %s address: %s", coinType, err.Error())
-		}
-		script, err := zcashd.PayToAddrScript(addr)
-		if err != nil {
-			return nil, fmt.Errorf("converting %s address to script: %s", coinType, err.Error())
-		}
-		return script, nil
+	//case "zec", "tzec":
+	//	addr, err := zcashd.DecodeAddress(addr, params)
+	//	if err != nil {
+	//		return nil, fmt.Errorf("decoding %s address: %s", coinType, err.Error())
+	//	}
+	//	script, err := zcashd.PayToAddrScript(addr)
+	//	if err != nil {
+	//		return nil, fmt.Errorf("converting %s address to script: %s", coinType, err.Error())
+	//	}
+	//	return script, nil
 	}
 	return nil, fmt.Errorf("Unable to migrate coinType %s", coinType)
 }

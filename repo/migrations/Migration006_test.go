@@ -10,8 +10,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/OpenBazaar/openbazaar-go/repo/migrations"
-	"github.com/OpenBazaar/openbazaar-go/schema"
+	"github.com/phoreproject/openbazaar-go/repo/migrations"
+	"github.com/phoreproject/openbazaar-go/schema"
 )
 
 func TestMigration006(t *testing.T) {
