@@ -5,7 +5,7 @@ import (
 
 	crypto "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 
-	"github.com/OpenBazaar/openbazaar-go/pb"
+	"github.com/phoreproject/openbazaar-go/pb"
 	"github.com/golang/protobuf/ptypes"
 )
 

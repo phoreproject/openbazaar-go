@@ -1,7 +1,7 @@
 package factory
 
 import (
-	"github.com/OpenBazaar/openbazaar-go/repo"
+	"github.com/phoreproject/openbazaar-go/repo"
 )
 
 func NewSaleRecord() *repo.SaleRecord {

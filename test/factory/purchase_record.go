@@ -3,7 +3,7 @@ package factory
 import (
 	"time"
 
-	"github.com/OpenBazaar/openbazaar-go/repo"
+	"github.com/phoreproject/openbazaar-go/repo"
 )
 
 func NewPurchaseRecord() *repo.PurchaseRecord {
