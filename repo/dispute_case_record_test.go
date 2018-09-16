@@ -4,9 +4,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/OpenBazaar/openbazaar-go/pb"
-	"github.com/OpenBazaar/openbazaar-go/repo"
-	"github.com/OpenBazaar/openbazaar-go/test/factory"
+	"github.com/phoreproject/openbazaar-go/pb"
+	"github.com/phoreproject/openbazaar-go/repo"
+	"github.com/phoreproject/openbazaar-go/test/factory"
 )
 
 func TestDisputeCaseRecordIsExpired(t *testing.T) {

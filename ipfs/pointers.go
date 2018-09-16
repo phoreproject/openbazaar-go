@@ -70,12 +70,12 @@ func NewPointer(mhKey multihash.Multihash, prefixLen int, addr ma.Multiaddr, ent
 }
 
 // PublishPointer adds and publishes pointer to the dht.
-func PublishPointer(ctx context.Context, node *core.IpfsNode, pointer Pointer) error {
-	return addPointer(ctx, node, pointer.Cid, pointer.Value)
+func PublishPointer(node *core.IpfsNode, ctx context.Context, pointer Pointer) error {
+	return addPointer(node, ctx, pointer.Cid, pointer.Value)
 }
 
 // FindPointersAsync fetches pointers from the dht. They will be returned asynchronously.
-func FindPointersAsync(ctx context.Context, dht *routing.IpfsDHT, mhKey multihash.Multihash, prefixLen int) <-chan ps.PeerInfo {
+func FindPointersAsync(dht *routing.IpfsDHT, ctx context.Context, mhKey multihash.Multihash, prefixLen int) <-chan ps.PeerInfo {
 	keyhash := CreatePointerKey(mhKey, prefixLen)
 	key, _ := cid.Decode(keyhash.B58String())
 	peerout := dht.FindProvidersAsync(ctx, key, 100000)
@@ -83,9 +83,9 @@ func FindPointersAsync(ctx context.Context, dht *routing.IpfsDHT, mhKey multihas
 }
 
 // FindPointers fetches pointers from the dht
-func FindPointers(ctx context.Context, dht *routing.IpfsDHT, mhKey multihash.Multihash, prefixLen int) ([]ps.PeerInfo, error) {
+func FindPointers(dht *routing.IpfsDHT, ctx context.Context, mhKey multihash.Multihash, prefixLen int) ([]ps.PeerInfo, error) {
 	var providers []ps.PeerInfo
-	for p := range FindPointersAsync(ctx, dht, mhKey, prefixLen) {
+	for p := range FindPointersAsync(dht, ctx, mhKey, prefixLen) {
 		providers = append(providers, p)
 	}
 	return providers, nil
@@ -108,7 +108,7 @@ func GetPointersFromPeer(node *core.IpfsNode, ctx context.Context, p peer.ID, ke
 	return dhtpb.PBPeersToPeerInfos(resp.GetProviderPeers()), nil
 }
 
-func addPointer(ctx context.Context, node *core.IpfsNode, k *cid.Cid, pi ps.PeerInfo) error {
+func addPointer(node *core.IpfsNode, ctx context.Context, k *cid.Cid, pi ps.PeerInfo) error {
 	dht := node.Routing.(*routing.IpfsDHT)
 	peers, err := dht.GetClosestPeers(ctx, k.KeyString())
 	if err != nil {

@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/OpenBazaar/openbazaar-go/ipfs"
+	"github.com/phoreproject/openbazaar-go/ipfs"
 	"github.com/ipfs/go-ipfs/repo/config"
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
 	_ "github.com/mutecomm/go-sqlcipher"

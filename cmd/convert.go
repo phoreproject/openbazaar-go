@@ -7,11 +7,11 @@ import (
 	"context"
 	"fmt"
 	"github.com/OpenBazaar/jsonpb"
-	"github.com/OpenBazaar/openbazaar-go/pb"
+	"github.com/phoreproject/openbazaar-go/pb"
 	"os"
 	"path"
 
-	"github.com/OpenBazaar/openbazaar-go/ipfs"
+	"github.com/phoreproject/openbazaar-go/ipfs"
 
 	ipfscore "github.com/ipfs/go-ipfs/core"
 	"io/ioutil"
@@ -19,11 +19,11 @@ import (
 
 	"bufio"
 	"errors"
-	"github.com/OpenBazaar/openbazaar-go/repo"
-	"github.com/OpenBazaar/openbazaar-go/repo/db"
+	"github.com/phoreproject/openbazaar-go/repo"
+	"github.com/phoreproject/openbazaar-go/repo/db"
 
-	"github.com/OpenBazaar/openbazaar-go/core"
-	"github.com/OpenBazaar/wallet-interface"
+	"github.com/phoreproject/openbazaar-go/core"
+	"github.com/phoreproject/wallet-interface"
 	"github.com/golang/protobuf/proto"
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
 	"golang.org/x/crypto/ssh/terminal"

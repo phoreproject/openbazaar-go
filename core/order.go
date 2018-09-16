@@ -13,7 +13,7 @@ import (
 
 	"github.com/OpenBazaar/jsonpb"
 	"github.com/phoreproject/wallet-interface"
-	hd "github.com/btcsuite/btcutil/hdkeychain"
+	hd "github.com/phoreproject/btcutil/hdkeychain"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	ipfspath "github.com/ipfs/go-ipfs/path"

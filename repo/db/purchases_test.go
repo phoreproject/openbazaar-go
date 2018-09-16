@@ -13,8 +13,8 @@ import (
 	"github.com/phoreproject/openbazaar-go/schema"
 	"github.com/phoreproject/openbazaar-go/test/factory"
 	"github.com/phoreproject/wallet-interface"
-	"github.com/btcsuite/btcd/chaincfg"
-	"github.com/btcsuite/btcutil"
+	"github.com/phoreproject/btcd/chaincfg"
+	"github.com/phoreproject/btcutil"
 	"github.com/golang/protobuf/ptypes"
 )
 

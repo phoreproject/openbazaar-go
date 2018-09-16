@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/OpenBazaar/openbazaar-go/schema"
+	"github.com/phoreproject/openbazaar-go/schema"
 )
 
 const repoRootFolder = "testdata/repo-root"

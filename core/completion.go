@@ -14,13 +14,13 @@ import (
 	"fmt"
 
 	"github.com/OpenBazaar/jsonpb"
+	"github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/ptypes"
+	"github.com/phoreproject/btcd/chaincfg/chainhash"
 	"github.com/phoreproject/openbazaar-go/ipfs"
 	"github.com/phoreproject/openbazaar-go/pb"
 	"github.com/phoreproject/openbazaar-go/repo"
 	"github.com/phoreproject/wallet-interface"
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
-	"github.com/golang/protobuf/proto"
-	"github.com/golang/protobuf/ptypes"
 )
 
 const (
@@ -58,7 +58,7 @@ type SavedRating struct {
 // CompleteOrder - complete the order
 func (n *OpenBazaarNode) CompleteOrder(orderRatings *OrderRatings, contract *pb.RicardianContract, records []*wallet.TransactionRecord) error {
 
-	orderId, err := n.CalcOrderID(contract.BuyerOrder)
+	orderID, err := n.CalcOrderID(contract.BuyerOrder)
 	if err != nil {
 		return err
 	}
@@ -259,7 +259,7 @@ func (n *OpenBazaarNode) CompleteOrder(orderRatings *OrderRatings, contract *pb.
 			contract.Signatures = append(contract.Signatures, sig)
 		}
 	}
-	err = n.Datastore.Purchases().Put(orderId, *contract, pb.OrderState_COMPLETED, true)
+	err = n.Datastore.Purchases().Put(orderID, *contract, pb.OrderState_COMPLETED, true)
 	if err != nil {
 		return err
 	}

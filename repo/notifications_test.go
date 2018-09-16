@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/OpenBazaar/openbazaar-go/repo"
+	"github.com/phoreproject/openbazaar-go/repo"
 )
 
 func TestDataIsUnmarshalable(t *testing.T) {

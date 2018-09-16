@@ -680,26 +680,6 @@ func (i *jsonAPIHandler) GETMnemonic(w http.ResponseWriter, r *http.Request) {
 }
 
 func (i *jsonAPIHandler) GETBalance(w http.ResponseWriter, r *http.Request) {
-	/*_, ok := i.node.Wallet.(*bitcoind.BitcoindWallet)
-	if ok {
-		select {
-		case <-i.node.Wallet.(*bitcoind.BitcoindWallet).InitChan():
-			break
-		default:
-			ErrorResponse(w, http.StatusServiceUnavailable, "ERROR_WALLET_UNINITIALIZED")
-			return
-		}
-	}
-	_, ok = i.node.Wallet.(*zcashd.ZcashdWallet)
-	if ok {
-		select {
-		case <-i.node.Wallet.(*zcashd.ZcashdWallet).InitChan():
-			break
-		default:
-			ErrorResponse(w, http.StatusServiceUnavailable, "ERROR_WALLET_UNINITIALIZED")
-			return
-		}
-	}*/
 	height, _ := i.node.Wallet.ChainTip()
 	confirmed, unconfirmed := i.node.Wallet.Balance()
 	SanitizedResponse(w, fmt.Sprintf(`{"confirmed": %d, "unconfirmed": %d, "height": %d}`, int(confirmed), int(unconfirmed), height))

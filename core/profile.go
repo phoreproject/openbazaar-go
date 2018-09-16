@@ -15,14 +15,10 @@ import (
 	"time"
 
 	"github.com/OpenBazaar/jsonpb"
-	"github.com/phoreproject/openbazaar-go/pb"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/imdario/mergo"
-	ipnspath "github.com/ipfs/go-ipfs/path"
 
-	"gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
-
-	"github.com/OpenBazaar/openbazaar-go/pb"
+	"github.com/phoreproject/openbazaar-go/pb"
 )
 
 const KeyCachePrefix = "/pubkey/"

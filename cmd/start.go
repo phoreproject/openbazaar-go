@@ -4,6 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/OpenBazaar/zcashd-wallet"
+	"github.com/phoreproject/openbazaar-go/bitcoin/resync"
+	"github.com/phoreproject/openbazaar-go/ipfs"
+	"github.com/phoreproject/openbazaar-go/net/service"
+	"github.com/phoreproject/openbazaar-go/repo/migrations"
+	"github.com/phoreproject/openbazaar-go/schema"
+	"github.com/phoreproject/spvwallet"
+
 	"gx/ipfs/QmRK2LxanhK2gZq6k6R7vk5ZoYZk8ULSSTB7FzDsMUX6CB/go-multiaddr-net"
 	ipfslogging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
@@ -17,26 +25,6 @@ import (
 	"strconv"
 
 	"crypto/rand"
-	//bstk "github.com/OpenBazaar/go-blockstackclient"
-	//"github.com/OpenBazaar/openbazaar-go/api"
-	//"github.com/OpenBazaar/openbazaar-go/bitcoin"
-	//lis "github.com/OpenBazaar/openbazaar-go/bitcoin/listeners"
-	//"github.com/OpenBazaar/openbazaar-go/bitcoin/resync"
-	//"github.com/OpenBazaar/openbazaar-go/core"
-	//"github.com/OpenBazaar/openbazaar-go/ipfs"
-	//obns "github.com/OpenBazaar/openbazaar-go/namesys"
-	//obnet "github.com/OpenBazaar/openbazaar-go/net"
-	//"github.com/OpenBazaar/openbazaar-go/net/service"
-	//"github.com/OpenBazaar/openbazaar-go/repo"
-	//"github.com/OpenBazaar/openbazaar-go/repo/db"
-	//"github.com/OpenBazaar/openbazaar-go/repo/migrations"
-	//"github.com/OpenBazaar/openbazaar-go/schema"
-	//sto "github.com/OpenBazaar/openbazaar-go/storage"
-	//"github.com/OpenBazaar/openbazaar-go/storage/dropbox"
-	//"github.com/OpenBazaar/openbazaar-go/storage/selfhosted"
-	//"github.com/OpenBazaar/spvwallet"
-	"github.com/btcsuite/btcd/chaincfg"
-	"github.com/btcsuite/btcutil/base58"
 	"github.com/cpacia/BitcoinCash-Wallet"
 	cashrates "github.com/cpacia/BitcoinCash-Wallet/exchangerates"
 	"github.com/fatih/color"
@@ -47,6 +35,10 @@ import (
 	"github.com/ipfs/go-ipfs/namesys"
 	namepb "github.com/ipfs/go-ipfs/namesys/pb"
 	ipath "github.com/ipfs/go-ipfs/path"
+	"github.com/phoreproject/btcd/chaincfg"
+	"github.com/phoreproject/btcutil/base58"
+	"github.com/phoreproject/openbazaar-go/core"
+	"github.com/phoreproject/openbazaar-go/repo"
 	exchange "github.com/phoreproject/spvwallet/exchangerates"
 	wi "github.com/phoreproject/wallet-interface"
 	"io/ioutil"
@@ -54,7 +46,6 @@ import (
 	"net/url"
 	"strings"
 
-	//"github.com/OpenBazaar/zcashd-wallet"
 	"github.com/ipfs/go-ipfs/repo/config"
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
 	"github.com/natefinch/lumberjack"
@@ -659,19 +650,19 @@ func (x *Start) Execute(args []string) error {
 			return err
 		}
 		resyncManager = resync.NewResyncManager(sqliteDB.Sales(), cryptoWallet)
-	case "bitcoind":
-		walletTypeStr = "bitcoind"
-		if walletCfg.Binary == "" {
-			return errors.New("The path to the bitcoind binary must be specified in the config file when using bitcoind")
-		}
-		usetor := false
-		if usingTor && !usingClearnet {
-			usetor = true
-		}
-		cryptoWallet, err = bitcoind.NewBitcoindWallet(mn, &params, repoPath, walletCfg.TrustedPeer, walletCfg.Binary, usetor, controlPort)
-		if err != nil {
-			return err
-		}
+		//case "bitcoind":
+		//	walletTypeStr = "bitcoind"
+		//	if walletCfg.Binary == "" {
+		//		return errors.New("The path to the bitcoind binary must be specified in the config file when using bitcoind")
+		//	}
+		//	usetor := false
+		//	if usingTor && !usingClearnet {
+		//		usetor = true
+		//	}
+		//	cryptoWallet, err = bitcoind.NewBitcoindWallet(mn, &params, repoPath, walletCfg.TrustedPeer, walletCfg.Binary, usetor, controlPort)
+		//	if err != nil {
+		//		return err
+		//	}
 	case "zcashd":
 		walletTypeStr = "zcashd"
 		if walletCfg.Binary == "" {

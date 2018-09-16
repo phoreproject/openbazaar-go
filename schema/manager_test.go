@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/OpenBazaar/openbazaar-go/ipfs"
+	"github.com/phoreproject/openbazaar-go/ipfs"
 	"github.com/tyler-smith/go-bip39"
 )
 

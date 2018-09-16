@@ -1,7 +1,7 @@
 package core
 
 import (
-	"github.com/OpenBazaar/openbazaar-go/net/retriever"
+	"github.com/phoreproject/openbazaar-go/net/retriever"
 )
 
 // StartMessageRetriever will collect the required options from the

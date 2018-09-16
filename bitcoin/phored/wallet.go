@@ -398,7 +398,7 @@ func (w *RPCWallet) ChainTip() (uint32, chainhash.Hash) {
 	return uint32(height), *ch
 }
 
-// AddWatchedScript adds a script to be watched
+// AddWatchedAddress adds a script to be watched
 func (w *RPCWallet) AddWatchedScript(script []byte) error {
 	select {
 	case <-w.initChan:

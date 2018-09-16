@@ -1,7 +1,12 @@
 language: go
 go:
+<<<<<<< HEAD
+  - 1.6.3
+  - 1.7
+=======
   - 1.7.x
   - 1.8.x
+>>>>>>> 159c03b9... IPFS rebase second pass
 sudo: false
 install:
   - go get -d -t -v ./...

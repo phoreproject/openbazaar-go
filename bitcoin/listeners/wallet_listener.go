@@ -1,8 +1,8 @@
 package bitcoin
 
 import (
-	"github.com/OpenBazaar/openbazaar-go/repo"
-	"github.com/OpenBazaar/wallet-interface"
+	"github.com/phoreproject/openbazaar-go/repo"
+	"github.com/phoreproject/wallet-interface"
 )
 
 type WalletListener struct {

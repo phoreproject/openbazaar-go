@@ -10,9 +10,9 @@ import (
 	"time"
 
 	"github.com/phoreproject/wallet-interface"
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
-	"github.com/btcsuite/btcutil"
-	hd "github.com/btcsuite/btcutil/hdkeychain"
+	"github.com/phoreproject/btcd/chaincfg/chainhash"
+	"github.com/phoreproject/btcutil"
+	hd "github.com/phoreproject/btcutil/hdkeychain"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"golang.org/x/net/context"
@@ -466,7 +466,7 @@ func (n *OpenBazaarNode) CloseDispute(orderID string, buyerPercentage, vendorPer
 	d.Timestamp = ts
 
 	// Add orderId
-	d.OrderId = orderId
+	d.OrderId = orderID
 
 	// Set self (moderator) as the party that made the resolution proposal
 	d.ProposedBy = n.IpfsNode.Identity.Pretty()

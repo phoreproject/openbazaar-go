@@ -9,13 +9,13 @@ import (
 	"os"
 	"path"
 
-	"github.com/btcsuite/btcd/btcec"
+	"github.com/phoreproject/btcd/btcec"
 	"github.com/golang/protobuf/proto"
 
 	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	crypto "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 
-	"github.com/OpenBazaar/openbazaar-go/pb"
+	"github.com/phoreproject/openbazaar-go/pb"
 )
 
 // ValidateRating - validates rating for API GET and Post/Update

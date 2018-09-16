@@ -348,7 +348,6 @@ func TestChatDB_MarkAsRead(t *testing.T) {
 	}
 }
 
-// https://github.com/OpenBazaar/openbazaar-go/issues/1041
 func TestChatDB_MarkAsRead_Issue1041(t *testing.T) {
 	var chdb, teardown, err = buildNewChatStore()
 	if err != nil {
