@@ -121,7 +121,7 @@ func startNotificationListener(wallet *RPCWallet) (*NotificationListener, error)
 					blockHeight = int32(block.Height)
 				}
 
-				hits, err := wallet.DB.Ingest(transaction, blockHeight)
+				hits, err := wallet.DB.Ingest(transaction, blockHeight, time.Unix(getTx.BlockTime, 0))
 				if err != nil {
 					log.Errorf("Error ingesting tx: %s\n", err.Error())
 					continue

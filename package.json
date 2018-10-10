@@ -1,13 +1,14 @@
 {
-  "name": "openbazaar-go",
   "author": "phore <admin@phore.io>",
-  "version": "v1.1.7",
-  "releaseCmd": "git commit -a -m \"gx publish $VERSION\"",
-  "language": "english",
-  "license": "",
   "bugs": {
     "url": "https://github.com/phoreproject/openbazaar-go"
   },
-  "gxVersion": "0.11.0"
+  "gxDependencies": [
+  ],
+  "gxVersion": "0.11.0",
+  "language": "english",
+  "license": "",
+  "name": "openbazaar-go",
+  "releaseCmd": "git commit -a -m \"gx publish $VERSION\"",
+  "version": "v1.1.7"
 }
-

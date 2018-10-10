@@ -183,7 +183,7 @@ func (w *RPCWallet) Start() {
 					continue
 				}
 
-				w.DB.Ingest(&transaction, int32(block.Height))
+				w.DB.Ingest(&transaction, int32(block.Height), time.Unix(block.Time, 0))
 			} else if strings.HasPrefix(err.Error(), "-26") {
 				// transaction is spending inputs already spent, so we should just remove it
 				w.DB.Txns().Delete(&hash)
@@ -252,6 +252,17 @@ func (w *RPCWallet) ScriptToAddress(script []byte) (btc.Address, error) {
 	}
 	if len(addrs) == 0 {
 		return nil, errors.New("unknown script")
+	}
+	return addrs[0], nil
+}
+
+func scriptToAddress(script []byte, params *chaincfg.Params) (btc.Address, error) {
+	_, addrs, _, err := txscript.ExtractPkScriptAddrs(script, params)
+	if err != nil {
+		return &btc.AddressPubKeyHash{}, err
+	}
+	if len(addrs) == 0 {
+		return &btc.AddressPubKeyHash{}, errors.New("unknown script")
 	}
 	return addrs[0], nil
 }
@@ -577,7 +588,7 @@ func (w *RPCWallet) GetFeePerByte(feeLevel wallet.FeeLevel) uint64 {
 func (w *RPCWallet) Broadcast(tx *wire.MsgTx) error {
 	<-w.initChan
 	// Our own tx; don't keep track of false positives
-	_, err := w.DB.Ingest(tx, 0)
+	_, err := w.DB.Ingest(tx, 0, time.Now())
 	if err != nil {
 		return err
 	}
@@ -650,7 +661,12 @@ func (w *RPCWallet) CreateMultisigSignature(ins []wallet.TransactionInput, outs 
 		tx.TxIn = append(tx.TxIn, input)
 	}
 	for _, out := range outs {
-		output := wire.NewTxOut(out.Value, out.ScriptPubKey)
+		scriptPubKey, err := w.AddressToScript(out.Address)
+		if err != nil {
+			return sigs, err
+		}
+
+		output := wire.NewTxOut(out.Value, scriptPubKey)
 		tx.TxOut = append(tx.TxOut, output)
 	}
 
@@ -692,7 +708,8 @@ func (w *RPCWallet) CreateMultisigSignature(ins []wallet.TransactionInput, outs 
 func (w *RPCWallet) EstimateFee(ins []wallet.TransactionInput, outs []wallet.TransactionOutput, feePerByte uint64) uint64 {
 	tx := new(wire.MsgTx)
 	for _, out := range outs {
-		output := wire.NewTxOut(out.Value, out.ScriptPubKey)
+		scriptPubKey, _ := w.AddressToScript(out.Address)
+		output := wire.NewTxOut(out.Value, scriptPubKey)
 		tx.TxOut = append(tx.TxOut, output)
 	}
 	estimatedSize := spvwallet.EstimateSerializeSize(len(ins), tx.TxOut, false, spvwallet.P2PKH)
@@ -772,6 +789,7 @@ func (w *RPCWallet) buildTx(amount int64, addr btc.Address, feeLevel wallet.FeeL
 
 	var additionalPrevScripts map[wire.OutPoint][]byte
 	var additionalKeysByAddress map[string]*btc.WIF
+	var inVals map[wire.OutPoint]int64
 
 	// Create input source
 	coinMap := w.gatherCoins()
@@ -779,19 +797,19 @@ func (w *RPCWallet) buildTx(amount int64, addr btc.Address, feeLevel wallet.FeeL
 	for k := range coinMap {
 		coins = append(coins, k)
 	}
-	inputSource := func(target btc.Amount) (total btc.Amount, inputs []*wire.TxIn, scripts [][]byte, err error) {
+	inputSource := func(target btc.Amount) (total btc.Amount, inputs []*wire.TxIn, amounts []btc.Amount, scripts [][]byte, err error) {
 		coinSelector := coinset.MaxValueAgeCoinSelector{MaxInputs: 10000, MinChangeAmount: btc.Amount(0)}
 		coins, err := coinSelector.CoinSelect(target, coins)
 		if err != nil {
-			return total, inputs, scripts, wallet.ErrorInsuffientFunds
+			return total, inputs, []btc.Amount{}, scripts, errors.New("insuffient funds")
 		}
 		additionalPrevScripts = make(map[wire.OutPoint][]byte)
+		inVals = make(map[wire.OutPoint]int64)
 		additionalKeysByAddress = make(map[string]*btc.WIF)
 		for _, c := range coins.Coins() {
 			total += c.Value()
 			outpoint := wire.NewOutPoint(c.Hash(), c.Index())
 			in := wire.NewTxIn(outpoint, []byte{}, [][]byte{})
-			in.Sequence = 0 // Opt-in RBF so we can bump fees
 			inputs = append(inputs, in)
 			additionalPrevScripts[*outpoint] = c.PkScript()
 			key := coinMap[c]
@@ -805,8 +823,11 @@ func (w *RPCWallet) buildTx(amount int64, addr btc.Address, feeLevel wallet.FeeL
 			}
 			wif, _ := btc.NewWIF(privKey, w.params, true)
 			additionalKeysByAddress[addr.EncodeAddress()] = wif
+			val := c.Value()
+			sat := val.ToUnit(btc.AmountSatoshi)
+			inVals[*outpoint] = int64(sat)
 		}
-		return total, inputs, scripts, nil
+		return total, inputs, []btc.Amount{}, scripts, nil
 	}
 
 	// Get the fee per kilobyte
@@ -937,7 +958,11 @@ func (w *RPCWallet) Multisign(ins []wallet.TransactionInput, outs []wallet.Trans
 		tx.TxIn = append(tx.TxIn, input)
 	}
 	for _, out := range outs {
-		output := wire.NewTxOut(out.Value, out.ScriptPubKey)
+		scriptPubKey, err := w.AddressToScript(out.Address)
+		if err != nil {
+			return nil, err
+		}
+		output := wire.NewTxOut(out.Value, scriptPubKey)
 		tx.TxOut = append(tx.TxOut, output)
 	}
 
@@ -1080,8 +1105,8 @@ func (w *RPCWallet) RetrieveTransactions() error {
 			if err != nil {
 				return err
 			}
-
-			w.DB.Ingest(&transaction, int32(block.Height))
+			
+			w.DB.Ingest(&transaction, int32(block.Height), time.Unix(block.Time, 0))
 
 			log.Debugf("ingested tx hash %s", transaction.TxHash().String())
 		}

@@ -4,14 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/OpenBazaar/zcashd-wallet"
-	"github.com/phoreproject/openbazaar-go/bitcoin/resync"
-	"github.com/phoreproject/openbazaar-go/ipfs"
-	"github.com/phoreproject/openbazaar-go/net/service"
-	"github.com/phoreproject/openbazaar-go/repo/migrations"
-	"github.com/phoreproject/openbazaar-go/schema"
-	"github.com/phoreproject/spvwallet"
-
 	"gx/ipfs/QmRK2LxanhK2gZq6k6R7vk5ZoYZk8ULSSTB7FzDsMUX6CB/go-multiaddr-net"
 	ipfslogging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
@@ -25,8 +17,9 @@ import (
 	"strconv"
 
 	"crypto/rand"
-	"github.com/cpacia/BitcoinCash-Wallet"
-	cashrates "github.com/cpacia/BitcoinCash-Wallet/exchangerates"
+	//lis "github.com/OpenBazaar/openbazaar-go/bitcoin/listeners"
+	//sto "github.com/OpenBazaar/openbazaar-go/storage"
+	bstk "github.com/anchaj/go-blockstackclient"
 	"github.com/fatih/color"
 	"github.com/ipfs/go-ipfs/commands"
 	ipfscore "github.com/ipfs/go-ipfs/core"
@@ -37,8 +30,21 @@ import (
 	ipath "github.com/ipfs/go-ipfs/path"
 	"github.com/phoreproject/btcd/chaincfg"
 	"github.com/phoreproject/btcutil/base58"
+	"github.com/phoreproject/openbazaar-go/api"
+	"github.com/phoreproject/openbazaar-go/bitcoin"
+	"github.com/phoreproject/openbazaar-go/bitcoin/resync"
 	"github.com/phoreproject/openbazaar-go/core"
+	"github.com/phoreproject/openbazaar-go/ipfs"
+	obns "github.com/phoreproject/openbazaar-go/namesys"
+	obnet "github.com/phoreproject/openbazaar-go/net"
+	"github.com/phoreproject/openbazaar-go/net/service"
 	"github.com/phoreproject/openbazaar-go/repo"
+	"github.com/phoreproject/openbazaar-go/repo/db"
+	"github.com/phoreproject/openbazaar-go/repo/migrations"
+	"github.com/phoreproject/openbazaar-go/schema"
+	"github.com/phoreproject/openbazaar-go/storage/dropbox"
+	"github.com/phoreproject/openbazaar-go/storage/selfhosted"
+	"github.com/phoreproject/spvwallet"
 	exchange "github.com/phoreproject/spvwallet/exchangerates"
 	wi "github.com/phoreproject/wallet-interface"
 	"io/ioutil"
@@ -532,14 +538,7 @@ func (x *Start) Execute(args []string) error {
 		log.Error("get config mnemonic:", err)
 		return err
 	}
-	var params chaincfg.Params
-	if x.Testnet {
-		params = chaincfg.TestNet3Params
-	} else if x.Regtest {
-		params = chaincfg.RegressionNetParams
-	} else {
-		params = chaincfg.MainNetParams
-	}
+	var params = chaincfg.MainNetParams
 	if x.Regtest && (strings.ToLower(walletCfg.Type) == "spvwallet" || strings.ToLower(walletCfg.Type) == "bitcoincash") && walletCfg.TrustedPeer == "" {
 		return errors.New("Trusted peer must be set if using regtest with the spvwallet")
 	}
@@ -609,75 +608,6 @@ func (x *Start) Execute(args []string) error {
 		if err != nil {
 			log.Error(err)
 			return err
-		}
-		resyncManager = resync.NewResyncManager(sqliteDB.Sales(), cryptoWallet)
-	case "bitcoincash":
-		walletTypeStr = "bitcoin cash spv"
-		var tp net.Addr
-		if walletCfg.TrustedPeer != "" {
-			tp, err = net.ResolveTCPAddr("tcp", walletCfg.TrustedPeer)
-			if err != nil {
-				log.Error(err)
-				return err
-			}
-		}
-		feeAPI, err := url.Parse(walletCfg.FeeAPI)
-		if err != nil {
-			log.Error(err)
-			return err
-		}
-		exchangeRates = cashrates.NewBitcoinCashPriceFetcher(torDialer)
-		spvwalletConfig := &bitcoincash.Config{
-			Mnemonic:             mn,
-			Params:               &params,
-			MaxFee:               uint64(walletCfg.MaxFee),
-			LowFee:               uint64(walletCfg.LowFeeDefault),
-			MediumFee:            uint64(walletCfg.MediumFeeDefault),
-			HighFee:              uint64(walletCfg.HighFeeDefault),
-			FeeAPI:               *feeAPI,
-			RepoPath:             repoPath,
-			CreationDate:         creationDate,
-			DB:                   sqliteDB,
-			UserAgent:            "OpenBazaar",
-			TrustedPeer:          tp,
-			Proxy:                torDialer,
-			Logger:               ml,
-			ExchangeRateProvider: exchangeRates,
-		}
-		cryptoWallet, err = bitcoincash.NewSPVWallet(spvwalletConfig)
-		if err != nil {
-			log.Error(err)
-			return err
-		}
-		resyncManager = resync.NewResyncManager(sqliteDB.Sales(), cryptoWallet)
-		//case "bitcoind":
-		//	walletTypeStr = "bitcoind"
-		//	if walletCfg.Binary == "" {
-		//		return errors.New("The path to the bitcoind binary must be specified in the config file when using bitcoind")
-		//	}
-		//	usetor := false
-		//	if usingTor && !usingClearnet {
-		//		usetor = true
-		//	}
-		//	cryptoWallet, err = bitcoind.NewBitcoindWallet(mn, &params, repoPath, walletCfg.TrustedPeer, walletCfg.Binary, usetor, controlPort)
-		//	if err != nil {
-		//		return err
-		//	}
-	case "zcashd":
-		walletTypeStr = "zcashd"
-		if walletCfg.Binary == "" {
-			return errors.New("The path to the zcashd binary must be specified in the config file when using zcashd")
-		}
-		usetor := false
-		if usingTor && !usingClearnet {
-			usetor = true
-		}
-		cryptoWallet, err = zcashd.NewZcashdWallet(mn, &params, repoPath, walletCfg.TrustedPeer, walletCfg.Binary, usetor, controlPort)
-		if err != nil {
-			return err
-		}
-		if !x.DisableExchangeRates {
-			exchangeRates = zcashd.NewZcashPriceFetcher(torDialer)
 		}
 		resyncManager = resync.NewResyncManager(sqliteDB.Sales(), cryptoWallet)
 	default:
