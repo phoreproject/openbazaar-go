@@ -11,10 +11,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/phoreproject/openbazaar-go/ipfs"
 	"github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/namesys"
 	ipfsPath "github.com/ipfs/go-ipfs/path"
+	"github.com/phoreproject/openbazaar-go/ipfs"
 )
 
 var (
