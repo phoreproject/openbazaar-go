@@ -38,6 +38,7 @@ type WalletConfig struct {
 	MediumFeeDefault int
 	LowFeeDefault    int
 	TrustedPeer      string
+	RPCLocation      string
 }
 
 type WalletsConfig struct {
@@ -279,6 +280,15 @@ func GetWalletConfig(cfgBytes []byte) (*WalletConfig, error) {
 	if !ok {
 		return nil, MalformedConfigError
 	}
+	rpcLocation, ok := wallet["RPCLocation"]
+	if !ok {
+		return nil, MalformedConfigError
+	}
+	rpcLocationStr, ok := rpcLocation.(string)
+	if !ok {
+		return nil, MalformedConfigError
+	}
+
 	wCfg := &WalletConfig{
 		Type:             walletTypeStr,
 		Binary:           binaryStr,
@@ -288,6 +298,7 @@ func GetWalletConfig(cfgBytes []byte) (*WalletConfig, error) {
 		MediumFeeDefault: int(mediumFloat),
 		LowFeeDefault:    int(lowFloat),
 		TrustedPeer:      trustedPeerStr,
+		RPCLocation:      rpcLocationStr,
 	}
 	return wCfg, nil
 }

@@ -17,7 +17,7 @@ import (
 	"github.com/tyler-smith/go-bip39"
 )
 
-const RepoVersion = "14"
+const RepoVersion = "15"
 
 var log = logging.MustGetLogger("repo")
 var ErrRepoExists = errors.New("IPFS configuration file exists. Reinitializing would overwrite your keys. Use -f to force overwrite.")
@@ -160,13 +160,14 @@ func addConfigExtensions(repoRoot string) error {
 	}
 	var (
 		w = schema.WalletConfig{
-			Type:             "spvwallet",
+			Type:             "phored",
 			MaxFee:           2000,
 			FeeAPI:           "https://btc.fees.openbazaar.org",
 			HighFeeDefault:   160,
 			MediumFeeDefault: 60,
 			LowFeeDefault:    20,
 			TrustedPeer:      "",
+			RPCLocation:      "rpc.phore.io",
 		}
 		ws = schema.WalletsConfig{
 			BTC: schema.CoinConfig{

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/phoreproject/openbazaar-go/bitcoin/phored"
 	"gx/ipfs/QmRK2LxanhK2gZq6k6R7vk5ZoYZk8ULSSTB7FzDsMUX6CB/go-multiaddr-net"
 	ipfslogging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
@@ -222,6 +223,8 @@ func (x *Start) Execute(args []string) error {
 				ct = wi.BitcoinCash
 			case "zcashd":
 				ct = wi.Zcash
+			case "phore":
+				ct = wi.Phore
 			}
 		}
 	}
@@ -357,17 +360,18 @@ func (x *Start) Execute(args []string) error {
 		log.Error("create onion key:", err)
 		return err
 	}
-	onionAddrString := "/onion/" + onionAddr + ":4003"
+	onionAddrString := "/onion/" + onionAddr + ":5003"
 	if x.Tor {
 		cfg.Addresses.Swarm = []string{}
 		cfg.Addresses.Swarm = append(cfg.Addresses.Swarm, onionAddrString)
 	} else if x.DualStack {
 		cfg.Addresses.Swarm = []string{}
 		cfg.Addresses.Swarm = append(cfg.Addresses.Swarm, onionAddrString)
-		cfg.Addresses.Swarm = append(cfg.Addresses.Swarm, "/ip4/0.0.0.0/tcp/4001")
-		cfg.Addresses.Swarm = append(cfg.Addresses.Swarm, "/ip6/::/tcp/4001")
-		cfg.Addresses.Swarm = append(cfg.Addresses.Swarm, "/ip6/::/tcp/9005/ws")
-		cfg.Addresses.Swarm = append(cfg.Addresses.Swarm, "/ip4/0.0.0.0/tcp/9005/ws")
+		cfg.Addresses.Swarm = append(cfg.Addresses.Swarm, "/ip4/0.0.0.0/tcp/5001")
+		cfg.Addresses.Swarm = append(cfg.Addresses.Swarm, "/ip6/::/tcp/5001")
+		cfg.Addresses.Swarm = append(cfg.Addresses.Swarm, "/ip6/::/tcp/10005/ws")
+		cfg.Addresses.Swarm = append(cfg.Addresses.Swarm, "/ip4/0.0.0.0/tcp/5005/ws")
+
 	}
 	// Iterate over our address and process them as needed
 	var onionTransport *oniontp.OnionTransport
@@ -573,6 +577,8 @@ func (x *Start) Execute(args []string) error {
 	var cryptoWallet wi.Wallet
 	var walletTypeStr string
 	switch strings.ToLower(walletCfg.Type) {
+	case "phored":
+		cryptoWallet = phored.NewRPCWallet(mn, &params, repoPath, sqliteDB, walletCfg.RPCLocation)
 	case "spvwallet":
 		walletTypeStr = "bitcoin spv"
 		var tp net.Addr
