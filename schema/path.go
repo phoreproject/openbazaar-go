@@ -39,9 +39,9 @@ func OpenbazaarPathTransform(basePath string, testModeEnabled bool) (path string
 }
 func directoryName(isTestnet bool) (directoryName string) {
 	if runtime.GOOS == "linux" {
-		directoryName = ".openbazaar2.0"
+		directoryName = ".phorebazaar"
 	} else {
-		directoryName = "OpenBazaar2.0"
+		directoryName = "PhoreBazaar"
 	}
 
 	if isTestnet {
