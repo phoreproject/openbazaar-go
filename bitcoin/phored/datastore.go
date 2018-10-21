@@ -24,6 +24,7 @@ type TxStore struct {
 	adrs           []btcutil.Address
 	watchedScripts [][]byte
 	txids          map[string]int32
+	txidsMutex     *sync.RWMutex
 	addrMutex      *sync.Mutex
 	cbMutex        *sync.Mutex
 
@@ -43,6 +44,7 @@ func NewTxStore(p *chaincfg.Params, db wallet.Datastore, keyManager *spvwallet.K
 		keyManager: keyManager,
 		addrMutex:  new(sync.Mutex),
 		cbMutex:    new(sync.Mutex),
+		txidsMutex: new(sync.RWMutex),
 		txids:      make(map[string]int32),
 		Datastore:  db,
 	}
@@ -181,12 +183,16 @@ func (ts *TxStore) PopulateAdrs() error {
 		}
 		ts.adrs = append(ts.adrs, addr)
 	}
+	ts.addrMutex.Unlock()
+
 	ts.watchedScripts, _ = ts.WatchedScripts().GetAll()
 	txns, _ := ts.Txns().GetAll(true)
+	ts.txidsMutex.Lock()
 	for _, t := range txns {
 		ts.txids[t.Txid] = t.Height
 	}
-	ts.addrMutex.Unlock()
+	ts.txidsMutex.Unlock()
+
 	return nil
 }
 
@@ -204,7 +210,9 @@ func (ts *TxStore) Ingest(tx *wire.MsgTx, height int32, timestamp time.Time) (ui
 	}
 
 	// Check to see if we've already processed this tx. If so, return.
+	ts.txidsMutex.RLock()
 	sh, ok := ts.txids[tx.TxHash().String()]
+	ts.txidsMutex.RUnlock()
 	if ok && (sh > 0 || (sh == 0 && height == 0)) {
 		return 1, nil
 	}
@@ -244,6 +252,8 @@ func (ts *TxStore) Ingest(tx *wire.MsgTx, height int32, timestamp time.Time) (ui
 	value := int64(0)
 	matchesWatchOnly := false
 	for i, txout := range tx.TxOut {
+		// Ignore the error here because the sender could have used and exotic script
+		// for his change and we don't want to fail in that case.
 		addr, _ := scriptToAddress(txout.PkScript, ts.params)
 		out := wallet.TransactionOutput{Address: addr, Value: txout.Value, Index: uint32(i)}
 		for _, script := range PKscripts {
@@ -348,6 +358,7 @@ func (ts *TxStore) Ingest(tx *wire.MsgTx, height int32, timestamp time.Time) (ui
 	// If hits is nonzero it's a relevant tx and we should store it
 	if hits > 0 || matchesWatchOnly {
 		ts.cbMutex.Lock()
+		ts.txidsMutex.Lock()
 		txn, err := ts.Txns().Get(tx.TxHash())
 		shouldCallback := false
 		if err != nil {
@@ -370,6 +381,7 @@ func (ts *TxStore) Ingest(tx *wire.MsgTx, height int32, timestamp time.Time) (ui
 			}
 		}
 		cb.BlockTime = timestamp
+		ts.txidsMutex.Unlock()
 		if shouldCallback {
 			// Callback on listeners
 			for _, listener := range ts.listeners {
