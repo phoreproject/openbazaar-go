@@ -68,8 +68,14 @@ func NewRPCWallet(mnemonic string, params *chaincfg.Params, repoPath string, DB 
 
 	seed := b39.NewSeed(mnemonic, "")
 
-	mPrivKey, _ := hd.NewMaster(seed, params)
-	mPubKey, _ := mPrivKey.Neuter()
+	mPrivKey, err := hd.NewMaster(seed, params)
+	if err != nil {
+		return nil
+	}
+	mPubKey, err := mPrivKey.Neuter()
+	if err != nil {
+		return nil
+	}
 
 	keyManager, _ := spvwallet.NewKeyManager(DB.Keys(), params, mPrivKey)
 
@@ -1131,7 +1137,7 @@ func (w *RPCWallet) RetrieveTransactions() error {
 			if err != nil {
 				return err
 			}
-			
+
 			w.DB.Ingest(&transaction, int32(block.Height), time.Unix(block.Time, 0))
 
 			log.Debugf("ingested tx hash %s", transaction.TxHash().String())
