@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/phoreproject/openbazaar-go/bitcoin/phored"
 	"gx/ipfs/QmRK2LxanhK2gZq6k6R7vk5ZoYZk8ULSSTB7FzDsMUX6CB/go-multiaddr-net"
 	ipfslogging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
@@ -17,7 +16,14 @@ import (
 	"sort"
 	"strconv"
 
+	"github.com/phoreproject/openbazaar-go/bitcoin/phored"
+
 	"crypto/rand"
+	"io/ioutil"
+	"net/http"
+	"net/url"
+	"strings"
+
 	bstk "github.com/anchaj/go-blockstackclient"
 	"github.com/fatih/color"
 	"github.com/ipfs/go-ipfs/commands"
@@ -48,17 +54,7 @@ import (
 	"github.com/phoreproject/spvwallet"
 	exchange "github.com/phoreproject/spvwallet/exchangerates"
 	wi "github.com/phoreproject/wallet-interface"
-	"io/ioutil"
-	"net/http"
-	"net/url"
-	"strings"
 
-	"github.com/ipfs/go-ipfs/repo/config"
-	"github.com/ipfs/go-ipfs/repo/fsrepo"
-	"github.com/natefinch/lumberjack"
-	"github.com/op/go-logging"
-	"golang.org/x/crypto/ssh/terminal"
-	"golang.org/x/net/proxy"
 	"gx/ipfs/QmNSWW3Sb4eju4o2djPQ1L1c2Zj9XN9sMYJL8r1cbxdc6b/go-addr-util"
 	p2pbhost "gx/ipfs/QmNh1kGFFdsPu79KNSaL4NUKUPb4Eiz4KHdMtFY6664RDp/go-libp2p/p2p/host/basic"
 	p2phost "gx/ipfs/QmNmJZL7FQySMtE2BQuLMuZg2EB2CLEunJJUSVSc9YnnbV/go-libp2p-host"
@@ -77,6 +73,13 @@ import (
 	"io"
 	"syscall"
 	"time"
+
+	"github.com/ipfs/go-ipfs/repo/config"
+	"github.com/ipfs/go-ipfs/repo/fsrepo"
+	"github.com/natefinch/lumberjack"
+	"github.com/op/go-logging"
+	"golang.org/x/crypto/ssh/terminal"
+	"golang.org/x/net/proxy"
 )
 
 var stdoutLogFormat = logging.MustStringFormatter(
@@ -99,7 +102,7 @@ type Start struct {
 	NoLogFiles           bool     `short:"f" long:"nologfiles" description:"save logs on disk"`
 	AllowIP              []string `short:"a" long:"allowip" description:"only allow API connections from these IPs"`
 	STUN                 bool     `short:"s" long:"stun" description:"use stun on µTP IPv4"`
-	DataDir              string   `short:"d" long:"datadir" description:"specify the data directory to be used"`
+	DataDir              string   `short:"d" longd:"datadir" description:"specify the data directory to be used"`
 	AuthCookie           string   `short:"c" long:"authcookie" description:"turn on API authentication and use this specific cookie"`
 	UserAgent            string   `short:"u" long:"useragent" description:"add a custom user-agent field"`
 	Verbose              bool     `short:"v" long:"verbose" description:"print openbazaar logs to stdout"`
@@ -223,7 +226,7 @@ func (x *Start) Execute(args []string) error {
 				ct = wi.BitcoinCash
 			case "zcashd":
 				ct = wi.Zcash
-			case "phore":
+			case "phored":
 				ct = wi.Phore
 			}
 		}
