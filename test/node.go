@@ -57,8 +57,10 @@ func NewNode() (*core.OpenBazaarNode, error) {
 		return nil, err
 	}
 
-	wallet := phored.NewRPCWallet(mnemonic, &chaincfg.MainNetParams, repository.Path, repository.DB, "rpc.phore.io")
-
+	wallet, err := phored.NewRPCWallet(mnemonic, &chaincfg.MainNetParams, repository.Path, repository.DB, "rpc.phore.io")
+	if err != nil {
+		return nil, err
+	}
 	// Put it all together in an OpenBazaarNode
 	node := &core.OpenBazaarNode{
 		RepoPath:   GetRepoPath(),
