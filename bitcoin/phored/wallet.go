@@ -52,7 +52,7 @@ type RPCWallet struct {
 }
 
 // NewRPCWallet creates a new wallet given
-func NewRPCWallet(mnemonic string, params *chaincfg.Params, repoPath string, DB wallet.Datastore, host string) *RPCWallet {
+func NewRPCWallet(mnemonic string, params *chaincfg.Params, repoPath string, DB wallet.Datastore, host string) (*RPCWallet, error) {
 	if mnemonic == "" {
 		ent, _ := b39.NewEntropy(128)
 		mnemonic, _ = b39.NewMnemonic(ent)
@@ -66,15 +66,18 @@ func NewRPCWallet(mnemonic string, params *chaincfg.Params, repoPath string, DB 
 		DisableConnectOnNew:  false,
 	}
 
-	seed := b39.NewSeed(mnemonic, "")
+	seed, err := b39.NewSeedWithErrorChecking(mnemonic, "")
+	if err != nil {
+		return nil, err
+	}
 
 	mPrivKey, err := hd.NewMaster(seed, params)
 	if err != nil {
-		return nil
+		return nil, err
 	}
 	mPubKey, err := mPrivKey.Neuter()
 	if err != nil {
-		return nil
+		return nil, err
 	}
 
 	keyManager, _ := spvwallet.NewKeyManager(DB.Keys(), params, mPrivKey)
@@ -93,7 +96,7 @@ func NewRPCWallet(mnemonic string, params *chaincfg.Params, repoPath string, DB 
 		rpcLock:          new(sync.Mutex),
 		initChan:         make(chan struct{}),
 	}
-	return &w
+	return &w, nil
 }
 
 // Start sets up the rpc wallet
@@ -249,16 +252,19 @@ func (w *RPCWallet) Mnemonic() string {
 
 // CurrentAddress returns an unused address
 func (w *RPCWallet) CurrentAddress(purpose wallet.KeyPurpose) btc.Address {
-	<-w.initChan
-	addr, _ := w.rpcClient.GetAccountAddress(Account)
-	return addr
+	key, _ := w.keyManager.GetCurrentKey(purpose)
+	addr, _ := key.Address(w.params)
+	return btc.Address(addr)
 }
 
 // NewAddress creates a new address
 func (w *RPCWallet) NewAddress(purpose wallet.KeyPurpose) btc.Address {
-	<-w.initChan
-	addr, _ := w.rpcClient.GetNewAddress(Account)
-	return addr
+	i, _ := w.DB.Keys().GetUnused(purpose)
+	key, _ := w.keyManager.GenerateChildKey(purpose, uint32(i[1]))
+	addr, _ := key.Address(w.params)
+	w.DB.Keys().MarkKeyAsUsed(addr.ScriptAddress())
+	w.DB.PopulateAdrs()
+	return btc.Address(addr)
 }
 
 // DecodeAddress decodes an address string to an address using the wallet's chain parameters

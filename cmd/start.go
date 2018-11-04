@@ -581,7 +581,11 @@ func (x *Start) Execute(args []string) error {
 	var walletTypeStr string
 	switch strings.ToLower(walletCfg.Type) {
 	case "phored":
-		cryptoWallet = phored.NewRPCWallet(mn, &params, repoPath, sqliteDB, walletCfg.RPCLocation)
+		cryptoWallet, err = phored.NewRPCWallet(mn, &params, repoPath, sqliteDB, walletCfg.RPCLocation)
+		if err != nil {
+			log.Error(err)
+			return err
+		}
 	case "spvwallet":
 		walletTypeStr = "bitcoin spv"
 		var tp net.Addr
