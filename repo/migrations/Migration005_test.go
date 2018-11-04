@@ -1,9 +1,9 @@
 package migrations
 
 import (
+	"errors"
 	"io/ioutil"
 	"os"
-	"strings"
 	"testing"
 )
 

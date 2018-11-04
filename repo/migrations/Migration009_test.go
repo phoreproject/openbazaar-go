@@ -8,7 +8,7 @@ import (
 	"path"
 	"testing"
 
-	"github.com/phoreproject/jsonpb"
+	"github.com/OpenBazaar/jsonpb"
 	"github.com/phoreproject/openbazaar-go/repo/migrations"
 	"github.com/phoreproject/openbazaar-go/test/factory"
 )

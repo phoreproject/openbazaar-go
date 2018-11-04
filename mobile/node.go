@@ -5,22 +5,32 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/ipfs/go-ipfs/core/corehttp"
 	"github.com/phoreproject/openbazaar-go/api"
 	obns "github.com/phoreproject/openbazaar-go/namesys"
 	"github.com/phoreproject/openbazaar-go/repo"
-	"github.com/ipfs/go-ipfs/core/corehttp"
-	manet "gx/ipfs/QmRK2LxanhK2gZq6k6R7vk5ZoYZk8ULSSTB7FzDsMUX6CB/go-multiaddr-net"
+	"gx/ipfs/QmRK2LxanhK2gZq6k6R7vk5ZoYZk8ULSSTB7FzDsMUX6CB/go-multiaddr-net"
 	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
 	ds "gx/ipfs/QmXRKBQA4wXP7xWbFiZsR1GP4HV6wMDQ1aWFxZZ4uBcPX9/go-datastore"
 
 	lis "github.com/phoreproject/openbazaar-go/bitcoin/listeners"
 	rep "github.com/phoreproject/openbazaar-go/net/repointer"
 	ret "github.com/phoreproject/openbazaar-go/net/retriever"
-	"github.com/OpenBazaar/openbazaar-go/net/service"
+	"github.com/phoreproject/openbazaar-go/net/service"
 
 	"errors"
 	"fmt"
-	bstk "github.com/OpenBazaar/go-blockstackclient"
+	bstk "github.com/anchaj/go-blockstackclient"
+	"github.com/ipfs/go-ipfs/commands"
+	ipfscore "github.com/ipfs/go-ipfs/core"
+	bitswap "github.com/ipfs/go-ipfs/exchange/bitswap/network"
+	"github.com/ipfs/go-ipfs/namesys"
+	namepb "github.com/ipfs/go-ipfs/namesys/pb"
+	ipath "github.com/ipfs/go-ipfs/path"
+	ipfsconfig "github.com/ipfs/go-ipfs/repo/config"
+	"github.com/ipfs/go-ipfs/repo/fsrepo"
+	"github.com/op/go-logging"
+	"github.com/phoreproject/btcd/chaincfg"
 	"github.com/phoreproject/openbazaar-go/bitcoin"
 	"github.com/phoreproject/openbazaar-go/core"
 	"github.com/phoreproject/openbazaar-go/ipfs"
@@ -31,24 +41,14 @@ import (
 	"github.com/phoreproject/spvwallet"
 	"github.com/phoreproject/spvwallet/exchangerates"
 	wi "github.com/phoreproject/wallet-interface"
-	"github.com/phoreproject/btcd/chaincfg"
-	"github.com/ipfs/go-ipfs/commands"
-	ipfscore "github.com/ipfs/go-ipfs/core"
-	bitswap "github.com/ipfs/go-ipfs/exchange/bitswap/network"
-	"github.com/ipfs/go-ipfs/namesys"
-	namepb "github.com/ipfs/go-ipfs/namesys/pb"
-	ipath "github.com/ipfs/go-ipfs/path"
-	ipfsconfig "github.com/ipfs/go-ipfs/repo/config"
-	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
-	"github.com/op/go-logging"
 	p2phost "gx/ipfs/QmNmJZL7FQySMtE2BQuLMuZg2EB2CLEunJJUSVSc9YnnbV/go-libp2p-host"
-	dht "gx/ipfs/QmRaVcGchmC1stHHK7YhcgEuTk5k1JiGS568pfYWMgT91H/go-libp2p-kad-dht"
+	"gx/ipfs/QmRaVcGchmC1stHHK7YhcgEuTk5k1JiGS568pfYWMgT91H/go-libp2p-kad-dht"
 	dhtutil "gx/ipfs/QmRaVcGchmC1stHHK7YhcgEuTk5k1JiGS568pfYWMgT91H/go-libp2p-kad-dht/util"
-	routing "gx/ipfs/QmTiWLZ6Fo5j4KcTVutZJ5KWRRJrbxzmxA4td8NfEdrPh7/go-libp2p-routing"
+	"gx/ipfs/QmTiWLZ6Fo5j4KcTVutZJ5KWRRJrbxzmxA4td8NfEdrPh7/go-libp2p-routing"
 	"gx/ipfs/QmTmqJGRQfuH8eKWD1FjThwPRipt1QhqJQNZ8MpzmfAAxo/go-ipfs-ds-help"
 	recpb "gx/ipfs/QmUpttFinNDmNPgFwKN8sZK6BUtBmA68Y4KdSBDXa8t9sJ/go-libp2p-record/pb"
-	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
-	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
+	"gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
+	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -172,12 +172,7 @@ func NewNode(config NodeConfig) (*Node, error) {
 	if err != nil {
 		return nil, err
 	}
-	var params chaincfg.Params
-	if config.Testnet {
-		params = chaincfg.TestNet3Params
-	} else {
-		params = chaincfg.MainNetParams
-	}
+	params := chaincfg.MainNetParams
 
 	var wallet wi.Wallet
 	var tp net.Addr
