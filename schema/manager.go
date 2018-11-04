@@ -11,10 +11,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/phoreproject/openbazaar-go/ipfs"
 	"github.com/ipfs/go-ipfs/repo/config"
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
 	_ "github.com/mutecomm/go-sqlcipher"
+	"github.com/phoreproject/openbazaar-go/ipfs"
 	"github.com/tyler-smith/go-bip39"
 )
 
@@ -473,13 +473,13 @@ func MustDefaultConfig() *config.Config {
 		// NOTE: two swarm listen addrs, one TCP, one UTP.
 		Addresses: config.Addresses{
 			Swarm: []string{
-				"/ip4/0.0.0.0/tcp/4001",
-				"/ip6/::/tcp/4001",
-				"/ip4/0.0.0.0/tcp/9005/ws",
-				"/ip6/::/tcp/9005/ws",
+				"/ip4/0.0.0.0/tcp/5001",
+				"/ip6/::/tcp/5001",
+				"/ip4/0.0.0.0/tcp/10005/ws",
+				"/ip6/::/tcp/10005/ws",
 			},
 			API:     "",
-			Gateway: "/ip4/127.0.0.1/tcp/4002",
+			Gateway: "/ip4/127.0.0.1/tcp/5002",
 		},
 
 		Datastore: config.Datastore{
