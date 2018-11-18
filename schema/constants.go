@@ -41,6 +41,7 @@ const (
 	// Configuration defaults
 	DataPushNodeOne = "QmY8puEnVx66uEet64gAf4VZRo7oUyMCwG6KdB9KM92EGQ"
 	DataPushNodeTwo = "QmPPg2qeF3n2KvTRXRZLaTwHCw8JxzF4uZK93RfMoDvf2o"
+	DataPushNodeThree = "QmPPegaeM4rXfQDF3uu784d93pLEzV8A4zXU7akEgYnTFd"
 
 	BootstrapNodeTestnet_BrooklynFlea     = "/ip4/165.227.117.91/tcp/4001/ipfs/Qmaa6De5QYNqShzPb9SGSo8vLmoUte8mnWgzn4GYwzuUYA"
 	BootstrapNodeTestnet_Shipshewana      = "/ip4/46.101.221.165/tcp/4001/ipfs/QmVAQYg7ygAWTWegs8HSV2kdW1MqW8WMrmpqKG1PQtkgTC"
@@ -58,7 +59,7 @@ var (
 )
 
 var (
-	DataPushNodes = []string{DataPushNodeOne, DataPushNodeTwo}
+	DataPushNodes = []string{DataPushNodeOne, DataPushNodeTwo, DataPushNodeThree}
 
 	BootstrapAddressesDefault = []string{
 		BootstrapNodeDefault_LeMarcheSerpette,
