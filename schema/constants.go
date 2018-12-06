@@ -43,12 +43,10 @@ const (
 	DataPushNodeTwo = "QmPPg2qeF3n2KvTRXRZLaTwHCw8JxzF4uZK93RfMoDvf2o"
 	DataPushNodeThree = "QmPPegaeM4rXfQDF3uu784d93pLEzV8A4zXU7akEgYnTFd"
 
-	BootstrapNodeTestnet_BrooklynFlea     = "/ip4/165.227.117.91/tcp/4001/ipfs/Qmaa6De5QYNqShzPb9SGSo8vLmoUte8mnWgzn4GYwzuUYA"
-	BootstrapNodeTestnet_Shipshewana      = "/ip4/46.101.221.165/tcp/4001/ipfs/QmVAQYg7ygAWTWegs8HSV2kdW1MqW8WMrmpqKG1PQtkgTC"
-	BootstrapNodeDefault_LeMarcheSerpette = "/ip4/107.170.133.32/tcp/4001/ipfs/QmUZRGLhcKXF1JyuaHgKm23LvqcoMYwtb9jmh8CkP4og3K"
-	BootstrapNodeDefault_BrixtonVillage   = "/ip4/139.59.174.197/tcp/4001/ipfs/QmZfTbnpvPwxCjpCG3CXJ7pfexgkBZ2kgChAiRJrTK1HsM"
-	BootstrapNodeDefault_Johari           = "/ip4/139.59.6.222/tcp/4001/ipfs/QmRDcEDK9gSViAevCHiE6ghkaBCU7rTuQj4BDpmCzRvRYg"
-	BootstrapNodeDefault_DuoSearch        = "/ip4/46.101.198.170/tcp/4001/ipfs/QmePWxsFT9wY3QuukgVDB7XZpqdKhrqJTHTXU7ECLDWJqX"
+	BootstrapNodeDefault_LeMarcheSerpette = "/ip4/159.203.115.78/tcp/5001/ipfs/QmPJuP4Myo8pGL1k56b85Q4rpaoSnmn5L3wLjYHTzbBrk1"
+	BootstrapNodeDefault_BrixtonVillage   = "/ip4/104.131.19.44/tcp/5001/ipfs/QmRvbZttqh6CPFiMKWa1jPfRR9JxagYRv4wsvMAG4ADUTj"
+	BootstrapNodeDefault_Johari           = "/ip4/45.32.171.119/tcp/5001/ipfs/QmbkmTrfSjniyMUfYt9tVUcfZC8yeshVFYsnJ4kuzveYWc"
+	BootstrapNodeDefault_DuoSearch        = "/ip4/54.227.172.110/tcp/5001/ipfs/QmWbi8z4uPkEdrWHtgxCkQGE5vxJnrStXAeEQnupmQnKRh"
 	// End Configuration defaults
 )
 
@@ -67,8 +65,5 @@ var (
 		BootstrapNodeDefault_Johari,
 		BootstrapNodeDefault_DuoSearch,
 	}
-	BootstrapAddressesTestnet = []string{
-		BootstrapNodeTestnet_BrooklynFlea,
-		BootstrapNodeTestnet_Shipshewana,
-	}
+	BootstrapAddressesTestnet = []string{}
 )
