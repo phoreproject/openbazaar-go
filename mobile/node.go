@@ -76,7 +76,7 @@ func NewNode(config NodeConfig) (*Node, error) {
 	logger = logging.NewBackendFormatter(backendStdout, stdoutLogFormat)
 	logging.SetBackend(logger)
 
-	sqliteDB, err := initializeRepo(config.RepoPath, "", "", true, time.Now())
+	sqliteDB, err := initializeRepo(config.RepoPath, "", "", true, time.Now(), wi.Phore)
 	if err != nil && err != repo.ErrRepoExists {
 		return nil, err
 	}
@@ -397,9 +397,9 @@ func (n *Node) Stop() error {
 	return nil
 }
 
-func initializeRepo(dataDir, password, mnemonic string, testnet bool, creationDate time.Time) (*db.SQLiteDatastore, error) {
+func initializeRepo(dataDir, password, mnemonic string, testnet bool, creationDate time.Time, coinType wi.CoinType) (*db.SQLiteDatastore, error) {
 	// Database
-	sqliteDB, err := db.Create(dataDir, password, testnet)
+	sqliteDB, err := db.Create(dataDir, password, testnet, coinType)
 	if err != nil {
 		return sqliteDB, err
 	}
