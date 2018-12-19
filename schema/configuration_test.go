@@ -241,19 +241,19 @@ func configFixture() []byte {
   "Addresses": {
     "API": "",
     "Announce": null,
-    "Gateway": "/ip4/127.0.0.1/tcp/4002",
+    "Gateway": "/ip4/127.0.0.1/tcp/5002",
     "NoAnnounce": null,
     "Swarm": [
-      "/ip4/0.0.0.0/tcp/4001",
-      "/ip4/0.0.0.0/udp/4001/utp",
-      "/ip6/::/tcp/4001",
-      "/ip6/::/udp/4001/utp"
+      "/ip4/0.0.0.0/tcp/5001",
+      "/ip4/0.0.0.0/udp/5001/utp",
+      "/ip6/::/tcp/5001",
+      "/ip6/::/udp/5001/utp"
     ]
   },
   "Bootstrap": [
-    "/ip4/107.170.133.32/tcp/4001/ipfs/QmboEn7ycZqb8sXH6wJunWE6d3mdT9iVD7XWDmCcKE9jZ5",
-    "/ip4/139.59.174.197/tcp/4001/ipfs/QmZbLxbrPfGKjhFPwv9g7PkT5jL5DzQ8mF3iioByWMAprj",
-    "/ip4/139.59.6.222/tcp/4001/ipfs/QmPZkv392E7VxumGSugQDEpfk6bHxfv271HTdVvdUu5Sod"
+    "/ip4/107.170.133.32/tcp/5001/ipfs/QmboEn7ycZqb8sXH6wJunWE6d3mdT9iVD7XWDmCcKE9jZ5",
+    "/ip4/139.59.174.197/tcp/5001/ipfs/QmZbLxbrPfGKjhFPwv9g7PkT5jL5DzQ8mF3iioByWMAprj",
+    "/ip4/139.59.6.222/tcp/5001/ipfs/QmPZkv392E7VxumGSugQDEpfk6bHxfv271HTdVvdUu5Sod"
   ],
   "DataSharing": {
     "AcceptStoreRequests": false,

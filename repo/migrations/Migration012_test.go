@@ -613,7 +613,7 @@ var testMigraion012_listingFixtureHashes = map[string]string{
 var testMigration012_configFixture = `{
     "Addresses": {
         "Swarm": [
-        "/ip4/127.0.0.1/tcp/4001"
+        "/ip4/127.0.0.1/tcp/5001"
         ]
     },
     "Datastore": {

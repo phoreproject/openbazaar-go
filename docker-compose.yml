@@ -9,9 +9,9 @@ services:
       - obdata_dev:/var/lib/openbazaar
       - .:/go/src/github.com/phoreproject/openbazaar-go
     ports:
-      - "4001:4001"
-      - "4002:4002"
-      - "9005:9005"
+      - "5001:5001"
+      - "5002:5002"
+      - "10005:10005"
     security_opt:
       - seccomp:unconfined #req: delve for golang
   server:
