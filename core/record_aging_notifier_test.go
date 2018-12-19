@@ -3,6 +3,8 @@ package core
 import (
 	"database/sql"
 	"encoding/json"
+	"github.com/op/go-logging"
+	"github.com/phoreproject/wallet-interface"
 	"sync"
 	"testing"
 	"time"
@@ -195,7 +197,7 @@ func TestPerformTaskCreatesModeratorDisputeExpiryNotifications(t *testing.T) {
 		}
 	}()
 
-	datastore := db.NewSQLiteDatastore(database, new(sync.Mutex))
+	datastore := db.NewSQLiteDatastore(database, new(sync.Mutex), wallet.Phore)
 	worker := &recordAgingNotifier{
 		datastore: datastore,
 		broadcast: broadcastChannel,
@@ -506,7 +508,7 @@ func TestPerformTaskCreatesBuyerDisputeTimeoutNotifications(t *testing.T) {
 		}
 	}()
 
-	datastore := db.NewSQLiteDatastore(database, new(sync.Mutex))
+	datastore := db.NewSQLiteDatastore(database, new(sync.Mutex), wallet.Phore)
 	worker := &recordAgingNotifier{
 		datastore: datastore,
 		broadcast: broadcastChannel,
@@ -814,7 +816,7 @@ func TestPerformTaskCreatesPurchaseExpiryNotifications(t *testing.T) {
 		}
 	}()
 
-	datastore := db.NewSQLiteDatastore(database, new(sync.Mutex))
+	datastore := db.NewSQLiteDatastore(database, new(sync.Mutex), wallet.Phore)
 	worker := &recordAgingNotifier{
 		datastore: datastore,
 		broadcast: broadcastChannel,
@@ -1059,7 +1061,7 @@ func TestPerformTaskCreatesVendorDisputeTimeoutNotifications(t *testing.T) {
 		}
 	}()
 
-	datastore := db.NewSQLiteDatastore(database, new(sync.Mutex))
+	datastore := db.NewSQLiteDatastore(database, new(sync.Mutex), wallet.Phore)
 	worker := &recordAgingNotifier{
 		datastore: datastore,
 		broadcast: broadcastChannel,
