@@ -20,7 +20,7 @@ import (
 
 	"errors"
 	"fmt"
-	bstk "github.com/anchaj/go-blockstackclient"
+	bstk "github.com/Openbazaar/go-blockstackclient"
 	"github.com/ipfs/go-ipfs/commands"
 	ipfscore "github.com/ipfs/go-ipfs/core"
 	bitswap "github.com/ipfs/go-ipfs/exchange/bitswap/network"

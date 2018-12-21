@@ -24,7 +24,7 @@ import (
 	"net/url"
 	"strings"
 
-	bstk "github.com/anchaj/go-blockstackclient"
+	bstk "github.com/OpenBazaar/go-blockstackclient"
 	"github.com/fatih/color"
 	"github.com/ipfs/go-ipfs/commands"
 	ipfscore "github.com/ipfs/go-ipfs/core"
