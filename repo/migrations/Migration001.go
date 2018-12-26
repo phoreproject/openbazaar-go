@@ -8,7 +8,6 @@ import (
 	"path"
 )
 
-// Migration001 variable is used in one of several repo version migrations
 type Migration001 struct{}
 
 func (Migration001) Up(repoPath string, dbPassword string, testnet bool) error {
@@ -86,7 +85,7 @@ func (Migration001) Up(repoPath string, dbPassword string, testnet bool) error {
 	if err != nil {
 		return err
 	}
-	_, err = f1.Write([]byte("1"))
+	_, err = f1.Write([]byte("2"))
 	if err != nil {
 		return err
 	}
@@ -167,7 +166,7 @@ func (Migration001) Down(repoPath string, dbPassword string, testnet bool) error
 	if err != nil {
 		return err
 	}
-	_, err = f1.Write([]byte("0"))
+	_, err = f1.Write([]byte("1"))
 	if err != nil {
 		return err
 	}
