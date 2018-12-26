@@ -373,7 +373,7 @@ func (x *Start) Execute(args []string) error {
 		cfg.Addresses.Swarm = append(cfg.Addresses.Swarm, "/ip4/0.0.0.0/tcp/5001")
 		cfg.Addresses.Swarm = append(cfg.Addresses.Swarm, "/ip6/::/tcp/5001")
 		cfg.Addresses.Swarm = append(cfg.Addresses.Swarm, "/ip6/::/tcp/10005/ws")
-		cfg.Addresses.Swarm = append(cfg.Addresses.Swarm, "/ip4/0.0.0.0/tcp/5005/ws")
+		cfg.Addresses.Swarm = append(cfg.Addresses.Swarm, "/ip4/0.0.0.0/tcp/10005/ws")
 
 	}
 	// Iterate over our address and process them as needed
