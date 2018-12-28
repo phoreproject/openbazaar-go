@@ -216,22 +216,25 @@ func GetWalletConfig(cfgBytes []byte) (*WalletConfig, error) {
 	if !ok {
 		return nil, MalformedConfigError
 	}
+
+	var feeAPIstr string
 	feeAPI, ok := wallet["FeeAPI"]
-	if !ok {
-		return nil, MalformedConfigError
+	if ok {
+		feeAPIstr, ok = feeAPI.(string)
+		if !ok {
+			return nil, MalformedConfigError
+		}
 	}
-	feeAPIstr, ok := feeAPI.(string)
-	if !ok {
-		return nil, MalformedConfigError
-	}
+
+	var trustedPeerStr string
 	trustedPeer, ok := wallet["TrustedPeer"]
-	if !ok {
-		return nil, MalformedConfigError
+	if ok {
+		trustedPeerStr, ok = trustedPeer.(string)
+		if !ok {
+			return nil, MalformedConfigError
+		}
 	}
-	trustedPeerStr, ok := trustedPeer.(string)
-	if !ok {
-		return nil, MalformedConfigError
-	}
+
 	low, ok := wallet["LowFeeDefault"]
 	if !ok {
 		return nil, MalformedConfigError
@@ -272,14 +275,16 @@ func GetWalletConfig(cfgBytes []byte) (*WalletConfig, error) {
 	if !ok {
 		return nil, MalformedConfigError
 	}
+
+	var binaryStr string
 	binary, ok := wallet["Binary"]
-	if !ok {
-		return nil, MalformedConfigError
+	if ok {
+		binaryStr, ok = binary.(string)
+		if !ok {
+			return nil, MalformedConfigError
+		}
 	}
-	binaryStr, ok := binary.(string)
-	if !ok {
-		return nil, MalformedConfigError
-	}
+
 	rpcLocation, ok := wallet["RPCLocation"]
 	if !ok {
 		return nil, MalformedConfigError
