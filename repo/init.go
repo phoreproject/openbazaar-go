@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/phoreproject/openbazaar-go/repo/migrations"
 	"os"
 	"path"
 	"time"
@@ -90,6 +91,18 @@ func DoInit(repoRoot string, nBitsForKeypair int, testnet bool, password string,
 	if werr != nil {
 		return werr
 	}
+	f.Close()
+
+	f, err = os.Create(path.Join(repoRoot, "swarm.key"))
+	if err != nil {
+		return err
+	}
+	_, werr = f.Write(migrations.SwarmKeyData)
+	if werr != nil {
+		return werr
+	}
+	f.Close()
+
 	return initializeIpnsKeyspace(repoRoot, identityKey)
 }
 
