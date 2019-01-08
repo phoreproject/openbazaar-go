@@ -214,7 +214,7 @@ func Migration013_ScriptToAddress(coinType string, script []byte, testmodeEnanab
 	var params = Migration013_ChainConfigParams(testmodeEnanabled)
 
 	switch strings.ToLower(coinType) {
-	case "btc", "tbtc":
+	case "phr", "tphr":
 		_, addrs, _, err := txscript.ExtractPkScriptAddrs(script, params)
 		if err != nil {
 			return "", fmt.Errorf("converting %s script to address: %s", coinType, err.Error())
@@ -262,7 +262,7 @@ func Migration013_AddressToScript(coinType string, addr string, testmodeEnanable
 	var params = Migration013_ChainConfigParams(testmodeEnanabled)
 
 	switch strings.ToLower(coinType) {
-	case "btc", "tbtc":
+	case "phr", "tphr":
 		addr, err := btcutil.DecodeAddress(addr, params)
 		if err != nil {
 			return nil, fmt.Errorf("decoding %s address: %s", coinType, err.Error())
