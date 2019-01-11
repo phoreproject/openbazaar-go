@@ -19,7 +19,7 @@ import (
 	"github.com/microcosm-cc/bluemonday"
 
 	mh "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
-	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
+	"gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 
 	"github.com/phoreproject/openbazaar-go/ipfs"
 	"github.com/phoreproject/openbazaar-go/pb"
@@ -84,7 +84,7 @@ type thumbnail struct {
 }
 
 // ListingData - represent a listing
-type ListingData struct { // still missing coinDivisibility and normalizedPrice
+type ListingData struct {
 	Hash               string    `json:"hash"`
 	Slug               string    `json:"slug"`
 	Title              string    `json:"title"`
@@ -103,6 +103,7 @@ type ListingData struct { // still missing coinDivisibility and normalizedPrice
 	ModeratorIDs       []string  `json:"moderators"`
 	AcceptedCurrencies []string  `json:"acceptedCurrencies"`
 	CoinType           string    `json:"coinType"`
+	CoinDivisibility   uint32    `json:"coinDivisibility"`
 }
 
 // GenerateSlug - slugify the title of the listing
@@ -477,16 +478,17 @@ func (n *OpenBazaarNode) extractListingData(listing *pb.SignedListing) (ListingD
 	}
 
 	ld := ListingData{
-		Hash:         listingHash,
-		Slug:         listing.Listing.Slug,
-		Title:        listing.Listing.Item.Title,
-		Tags:         listing.Listing.Item.Tags,
-		Categories:   listing.Listing.Item.Categories,
-		NSFW:         listing.Listing.Item.Nsfw,
-		CoinType:     listing.Listing.Metadata.CoinType,
-		ContractType: listing.Listing.Metadata.ContractType.String(),
-		Description:  listing.Listing.Item.Description[:descriptionLength],
-		Thumbnail:    thumbnail{listing.Listing.Item.Images[0].Tiny, listing.Listing.Item.Images[0].Small, listing.Listing.Item.Images[0].Medium},
+		Hash:             listingHash,
+		Slug:             listing.Listing.Slug,
+		Title:            listing.Listing.Item.Title,
+		Tags:             listing.Listing.Item.Tags,
+		Categories:       listing.Listing.Item.Categories,
+		NSFW:             listing.Listing.Item.Nsfw,
+		CoinType:         listing.Listing.Metadata.CoinType,
+		CoinDivisibility: listing.Listing.Metadata.CoinDivisibility,
+		ContractType:     listing.Listing.Metadata.ContractType.String(),
+		Description:      listing.Listing.Item.Description[:descriptionLength],
+		Thumbnail:        thumbnail{listing.Listing.Item.Images[0].Tiny, listing.Listing.Item.Images[0].Small, listing.Listing.Item.Images[0].Medium},
 		Price: price{
 			CurrencyCode: listing.Listing.Metadata.PricingCurrency,
 			Amount:       listing.Listing.Item.Price,
