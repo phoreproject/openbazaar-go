@@ -84,10 +84,11 @@ type thumbnail struct {
 }
 
 // ListingData - represent a listing
-type ListingData struct {
+type ListingData struct { // still missing coinDivisibility and normalizedPrice
 	Hash               string    `json:"hash"`
 	Slug               string    `json:"slug"`
 	Title              string    `json:"title"`
+	Tags               []string  `json:"tags"`
 	Categories         []string  `json:"categories"`
 	NSFW               bool      `json:"nsfw"`
 	ContractType       string    `json:"contractType"`
@@ -479,6 +480,7 @@ func (n *OpenBazaarNode) extractListingData(listing *pb.SignedListing) (ListingD
 		Hash:         listingHash,
 		Slug:         listing.Listing.Slug,
 		Title:        listing.Listing.Item.Title,
+		Tags:         listing.Listing.Item.Tags,
 		Categories:   listing.Listing.Item.Categories,
 		NSFW:         listing.Listing.Item.Nsfw,
 		CoinType:     listing.Listing.Metadata.CoinType,
