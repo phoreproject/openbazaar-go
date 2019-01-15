@@ -39,9 +39,7 @@ const (
 	// End SQL Statements
 
 	// Configuration defaults
-	DataPushNodeOne = "QmY8puEnVx66uEet64gAf4VZRo7oUyMCwG6KdB9KM92EGQ"
-	DataPushNodeTwo = "QmPPg2qeF3n2KvTRXRZLaTwHCw8JxzF4uZK93RfMoDvf2o"
-	DataPushNodeThree = "QmPPegaeM4rXfQDF3uu784d93pLEzV8A4zXU7akEgYnTFd"
+	DataPushNodeOne = "QmWbi8z4uPkEdrWHtgxCkQGE5vxJnrStXAeEQnupmQnKRh"
 
 	BootstrapNodeDefault_LeMarcheSerpette = "/ip4/159.203.115.78/tcp/5001/ipfs/QmPJuP4Myo8pGL1k56b85Q4rpaoSnmn5L3wLjYHTzbBrk1"
 	BootstrapNodeDefault_BrixtonVillage   = "/ip4/104.131.19.44/tcp/5001/ipfs/QmRvbZttqh6CPFiMKWa1jPfRR9JxagYRv4wsvMAG4ADUTj"
@@ -57,7 +55,7 @@ var (
 )
 
 var (
-	DataPushNodes = []string{DataPushNodeOne, DataPushNodeTwo, DataPushNodeThree}
+	DataPushNodes = []string{DataPushNodeOne}
 
 	BootstrapAddressesDefault = []string{
 		BootstrapNodeDefault_LeMarcheSerpette,
