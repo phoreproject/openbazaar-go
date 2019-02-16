@@ -22,6 +22,3 @@
 	path = vendor/github.com/phoreproject/btcd
 	url = https://github.com/phoreproject/btcd
 	ignore = dirty
-[submodule "vendor/vendor/github.com/dropbox/dropbox-sdk-go-unofficial"]
-	path = vendor/vendor/github.com/dropbox/dropbox-sdk-go-unofficial
-	url = https://github.com/dropbox/dropbox-sdk-go-unofficial
