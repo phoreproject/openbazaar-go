@@ -25,4 +25,3 @@
 [submodule "vendor/github.com/phoreproject/go-x11"]
 	path = vendor/github.com/phoreproject/go-x11
 	url = https://github.com/phoreproject/go-x11
-	ignore = dirty
