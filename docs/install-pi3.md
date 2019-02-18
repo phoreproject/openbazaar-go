@@ -38,21 +38,25 @@ source ~/.profile
 
 Go should now be installed.
 
-### Install openbazaar-go
+### Install openbazaar-go from master
+
 ```
 go get github.com/phoreproject/openbazaar-go
 ```
 
-It will put the source code in 
-```
-$GOPATH/src/github.com/phoreproject/openbazaar-go
-```
+It will put the source code in $GOPATH/src/github.com/phoreproject/openbazaar-go
 
 During the few minutes it takes the process to complete without a progress indicator, then return to blank command line, [read about securing your node](https://github.com/phoreproject/openbazaar-go/blob/master/docs/security.md)
 
-To compile and run the source using the path above, WITHOUT encrypting the database:
+### Install openbazaar-go from other branch
 ```
-go run $GOPATH/src/github.com/phoreproject/openbazaar-go/openbazaard.go start
+git clone --recursive -b BRANCH_NAME git@github.com:phoreproject/openbazaar-go
+```
+
+### To compile and run the source:
+```
+cd $GOPATH/src/github.com/phoreproject/openbazaar-go
+go run openbazaard.go start
 ```
 
 You will then see 
