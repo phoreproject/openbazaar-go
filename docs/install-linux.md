@@ -48,6 +48,7 @@ It will put the source code in $GOPATH/src/github.com/phoreproject/openbazaar-go
 
 ### Install openbazaar-go from other branch
 ```
+cd $GOPATH/src/github.com/phoreproject
 git clone --recursive -b BRANCH_NAME git@github.com:phoreproject/openbazaar-go
 ```
 
