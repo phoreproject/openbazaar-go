@@ -80,9 +80,15 @@ func NewRPCWallet(mnemonic string, params *chaincfg.Params, repoPath string, DB 
 		return nil, err
 	}
 
-	keyManager, _ := spvwallet.NewKeyManager(DB.Keys(), params, mPrivKey)
+	keyManager, err := spvwallet.NewKeyManager(DB.Keys(), params, mPrivKey)
+	if err != nil {
+		return nil, err
+	}
 
-	txstore, _ := NewTxStore(params, DB, keyManager)
+	txstore, err := NewTxStore(params, DB, keyManager)
+	if err != nil {
+		return nil, err
+	}
 
 	w := RPCWallet{
 		params:           params,
