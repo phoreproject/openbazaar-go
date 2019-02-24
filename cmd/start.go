@@ -208,7 +208,7 @@ func (x *Start) Execute(args []string) error {
 		return err
 	}
 
-	ct := wi.Bitcoin
+	var ct wi.CoinType = wi.Phore
 	cfgf, err := ioutil.ReadFile(path.Join(repoPath, "config"))
 	if err == nil {
 		wcfg, err := schema.GetWalletConfig(cfgf)
@@ -218,8 +218,10 @@ func (x *Start) Execute(args []string) error {
 				ct = wi.BitcoinCash
 			case "zcashd":
 				ct = wi.Zcash
-			case "phored":
-				ct = wi.Phore
+			case "spvwallet":
+				fallthrough
+			case "bitcoind":
+				ct = wi.Bitcoin
 			}
 		}
 	}
