@@ -1105,7 +1105,7 @@ func printSplashScreen(verbose bool) {
 	blue.DisableColor()
 	white.DisableColor()
 	fmt.Println("")
-	fmt.Println("OpenBazaar Server v" + core.VERSION)
+	fmt.Println("Phore Marketplace Server v" + core.VERSION)
 	if !verbose {
 		fmt.Println("[Press Ctrl+C to exit]")
 	}

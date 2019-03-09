@@ -30,7 +30,7 @@ import (
 
 var (
 	VERSION   = "1.2.0"
-	USERAGENT = "/openbazaar-go:" + VERSION + "/"
+	USERAGENT = "/Phore-Marketplace-go:" + VERSION + "/"
 )
 
 var log = logging.MustGetLogger("core")

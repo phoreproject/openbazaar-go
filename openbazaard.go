@@ -35,7 +35,7 @@ func main() {
 	go func() {
 		for sig := range c {
 			log.Noticef("Received %s\n", sig)
-			log.Info("OpenBazaar Server shutting down...")
+			log.Info("Phore Marketplace shutting down...")
 			if core.Node != nil {
 				if core.Node.MessageRetriever != nil {
 					core.Node.RecordAgingNotifier.Stop()

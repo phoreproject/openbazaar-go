@@ -22,10 +22,10 @@ import (
 	"github.com/phoreproject/openbazaar-go/repo"
 	"github.com/phoreproject/openbazaar-go/repo/db"
 
-	"github.com/phoreproject/openbazaar-go/core"
-	"github.com/phoreproject/wallet-interface"
 	"github.com/golang/protobuf/proto"
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
+	"github.com/phoreproject/openbazaar-go/core"
+	"github.com/phoreproject/wallet-interface"
 	"golang.org/x/crypto/ssh/terminal"
 	"syscall"
 	"time"

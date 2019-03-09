@@ -1647,7 +1647,7 @@ func (i *jsonAPIHandler) GETOrder(w http.ResponseWriter, r *http.Request) {
 
 func (i *jsonAPIHandler) POSTShutdown(w http.ResponseWriter, r *http.Request) {
 	shutdown := func() {
-		log.Info("OpenBazaar Server shutting down...")
+		log.Info("Phore Marketplace shutting down...")
 		time.Sleep(time.Second)
 		if core.Node != nil {
 			core.Node.Datastore.Close()
