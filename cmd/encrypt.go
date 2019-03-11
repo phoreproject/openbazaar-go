@@ -100,6 +100,7 @@ func (x *EncryptDatabase) Execute(args []string) error {
 	tmpPath := path.Join(repoPath, "tmp")
 	sqlliteDB, err := db.Create(repoPath, "", testnet, wallet.Bitcoin)
 	if err != nil {
+		log.Error(err)
 		fmt.Println(err)
 		return err
 	}
@@ -112,17 +113,20 @@ func (x *EncryptDatabase) Execute(args []string) error {
 	}
 	tmpDB, err := db.Create(tmpPath, pw, testnet, wallet.Bitcoin)
 	if err != nil {
+		log.Error(err)
 		fmt.Println(err)
 		return err
 	}
 
 	tmpDB.InitTables(pw)
 	if err := sqlliteDB.Copy(path.Join(tmpPath, "datastore", filename), pw); err != nil {
+		log.Error(err)
 		fmt.Println(err)
 		return err
 	}
 	err = os.Rename(path.Join(tmpPath, "datastore", filename), path.Join(repoPath, "datastore", filename))
 	if err != nil {
+		log.Error(err)
 		fmt.Println(err)
 		return err
 	}

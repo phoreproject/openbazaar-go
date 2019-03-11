@@ -31,7 +31,7 @@ func (x *DecryptDatabase) Execute(args []string) error {
 	if x.DataDir == "" {
 		repoPath, err = repo.GetRepoPath(false)
 		if err != nil {
-			fmt.Println(err)
+			log.Error(err)
 			return nil
 		}
 	} else {
@@ -86,16 +86,19 @@ func (x *DecryptDatabase) Execute(args []string) error {
 	}
 	tmpDB, err := db.Create(path.Join(repoPath, "tmp"), "", testnet, wallet.Bitcoin)
 	if err != nil {
+		log.Error(err)
 		fmt.Println(err)
 		return err
 	}
 	tmpDB.InitTables("")
 	if err := sqlliteDB.Copy(path.Join(repoPath, "tmp", "datastore", filename), ""); err != nil {
+		log.Error(err)
 		fmt.Println(err)
 		return err
 	}
 	err = os.Rename(path.Join(repoPath, "tmp", "datastore", filename), path.Join(repoPath, "datastore", filename))
 	if err != nil {
+		log.Error(err)
 		fmt.Println(err)
 		return err
 	}

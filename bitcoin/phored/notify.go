@@ -133,7 +133,7 @@ func startNotificationListener(wallet *RPCWallet) (*NotificationListener, error)
 				notificationListener.updateFilterAndSend()
 				log.Infof("Tx %s ingested", transaction.TxHash().String())
 			} else {
-				fmt.Println(err)
+				log.Errorf("msg: %s\n err: %s", message, err)
 			}
 		}
 	}()
