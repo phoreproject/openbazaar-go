@@ -239,7 +239,7 @@ func (x *Start) Execute(args []string) error {
 
 	// Create user-agent file
 	userAgentBytes := []byte(core.USERAGENT + x.UserAgent)
-	err = ioutil.WriteFile(path.Join(repoPath, "root", "user_agent"), userAgentBytes, os.ModePerm)
+	err = ioutil.WriteFile(path.Join(repoPath, "root", "user_agent"), userAgentBytes, os.FileMode(0644))
 	if err != nil {
 		log.Error("write user_agent:", err)
 		return err
@@ -512,7 +512,7 @@ func (x *Start) Execute(args []string) error {
 	// Set IPNS query size
 	querySize := cfg.Ipns.QuerySize
 	if querySize <= 20 && querySize > 0 {
-		dhtutil.QuerySize = int(querySize)
+		dhtutil.QuerySize = querySize
 	} else {
 		dhtutil.QuerySize = 16
 	}
@@ -807,13 +807,6 @@ func (x *Start) Execute(args []string) error {
 	}
 
 	go func() {
-		<-dht.DefaultBootstrapConfig.DoneChan
-		core.Node.Service = service.New(core.Node, sqliteDB)
-
-		core.Node.StartMessageRetriever()
-		core.Node.StartPointerRepublisher()
-		core.Node.StartRecordAgingNotifier()
-
 		if !x.DisableWallet {
 			// If the wallet doesn't allow resyncing from a specific height to scan for unpaid orders, wait for all messages to process before continuing.
 			if resyncManager == nil {
@@ -835,6 +828,14 @@ func (x *Start) Execute(args []string) error {
 				}()
 			}
 		}
+
+		<-dht.DefaultBootstrapConfig.DoneChan
+		core.Node.Service = service.New(core.Node, sqliteDB)
+
+		core.Node.StartMessageRetriever()
+		core.Node.StartPointerRepublisher()
+		core.Node.StartRecordAgingNotifier()
+
 		core.PublishLock.Unlock()
 		err = core.Node.UpdateFollow()
 		if err != nil {
