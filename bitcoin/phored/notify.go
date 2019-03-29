@@ -26,7 +26,7 @@ type NotificationListener struct {
 }
 
 func (n *NotificationListener) updateFilterAndSend() {
-	filt, err := n.wallet.DB.GimmeFilter()
+	filt, err := n.wallet.txstore.GimmeFilter()
 
 	if err != nil {
 		log.Error(err)
@@ -121,7 +121,7 @@ func startNotificationListener(wallet *RPCWallet) (*NotificationListener, error)
 					blockHeight = int32(block.Height)
 				}
 
-				hits, err := wallet.DB.Ingest(transaction, blockHeight, time.Unix(getTx.BlockTime, 0))
+				hits, err := wallet.txstore.Ingest(transaction, blockHeight, time.Unix(getTx.BlockTime, 0))
 				if err != nil {
 					log.Errorf("Error ingesting tx: %s\n", err.Error())
 					continue
