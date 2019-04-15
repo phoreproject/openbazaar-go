@@ -37,14 +37,12 @@ func (n *NotificationListener) updateFilterAndSend() {
 
 	toSend := []byte(fmt.Sprintf("subscribeBloom %s %d %d 0", hex.EncodeToString(message.Filter), message.HashFuncs, message.Tweak))
 
-	// log.Debugf("<- %s", toSend)
+	//log.Debugf("<- %s", toSend)
 
 	n.conn.WriteMessage(websocket.TextMessage, toSend)
 }
 
 func startNotificationListener(wallet *RPCWallet) (*NotificationListener, error) {
-	<-wallet.InitChan()
-
 	notificationListener := &NotificationListener{wallet: wallet}
 	u := url.URL{Scheme: "wss", Host: wallet.rpcBasePath, Path: "/ws"}
 
@@ -85,11 +83,11 @@ func startNotificationListener(wallet *RPCWallet) (*NotificationListener, error)
 				}
 			}
 
-			// log.Debugf("-> %s", message)
-
 			if string(message) == "pong" {
 				continue
 			}
+
+			//log.Debugf("-> %s", message)
 
 			var getTx btcjson.GetTransactionResult
 			err = json.Unmarshal(message, &getTx)

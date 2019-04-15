@@ -77,6 +77,7 @@ func (ts *TxStore) GimmeFilter() (*bloom.Filter, error) {
 	// for the 20 byte PKH without the opcodes.
 	for _, a := range ts.adrs { // add 20-byte pubkeyhash
 		f.Add(a.ScriptAddress())
+		log.Debugf("bloom filter - watching for addr %s\n", a.String())
 	}
 	ts.addrMutex.Unlock()
 	for _, u := range allUtxos {
@@ -87,10 +88,12 @@ func (ts *TxStore) GimmeFilter() (*bloom.Filter, error) {
 		f.AddOutPoint(&s.Utxo.Op)
 	}
 	for _, w := range ts.watchedScripts {
-		_, addrs, _, err := txscript.ExtractPkScriptAddrs(w, ts.params)
+		scriptClass, addrs, _, err := txscript.ExtractPkScriptAddrs(w, ts.params)
 		if err != nil {
+			log.Debugf("bloom filter - watching for addrs %s from script (class - %s) error %s", addrs, err, scriptClass.String())
 			continue
 		}
+		log.Debugf("bloom filter - watching for addrs %s from script (class - %s)", addrs, scriptClass.String())
 		f.Add(addrs[0].ScriptAddress())
 	}
 
@@ -184,7 +187,6 @@ func (ts *TxStore) PopulateAdrs() error {
 		ts.adrs = append(ts.adrs, addr)
 	}
 	ts.addrMutex.Unlock()
-
 	ts.watchedScripts, _ = ts.WatchedScripts().GetAll()
 	txns, _ := ts.Txns().GetAll(true)
 	ts.txidsMutex.Lock()
@@ -192,7 +194,6 @@ func (ts *TxStore) PopulateAdrs() error {
 		ts.txids[t.Txid] = t.Height
 	}
 	ts.txidsMutex.Unlock()
-
 	return nil
 }
 
@@ -241,6 +242,7 @@ func (ts *TxStore) Ingest(tx *wire.MsgTx, height int32, timestamp time.Time) (ui
 		// TODO: This will need to test both segwit and legacy once segwit activates
 		PKscripts[i], err = txscript.PayToAddrScript(ts.adrs[i])
 		if err != nil {
+			log.Debug(err)
 			return hits, err
 		}
 	}

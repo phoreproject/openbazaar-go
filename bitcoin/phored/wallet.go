@@ -54,8 +54,6 @@ type RPCWallet struct {
 	notifications    *NotificationListener
 	rpcBasePath      string
 	rpcLock          *sync.Mutex
-	addrsToWatch     []btc.Address
-	initChan         chan struct{}
 
 	started          bool
 }
@@ -109,7 +107,6 @@ func NewRPCWallet(mnemonic string, params *chaincfg.Params, repoPath string, DB 
 		connCfg:          connCfg,
 		rpcBasePath:      host,
 		rpcLock:          new(sync.Mutex),
-		initChan:         make(chan struct{}),
 	}
 	return &w, nil
 }
@@ -134,8 +131,7 @@ func (w *RPCWallet) Start() {
 	}
 	ticker.Stop()
 
-	close(w.initChan)
-
+	// notification listener must start after rpc connection is stabilized
 	n, err := startNotificationListener(w)
 	if err != nil {
 		log.Error(err)
@@ -360,7 +356,6 @@ func (w *RPCWallet) ListKeys() []btcec.PrivateKey {
 
 // Balance returns the total balance of our addresses
 func (w *RPCWallet) Balance() (confirmed, unconfirmed int64) {
-	<-w.initChan
 	utxos, _ := w.txstore.Utxos().GetAll()
 	stxos, _ := w.txstore.Stxos().GetAll()
 	for _, utxo := range utxos {
@@ -381,19 +376,46 @@ func (w *RPCWallet) Balance() (confirmed, unconfirmed int64) {
 
 // Transactions returns all of the transactions relating to any of our addresses
 func (w *RPCWallet) Transactions() ([]wallet.Txn, error) {
-	<-w.initChan
-	return w.txstore.Txns().GetAll(false)
+	height, _ := w.ChainTip()
+	txns, err := w.txstore.Txns().GetAll(false)
+	if err != nil {
+		return txns, err
+	}
+	for i, tx := range txns {
+		var confirmations int32
+		var status wallet.StatusCode
+		confs := int32(height) - tx.Height + 1
+		if tx.Height <= 0 {
+			confs = tx.Height
+		}
+		switch {
+		case confs < 0:
+			status = wallet.StatusDead
+		case confs == 0 && time.Since(tx.Timestamp) <= time.Minute * 15:
+			status = wallet.StatusUnconfirmed
+		case confs == 0 && time.Since(tx.Timestamp) > time.Minute * 15:
+			status = wallet.StatusDead
+		case confs > 0 && confs < 6:
+			status = wallet.StatusPending
+			confirmations = confs
+		case confs > 5:
+			status = wallet.StatusConfirmed
+			confirmations = confs
+		}
+		tx.Confirmations = int64(confirmations)
+		tx.Status = status
+		txns[i] = tx
+	}
+	return txns, nil
 }
 
 // GetTransaction returns the transaction given by a transaction hash
 func (w *RPCWallet) GetTransaction(txid chainhash.Hash) (wallet.Txn, error) {
-	<-w.initChan
 	return w.txstore.Txns().Get(txid)
 }
 
 // GetConfirmations returns the number of confirmations and the block number where the transaction was confirmed
 func (w *RPCWallet) GetConfirmations(txid chainhash.Hash) (uint32, uint32, error) {
-	<-w.initChan
 	txn, err := w.txstore.Txns().Get(txid)
 	if err != nil {
 		return 0, 0, err
@@ -406,19 +428,20 @@ func (w *RPCWallet) GetConfirmations(txid chainhash.Hash) (uint32, uint32, error
 }
 
 func (w *RPCWallet) checkIfStxoIsConfirmed(utxo wallet.Utxo, stxos []wallet.Stxo) bool {
-	<-w.initChan
 	for _, stxo := range stxos {
 		if !stxo.Utxo.WatchOnly {
 			if stxo.SpendTxid.IsEqual(&utxo.Op.Hash) {
 				if stxo.SpendHeight > 0 {
 					return true
+				} else {
+					return w.checkIfStxoIsConfirmed(stxo.Utxo, stxos)
 				}
-				return w.checkIfStxoIsConfirmed(stxo.Utxo, stxos)
 			} else if stxo.Utxo.IsEqual(&utxo) {
 				if stxo.Utxo.AtHeight > 0 {
 					return true
+				} else {
+					return false
 				}
-				return false
 			}
 		}
 	}
@@ -437,7 +460,6 @@ func (w *RPCWallet) AddTransactionListener(callback func(wallet.TransactionCallb
 
 // ChainTip returns the tip of the active blockchain
 func (w *RPCWallet) ChainTip() (uint32, chainhash.Hash) {
-	<-w.initChan
 	w.rpcLock.Lock()
 	ch, err := w.rpcClient.GetBestBlockHash()
 	if err != nil {
@@ -456,17 +478,19 @@ func (w *RPCWallet) AddWatchedAddress(addr btc.Address) error {
 	}
 	err = w.txstore.WatchedScripts().Put(script)
 	w.txstore.PopulateAdrs()
-
-	return err
+	if err != nil {
+		return err
+	}
+	log.Debugf("addWatchedAddress %s\n", addr.String())
+	return nil
 }
 
 func (w *RPCWallet) addWatchedScript(addr btc.Address) error {
-	return w.rpcClient.ImportAddressRescan(addr.EncodeAddress(), false)
+	return w.rpcClient.ImportAddressRescan(addr.EncodeAddress(), "", false)
 }
 
 // ReSyncBlockchain resyncs the addresses used by the SPV wallet
 func (w *RPCWallet) ReSyncBlockchain(fromDate time.Time) {
-	<-w.initChan
 	w.txstore.PopulateAdrs()
 	w.RetrieveTransactions()
 }
@@ -476,15 +500,16 @@ func (w *RPCWallet) Close() {
 	if w.started {
 		log.Info("Disconnecting from peers and shutting down")
 		w.rpcLock.Lock()
+		log.Debug("Disconnecting from peers and shutting down - rpc locked")
 		w.rpcClient.Shutdown()
 		w.rpcLock.Unlock()
+		log.Debug("Disconnecting from peers and shutting down - rpc unlocked")
 		w.started = false
 	}
 }
 
 // SweepAddress sweeps any UTXOs from an address in a single transaction
 func (w *RPCWallet) SweepAddress(ins []wallet.TransactionInput, address *btc.Address, key *hd.ExtendedKey, redeemScript *[]byte, feeLevel wallet.FeeLevel) (*chainhash.Hash, error) {
-	<-w.initChan
 	var internalAddr btc.Address
 	if address != nil {
 		internalAddr = *address
@@ -616,10 +641,12 @@ func (w *RPCWallet) SweepAddress(ins []wallet.TransactionInput, address *btc.Add
 	}
 
 	// broadcast
-	_, err = w.rpcClient.SendRawTransaction(tx, false)
-	if err != nil {
-		return nil, err
-	}
+	//_, err = w.rpcClient.SendRawTransaction(tx, false)
+	//if err != nil {
+	//	return nil, err
+	//}
+
+	w.Broadcast(tx)
 	txid := tx.TxHash()
 	return &txid, nil
 }
@@ -631,7 +658,6 @@ func (w *RPCWallet) GetFeePerByte(feeLevel wallet.FeeLevel) uint64 {
 
 // Broadcast a transaction to the network
 func (w *RPCWallet) Broadcast(tx *wire.MsgTx) error {
-	<-w.initChan
 	// Our own tx; don't keep track of false positives
 	_, err := w.txstore.Ingest(tx, 0, time.Now())
 	if err != nil {
@@ -651,7 +677,6 @@ func (w *RPCWallet) Broadcast(tx *wire.MsgTx) error {
 
 // BumpFee attempts to bump the fee for a transaction
 func (w *RPCWallet) BumpFee(txid chainhash.Hash) (*chainhash.Hash, error) {
-	<-w.initChan
 	includeWatchOnly := false
 	tx, err := w.rpcClient.GetTransaction(&txid, &includeWatchOnly)
 	if err != nil {
@@ -803,7 +828,6 @@ func (w *RPCWallet) EstimateSpendFee(amount int64, feeLevel wallet.FeeLevel) (ui
 }
 
 func (w *RPCWallet) gatherCoins() map[coinset.Coin]*hd.ExtendedKey {
-	<-w.initChan
 	w.rpcLock.Lock()
 	height, _ := w.rpcClient.GetBlockCount()
 	w.rpcLock.Unlock()
@@ -1083,7 +1107,6 @@ func (w *RPCWallet) Multisign(ins []wallet.TransactionInput, outs []wallet.Trans
 
 // Spend spends an amount from an address with a given fee level
 func (w *RPCWallet) Spend(amount int64, addr btc.Address, feeLevel wallet.FeeLevel) (*chainhash.Hash, error) {
-	<-w.initChan
 	tx, err := w.buildTx(amount, addr, feeLevel, nil)
 	if err != nil {
 		return nil, err
@@ -1102,7 +1125,6 @@ var LookAheadDistance = 5
 
 // RetrieveTransactions fetches transactions from the rpc server and stores them into the database
 func (w *RPCWallet) RetrieveTransactions() error {
-	<-w.initChan
 	w.txstore.addrMutex.Lock()
 
 	addrs := make([]btc.Address, len(w.txstore.adrs))
@@ -1111,6 +1133,30 @@ func (w *RPCWallet) RetrieveTransactions() error {
 
 	w.txstore.addrMutex.Unlock()
 
+	// receive transactions for P2PKH and P2PK
+	err := w.receiveTransactions(addrs, true)
+	if err != nil {
+		return err
+	}
+
+	// receive transactions for P2SH
+	scriptAddresses := make([]btc.Address, len(w.txstore.watchedScripts))
+	for idx, scriptBytes := range w.txstore.watchedScripts {
+		_, localScriptAddress, _, err := txscript.ExtractPkScriptAddrs(scriptBytes, w.txstore.params)
+		if err != nil {
+			log.Debugf("adding script address (%s) to watch error (%s)", localScriptAddress, err)
+			continue
+		}
+		if len(localScriptAddress) > 1 {
+			log.Warningf("many addresses %s were exported from script", localScriptAddress)
+		}
+		scriptAddresses[idx] = localScriptAddress[0]
+	}
+
+	return w.receiveTransactions(scriptAddresses, false)
+}
+
+func (w *RPCWallet) receiveTransactions(addrs []btc.Address, lookAhead bool) error {
 	numEmptyAddrs := 0
 
 	for i := range addrs {
@@ -1122,16 +1168,18 @@ func (w *RPCWallet) RetrieveTransactions() error {
 			return err
 		}
 
-		if len(txs) == 0 {
-			numEmptyAddrs++
-		}
+		if lookAhead {
+			if len(txs) == 0 {
+				numEmptyAddrs++
+			}
 
-		if numEmptyAddrs >= LookAheadDistance {
-			return nil
+			if numEmptyAddrs >= LookAheadDistance {
+				return nil
+			}
 		}
 
 		for t := range txs {
-			log.Debug(txs[t].BlockHash)
+			log.Debugf("block hash %s\n", txs[t].BlockHash)
 
 			hash, err := chainhash.NewHashFromStr(txs[t].BlockHash)
 			if err != nil {
@@ -1164,8 +1212,3 @@ func (w *RPCWallet) RetrieveTransactions() error {
 	}
 	return nil
 }
-
-func (w *RPCWallet) InitChan() chan struct{} {
-	return w.initChan
-}
-
