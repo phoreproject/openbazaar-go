@@ -1,0 +1,35 @@
+FROM golang:1.10
+VOLUME /var/lib/openbazaar
+
+RUN wget https://www.python.org/ftp/python/3.6.0/Python-3.6.0.tgz && \
+    tar xvf Python-3.6.0.tgz && \
+    cd Python-3.6.0 && \
+    ./configure --enable-optimizations && \
+    make -j8
+RUN apt-get update && apt-get install -yq zlib1g-dev libssl-dev unzip
+RUN cd Python-3.6.0 && \
+    make altinstall && \
+    ln -s /usr/local/bin/python3.6 /usr/local/bin/python3
+
+RUN pip3.6 install requests python-bitcoinlib && \
+    wget https://bitcoin.org/bin/bitcoin-core-0.16.0/bitcoin-0.16.0-x86_64-linux-gnu.tar.gz && \
+    tar -xvzf bitcoin-0.16.0-x86_64-linux-gnu.tar.gz -C /opt
+
+RUN wget https://github.com/google/protobuf/releases/download/v3.6.0/protoc-3.6.0-linux-x86_64.zip && \
+    unzip ./protoc-3.6.0-linux-x86_64.zip -x readme.txt && \
+    mv ./include/* /usr/local/include/ && \
+    mv ./bin/protoc /usr/local/bin/ && \
+    rm -rf ./include ./bin
+
+WORKDIR /go/src/github.com/phoreproject/openbazaar-go
+RUN go get -u github.com/gogo/protobuf/proto \
+              github.com/golang/protobuf/protoc-gen-go \
+              github.com/icrowley/fake \
+              github.com/derekparker/delve/cmd/dlv
+
+RUN useradd -ms /bin/bash ob_user
+USER ob_user
+
+COPY . .
+
+ENTRYPOINT ["/bin/bash"]

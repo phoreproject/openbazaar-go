@@ -2,14 +2,18 @@ package db
 
 import (
 	"database/sql"
-	"github.com/phoreproject/openbazaar-go/repo"
 	"strconv"
 	"sync"
+
+	"github.com/phoreproject/openbazaar-go/repo"
 )
 
 type FollowerDB struct {
-	db   *sql.DB
-	lock sync.RWMutex
+	modelStore
+}
+
+func NewFollowerStore(db *sql.DB, lock *sync.Mutex) repo.FollowerStore {
+	return &FollowerDB{modelStore{db, lock}}
 }
 
 func (f *FollowerDB) Put(follower string, proof []byte) error {
@@ -29,8 +33,8 @@ func (f *FollowerDB) Put(follower string, proof []byte) error {
 }
 
 func (f *FollowerDB) Get(offsetID string, limit int) ([]repo.Follower, error) {
-	f.lock.RLock()
-	defer f.lock.RUnlock()
+	f.lock.Lock()
+	defer f.lock.Unlock()
 	var stm string
 	if offsetID != "" {
 		stm = "select peerID, proof from followers order by rowid desc limit " + strconv.Itoa(limit) + " offset ((select coalesce(max(rowid)+1, 0) from followers)-(select rowid from followers where peerID='" + offsetID + "'))"
@@ -56,13 +60,16 @@ func (f *FollowerDB) Get(offsetID string, limit int) ([]repo.Follower, error) {
 func (f *FollowerDB) Delete(follower string) error {
 	f.lock.Lock()
 	defer f.lock.Unlock()
-	f.db.Exec("delete from followers where peerID=?", follower)
+	_, err := f.db.Exec("delete from followers where peerID=?", follower)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
 func (f *FollowerDB) Count() int {
-	f.lock.RLock()
-	defer f.lock.RUnlock()
+	f.lock.Lock()
+	defer f.lock.Unlock()
 	row := f.db.QueryRow("select Count(*) from followers")
 	var count int
 	row.Scan(&count)
@@ -70,9 +77,12 @@ func (f *FollowerDB) Count() int {
 }
 
 func (f *FollowerDB) FollowsMe(peerID string) bool {
-	f.lock.RLock()
-	defer f.lock.RUnlock()
+	f.lock.Lock()
+	defer f.lock.Unlock()
 	stmt, err := f.db.Prepare("select peerID from followers where peerID=?")
+	if err != nil {
+		return false
+	}
 	defer stmt.Close()
 	var follower string
 	err = stmt.QueryRow(peerID).Scan(&follower)

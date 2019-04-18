@@ -29,6 +29,9 @@ type Parser struct {
 	// NamespaceDelimiter separates group namespaces and option long names
 	NamespaceDelimiter string
 
+	// EnvNamespaceDelimiter separates group env namespaces and env keys
+	EnvNamespaceDelimiter string
+
 	// UnknownOptionsHandler is a function which gets called when the parser
 	// encounters an unknown option. The function receives the unknown option
 	// name, a SplitArgument which specifies its value if set with an argument
@@ -41,6 +44,16 @@ type Parser struct {
 	// items. By default, the items are printed and the application is exited.
 	// You can override this default behavior by specifying a custom CompletionHandler.
 	CompletionHandler func(items []Completion)
+
+	// CommandHandler is a function that gets called to handle execution of a
+	// command. By default, the command will simply be executed. This can be
+	// overridden to perform certain actions (such as applying global flags)
+	// just before the command is executed. Note that if you override the
+	// handler it is your responsibility to call the command.Execute function.
+	//
+	// The command passed into CommandHandler may be nil in case there is no
+	// command to be executed when parsing has finished.
+	CommandHandler func(command Commander, args []string) error
 
 	internalError error
 }
@@ -77,7 +90,7 @@ const (
 	// -h and --help options. When either -h or --help is specified on the
 	// command line, the parser will return the special error of type
 	// ErrHelp. When PrintErrors is also specified, then the help message
-	// will also be automatically printed to os.Stderr.
+	// will also be automatically printed to os.Stdout.
 	HelpFlag = 1 << iota
 
 	// PassDoubleDash passes all arguments after a double dash, --, as
@@ -90,7 +103,8 @@ const (
 	IgnoreUnknown
 
 	// PrintErrors prints any errors which occurred during parsing to
-	// os.Stderr.
+	// os.Stderr. In the special case of ErrHelp, the message will be printed
+	// to os.Stdout.
 	PrintErrors
 
 	// PassAfterNonOption passes all arguments after the first non option
@@ -159,9 +173,10 @@ func NewParser(data interface{}, options Options) *Parser {
 // be added to this parser by using AddGroup and AddCommand.
 func NewNamedParser(appname string, options Options) *Parser {
 	p := &Parser{
-		Command:            newCommand(appname, "", "", nil),
-		Options:            options,
-		NamespaceDelimiter: ".",
+		Command:               newCommand(appname, "", "", nil),
+		Options:               options,
+		NamespaceDelimiter:    ".",
+		EnvNamespaceDelimiter: "_",
 	}
 
 	p.Command.parent = p
@@ -193,6 +208,7 @@ func (p *Parser) ParseArgs(args []string) ([]string, error) {
 
 	p.eachOption(func(c *Command, g *Group, option *Option) {
 		option.isSet = false
+		option.isSetDefault = false
 		option.updateDefaultLiteral()
 	})
 
@@ -298,7 +314,13 @@ func (p *Parser) ParseArgs(args []string) ([]string, error) {
 	} else if len(s.command.commands) != 0 && !s.command.SubcommandsOptional {
 		reterr = s.estimateCommand()
 	} else if cmd, ok := s.command.data.(Commander); ok {
-		reterr = cmd.Execute(s.retargs)
+		if p.CommandHandler != nil {
+			reterr = p.CommandHandler(cmd, s.retargs)
+		} else {
+			reterr = cmd.Execute(s.retargs)
+		}
+	} else if p.CommandHandler != nil {
+		reterr = p.CommandHandler(nil, s.retargs)
 	}
 
 	if reterr != nil {
@@ -361,7 +383,7 @@ func (p *parseState) checkRequired(parser *Parser) error {
 			var reqnames []string
 
 			for _, arg := range p.positional {
-				argRequired := (!arg.isRemaining() && p.command.ArgsRequired) || arg.Required != 0
+				argRequired := (!arg.isRemaining() && p.command.ArgsRequired) || arg.Required != -1 || arg.RequiredMaximum != -1
 
 				if !argRequired {
 					continue
@@ -378,6 +400,20 @@ func (p *parseState) checkRequired(parser *Parser) error {
 						}
 
 						reqnames = append(reqnames, "`"+arg.Name+" (at least "+fmt.Sprintf("%d", arg.Required)+" "+arguments+")`")
+					} else if arg.RequiredMaximum != -1 && arg.value.Len() > arg.RequiredMaximum {
+						if arg.RequiredMaximum == 0 {
+							reqnames = append(reqnames, "`"+arg.Name+" (zero arguments)`")
+						} else {
+							var arguments string
+
+							if arg.RequiredMaximum > 1 {
+								arguments = "arguments, but got " + fmt.Sprintf("%d", arg.value.Len())
+							} else {
+								arguments = "argument"
+							}
+
+							reqnames = append(reqnames, "`"+arg.Name+" (at most "+fmt.Sprintf("%d", arg.RequiredMaximum)+" "+arguments+")`")
+						}
 					}
 				} else {
 					reqnames = append(reqnames, "`"+arg.Name+"`")
@@ -447,7 +483,7 @@ func (p *parseState) estimateCommand() error {
 			msg = fmt.Sprintf("%s. You should use the %s command",
 				msg,
 				cmdnames[0])
-		} else {
+		} else if len(cmdnames) > 1 {
 			msg = fmt.Sprintf("%s. Please specify one command of: %s or %s",
 				msg,
 				strings.Join(cmdnames[:len(cmdnames)-1], ", "),
@@ -458,7 +494,7 @@ func (p *parseState) estimateCommand() error {
 
 		if len(cmdnames) == 1 {
 			msg = fmt.Sprintf("Please specify the %s command", cmdnames[0])
-		} else {
+		} else if len(cmdnames) > 1 {
 			msg = fmt.Sprintf("Please specify one command of: %s or %s",
 				strings.Join(cmdnames[:len(cmdnames)-1], ", "),
 				cmdnames[len(cmdnames)-1])
@@ -483,7 +519,7 @@ func (p *Parser) parseOption(s *parseState, name string, option *Option, canarg 
 		} else {
 			arg = s.pop()
 
-			if argumentIsOption(arg) {
+			if argumentIsOption(arg) && !(option.isSignedNumber() && len(arg) > 1 && arg[0] == '-' && arg[1] >= '0' && arg[1] <= '9') {
 				return newErrorf(ErrExpectedArgument, "expected argument for flag `%s', but got option `%s'", option, arg)
 			} else if p.Options&PassDoubleDash != 0 && arg == "--" {
 				return newErrorf(ErrExpectedArgument, "expected argument for flag `%s', but got double dash `--'", option)
@@ -585,6 +621,7 @@ func (p *parseState) addArgs(args ...string) error {
 		arg := p.positional[0]
 
 		if err := convert(args[0], arg.value, arg.tag); err != nil {
+			p.err = err
 			return err
 		}
 
@@ -604,10 +641,19 @@ func (p *Parser) parseNonOption(s *parseState) error {
 		return s.addArgs(s.arg)
 	}
 
-	if cmd := s.lookup.commands[s.arg]; cmd != nil {
-		s.command.Active = cmd
-		cmd.fillParseState(s)
-	} else if (p.Options & PassAfterNonOption) != None {
+	if len(s.command.commands) > 0 && len(s.retargs) == 0 {
+		if cmd := s.lookup.commands[s.arg]; cmd != nil {
+			s.command.Active = cmd
+			cmd.fillParseState(s)
+
+			return nil
+		} else if !s.command.SubcommandsOptional {
+			s.addArgs(s.arg)
+			return newErrorf(ErrUnknownCommand, "Unknown command `%s'", s.arg)
+		}
+	}
+
+	if (p.Options & PassAfterNonOption) != None {
 		// If PassAfterNonOption is set then all remaining arguments
 		// are considered positional
 		if err := s.addArgs(s.arg); err != nil {
@@ -635,7 +681,13 @@ func (p *Parser) showBuiltinHelp() error {
 
 func (p *Parser) printError(err error) error {
 	if err != nil && (p.Options&PrintErrors) != None {
-		fmt.Fprintln(os.Stderr, err)
+		flagsErr, ok := err.(*Error)
+
+		if ok && flagsErr.Type == ErrHelp {
+			fmt.Fprintln(os.Stdout, err)
+		} else {
+			fmt.Fprintln(os.Stderr, err)
+		}
 	}
 
 	return err

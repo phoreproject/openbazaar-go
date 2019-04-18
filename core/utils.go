@@ -3,18 +3,20 @@ package core
 import (
 	"crypto/sha256"
 	"errors"
-	cid "gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
-	ps "gx/ipfs/QmPgDWmTmuzvP7QE5zwo1TmjbJme9pmZHNujB2453jkCTr/go-libp2p-peerstore"
-	util "gx/ipfs/QmSU6eubNdhXjFBJBSksTp8kv8YRub8mGAPv8tVJHmL2EU/go-ipfs-util"
-	mh "gx/ipfs/QmU9a9NV9RdPNwZQDYd5uKsm6N6LJLSvLbywDDYFbaaC6P/go-multihash"
-	ma "gx/ipfs/QmXY77cVe7rVRQXZZQRioukUM7aRW3BTcAgJe12MCtb3Ji/go-multiaddr"
+	util "gx/ipfs/QmNiJuT8Ja3hMVpBHXv3Q6dwmperaQ6JjLtpMQgMCD7xvx/go-ipfs-util"
+	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
+	ps "gx/ipfs/QmXauCuJzmzapetmC6W4TuDJLL1yFFrVzSHoWv8YdbmnxH/go-libp2p-peerstore"
+	mh "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
+	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
+	"strings"
 	"time"
 
+	"github.com/phoreproject/wallet-interface"
+	"github.com/phoreproject/btcd/chaincfg/chainhash"
 	"github.com/golang/protobuf/ptypes"
 	google_protobuf "github.com/golang/protobuf/ptypes/timestamp"
-	"github.com/phoreproject/btcd/chaincfg/chainhash"
+
 	"github.com/phoreproject/openbazaar-go/pb"
-	"github.com/phoreproject/wallet-interface"
 )
 
 // Hash with SHA-256 and encode as a multihash
@@ -27,6 +29,7 @@ func EncodeCID(b []byte) (*cid.Cid, error) {
 	return id, err
 }
 
+// EncodeMultihash - sha256 encode
 func EncodeMultihash(b []byte) (*mh.Multihash, error) {
 	h := sha256.Sum256(b)
 	encoded, err := mh.Encode(h[:], mh.SHA2_256)
@@ -40,7 +43,7 @@ func EncodeMultihash(b []byte) (*mh.Multihash, error) {
 	return &multihash, err
 }
 
-// Certain pointers, such as moderators, contain a peerID. This function
+// ExtractIDFromPointer Certain pointers, such as moderators, contain a peerID. This function
 // will extract the ID from the underlying PeerInfo object.
 func ExtractIDFromPointer(pi ps.PeerInfo) (string, error) {
 	if len(pi.Addrs) == 0 {
@@ -63,7 +66,7 @@ func FormatRFC3339PB(ts google_protobuf.Timestamp) string {
 	return util.FormatRFC3339(time.Unix(ts.Seconds, int64(ts.Nanos)).UTC())
 }
 
-// Used by the GET order API to build transaction records suitable to be included in the order response
+// BuildTransactionRecords - Used by the GET order API to build transaction records suitable to be included in the order response
 func (n *OpenBazaarNode) BuildTransactionRecords(contract *pb.RicardianContract, records []*wallet.TransactionRecord, state pb.OrderState) ([]*pb.TransactionRecord, *pb.TransactionRecord, error) {
 	paymentRecords := []*pb.TransactionRecord{}
 	payments := make(map[string]*pb.TransactionRecord)
@@ -123,7 +126,7 @@ func (n *OpenBazaarNode) BuildTransactionRecords(contract *pb.RicardianContract,
 			}
 			confirmations, height, err := n.Wallet.GetConfirmations(*ch)
 			if err != nil {
-				return paymentRecords, refundRecord, err
+				return paymentRecords, refundRecord, nil
 			}
 			refundRecord.Txid = contract.Refund.RefundTransaction.Txid
 			refundRecord.Value = int64(contract.Refund.RefundTransaction.Value)
@@ -133,4 +136,9 @@ func (n *OpenBazaarNode) BuildTransactionRecords(contract *pb.RicardianContract,
 		}
 	}
 	return paymentRecords, refundRecord, nil
+}
+
+// NormalizeCurrencyCode standardizes the format for the given currency code
+func NormalizeCurrencyCode(currencyCode string) string {
+	return strings.ToUpper(currencyCode)
 }

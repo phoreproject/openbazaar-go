@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	cid "gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
+	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 	"io/ioutil"
 	"net/url"
 	"os"
@@ -105,6 +105,9 @@ func (n *OpenBazaarNode) SignPost(post *pb.Post) (*pb.SignedPost, error) {
 		return sp, err
 	}
 	sig, err := ecPrivKey.Sign([]byte(id.PeerID))
+	if err != nil {
+		return sp, err
+	}
 	id.BitcoinSig = sig.Serialize()
 
 	// Sign post
@@ -139,7 +142,7 @@ func (n *OpenBazaarNode) extractpostData(post *pb.SignedPost) (postData, error) 
 	postPath := path.Join(n.RepoPath, "root", "posts", post.Post.Slug+".json")
 
 	// Get the hash of the post's file and add to postHash variable
-	postHash, err := ipfs.GetHashOfFile(n.Context, postPath)
+	postHash, err := ipfs.GetHashOfFile(n.IpfsNode, postPath)
 	if err != nil {
 		return postData{}, err
 	}
@@ -285,10 +288,10 @@ func (n *OpenBazaarNode) UpdatePostHashes(hashes map[string]string) error {
 
 	// Write it back to file
 	f, err := os.Create(indexPath)
-	defer f.Close()
 	if err != nil {
 		return err
 	}
+	defer f.Close()
 
 	j, jerr := json.MarshalIndent(index, "", "    ")
 	if jerr != nil {
@@ -356,10 +359,10 @@ func (n *OpenBazaarNode) DeletePost(slug string) error {
 
 	// Write the index back to file
 	f, err := os.Create(indexPath)
-	defer f.Close()
 	if err != nil {
 		return err
 	}
+	defer f.Close()
 
 	j, jerr := json.MarshalIndent(index, "", "    ")
 	if jerr != nil {
@@ -534,42 +537,5 @@ func validatePost(post *pb.Post) (err error) {
 		}
 	}
 
-	return nil
-}
-
-//verifySignaturesOnPost  [Verify the signatures in the post]
-func verifySignaturesOnPost(sl *pb.SignedPost) error {
-	// Verify identity signature on the post
-	if err := verifySignature(
-		sl.Post,
-		sl.Post.VendorID.Pubkeys.Identity,
-		sl.Signature,
-		sl.Post.VendorID.PeerID,
-	); err != nil {
-		switch err.(type) {
-		case noSigError:
-			return errors.New("Post does not contain signature")
-		case invalidSigError:
-			return errors.New("Vendor's identity signature on post failed to verify")
-		case matchKeyError:
-			return errors.New("Public key in order does not match reported buyer ID")
-		default:
-			return err
-		}
-	}
-
-	// Verify the bitcoin signature in the ID
-	if err := verifyBitcoinSignature(
-		sl.Post.VendorID.Pubkeys.Bitcoin,
-		sl.Post.VendorID.BitcoinSig,
-		sl.Post.VendorID.PeerID,
-	); err != nil {
-		switch err.(type) {
-		case invalidSigError:
-			return errors.New("Vendor's bitcoin signature on GUID failed to verify")
-		default:
-			return err
-		}
-	}
 	return nil
 }

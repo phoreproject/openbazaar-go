@@ -1,40 +1,37 @@
 package ipfs
 
 import (
-	"github.com/ipfs/go-ipfs/commands"
+	"context"
+	"github.com/ipfs/go-ipfs/core"
+	"github.com/ipfs/go-ipfs/core/coreunix"
 	"github.com/ipfs/go-ipfs/path"
-	"io"
+	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
+	"io/ioutil"
+	"strings"
 	"time"
 )
 
-const CatTimeout = 60 * time.Second
-
 // Fetch data from IPFS given the hash
-func Cat(ctx commands.Context, hash string) ([]byte, error) {
-	args := []string{"cat", hash}
-	req, cmd, err := NewRequestWithTimeout(ctx, args, CatTimeout)
-	if err != nil {
-		return nil, err
+func Cat(n *core.IpfsNode, path string, timeout time.Duration) ([]byte, error) {
+	ctx, _ := context.WithTimeout(context.Background(), timeout)
+	if !strings.HasPrefix(path, "/ipfs/") {
+		path = "/ipfs/" + path
 	}
-	res := commands.NewResponse(req)
-	cmd.Run(req, res)
 
-	if res.Error() != nil {
-		return nil, res.Error()
-	}
-	resp := res.Output()
-	reader := resp.(io.Reader)
-	b := make([]byte, res.Length())
-	_, err = reader.Read(b)
+	r, err := coreunix.Cat(ctx, n, path)
 	if err != nil {
 		return nil, err
 	}
-	return b, nil
+	return ioutil.ReadAll(r)
 }
 
-func ResolveThenCat(ctx commands.Context, ipnsPath path.Path) ([]byte, error) {
+func ResolveThenCat(n *core.IpfsNode, ipnsPath path.Path, timeout time.Duration, usecache bool) ([]byte, error) {
 	var ret []byte
-	hash, err := Resolve(ctx, ipnsPath.Segments()[0])
+	pid, err := peer.IDB58Decode(ipnsPath.Segments()[0])
+	if err != nil {
+		return nil, err
+	}
+	hash, err := Resolve(n, pid, timeout, usecache)
 	if err != nil {
 		return ret, err
 	}
@@ -43,7 +40,7 @@ func ResolveThenCat(ctx commands.Context, ipnsPath path.Path) ([]byte, error) {
 	for i := 0; i < len(ipnsPath.Segments())-1; i++ {
 		p[i+1] = ipnsPath.Segments()[i+1]
 	}
-	b, err := Cat(ctx, path.Join(p))
+	b, err := Cat(n, path.Join(p), timeout)
 	if err != nil {
 		return ret, err
 	}

@@ -4,17 +4,23 @@ import (
 	"bytes"
 	"encoding/hex"
 	"errors"
-	crypto "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
-
 	"time"
 
+	"github.com/phoreproject/wallet-interface"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
-	hd "github.com/phoreproject/btcutil/hdkeychain"
+
+	crypto "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
+
 	"github.com/phoreproject/openbazaar-go/pb"
-	"github.com/phoreproject/wallet-interface"
 )
 
+var (
+	// MaxTXIDSize - max length for order txnID
+	MaxTXIDSize = 512
+)
+
+// FulfillOrder - fulfill the order
 func (n *OpenBazaarNode) FulfillOrder(fulfillment *pb.OrderFulfillment, contract *pb.RicardianContract, records []*wallet.TransactionRecord) error {
 	if fulfillment.Slug == "" && len(contract.VendorListings) == 1 {
 		fulfillment.Slug = contract.VendorListings[0].Slug
@@ -41,20 +47,14 @@ func (n *OpenBazaarNode) FulfillOrder(fulfillment *pb.OrderFulfillment, contract
 			}
 		}
 
-		var output wallet.TransactionOutput
-
-		outputScript, err := n.Wallet.AddressToScript(currentAddress)
-		if err != nil {
-			return err
+		var output = wallet.TransactionOutput{
+			Address: currentAddress,
+			Value:   outValue,
 		}
-		output.ScriptPubKey = outputScript
-		output.Value = outValue
-
 		chaincode, err := hex.DecodeString(contract.BuyerOrder.Payment.Chaincode)
 		if err != nil {
 			return err
 		}
-		parentFP := []byte{0x00, 0x00, 0x00, 0x00}
 		mPrivKey := n.Wallet.MasterPrivateKey()
 		if err != nil {
 			return err
@@ -63,20 +63,14 @@ func (n *OpenBazaarNode) FulfillOrder(fulfillment *pb.OrderFulfillment, contract
 		if err != nil {
 			return err
 		}
-		hdKey := hd.NewExtendedKey(
-			n.Wallet.Params().HDPrivateKeyID[:],
-			mECKey.Serialize(),
-			chaincode,
-			parentFP,
-			0,
-			0,
-			true)
-
-		vendorKey, err := hdKey.Child(0)
+		vendorKey, err := n.Wallet.ChildKey(mECKey.Serialize(), chaincode, true)
 		if err != nil {
 			return err
 		}
 		redeemScript, err := hex.DecodeString(contract.BuyerOrder.Payment.RedeemScript)
+		if err != nil {
+			return err
+		}
 
 		signatures, err := n.Wallet.CreateMultisigSignature(ins, []wallet.TransactionOutput{output}, vendorKey, redeemScript, payout.PayoutFeePerByte)
 		if err != nil {
@@ -91,10 +85,19 @@ func (n *OpenBazaarNode) FulfillOrder(fulfillment *pb.OrderFulfillment, contract
 		fulfillment.Payout = payout
 	}
 	var keyIndex int
-	for i, listing := range contract.VendorListings {
-		if listing.Slug == fulfillment.Slug {
+	var listing *pb.Listing
+	for i, list := range contract.VendorListings {
+		if list.Slug == fulfillment.Slug {
 			keyIndex = i
+			listing = list
 			break
+		}
+	}
+
+	if listing.Metadata.ContractType == pb.Listing_Metadata_CRYPTOCURRENCY {
+		err := validateCryptocurrencyFulfillment(fulfillment)
+		if err != nil {
+			return err
 		}
 	}
 
@@ -108,6 +111,20 @@ func (n *OpenBazaarNode) FulfillOrder(fulfillment *pb.OrderFulfillment, contract
 	metadata := new(pb.RatingSignature_TransactionMetadata)
 	metadata.RatingKey = contract.BuyerOrder.RatingKeys[keyIndex]
 	metadata.ListingSlug = fulfillment.Slug
+
+	if contract.BuyerOrder.Version > 0 {
+		metadata.ListingTitle = listing.Item.Title
+		if len(listing.Item.Images) > 0 {
+			metadata.Thumbnail = &pb.RatingSignature_TransactionMetadata_Image{
+				Tiny:     listing.Item.Images[0].Tiny,
+				Small:    listing.Item.Images[0].Small,
+				Medium:   listing.Item.Images[0].Medium,
+				Large:    listing.Item.Images[0].Large,
+				Original: listing.Item.Images[0].Original,
+			}
+		}
+	}
+
 	ser, err := proto.Marshal(metadata)
 	if err != nil {
 		return err
@@ -150,6 +167,7 @@ func (n *OpenBazaarNode) FulfillOrder(fulfillment *pb.OrderFulfillment, contract
 	return nil
 }
 
+// SignOrderFulfillment - add signature to order fulfillment
 func (n *OpenBazaarNode) SignOrderFulfillment(contract *pb.RicardianContract) (*pb.RicardianContract, error) {
 	serializedOrderFulfil, err := proto.Marshal(contract.VendorOrderFulfillment[0])
 	if err != nil {
@@ -169,6 +187,7 @@ func (n *OpenBazaarNode) SignOrderFulfillment(contract *pb.RicardianContract) (*
 	return contract, nil
 }
 
+// ValidateOrderFulfillment - validate order details
 func (n *OpenBazaarNode) ValidateOrderFulfillment(fulfillment *pb.OrderFulfillment, contract *pb.RicardianContract) error {
 	if err := verifySignaturesOnOrderFulfilment(contract); err != nil {
 		return err
@@ -276,9 +295,24 @@ func verifySignaturesOnOrderFulfilment(contract *pb.RicardianContract) error {
 	return nil
 }
 
-func (n *OpenBazaarNode) IsFulfilled(contract *pb.RicardianContract) bool {
-	if len(contract.VendorOrderFulfillment) < len(contract.VendorListings) {
-		return false
+func validateCryptocurrencyFulfillment(fulfillment *pb.OrderFulfillment) error {
+	if len(fulfillment.PhysicalDelivery)+len(fulfillment.DigitalDelivery) > 0 {
+		return ErrFulfillIncorrectDeliveryType
 	}
-	return true
+
+	for _, delivery := range fulfillment.CryptocurrencyDelivery {
+		if delivery.TransactionID == "" {
+			return ErrFulfillCryptocurrencyTXIDNotFound
+		}
+		if len(delivery.TransactionID) > MaxTXIDSize {
+			return ErrFulfillCryptocurrencyTXIDTooLong
+		}
+	}
+
+	return nil
+}
+
+// IsFulfilled - check is order is fulfilled
+func (n *OpenBazaarNode) IsFulfilled(contract *pb.RicardianContract) bool {
+	return len(contract.VendorOrderFulfillment) >= len(contract.VendorListings)
 }

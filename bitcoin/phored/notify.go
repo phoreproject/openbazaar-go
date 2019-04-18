@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	logging "github.com/op/go-logging"
+	"github.com/op/go-logging"
 	"github.com/phoreproject/btcd/btcjson"
 	"github.com/phoreproject/btcd/chaincfg/chainhash"
 	"github.com/phoreproject/btcd/wire"
@@ -26,7 +26,7 @@ type NotificationListener struct {
 }
 
 func (n *NotificationListener) updateFilterAndSend() {
-	filt, err := n.wallet.DB.GimmeFilter()
+	filt, err := n.wallet.txstore.GimmeFilter()
 
 	if err != nil {
 		log.Error(err)
@@ -37,14 +37,12 @@ func (n *NotificationListener) updateFilterAndSend() {
 
 	toSend := []byte(fmt.Sprintf("subscribeBloom %s %d %d 0", hex.EncodeToString(message.Filter), message.HashFuncs, message.Tweak))
 
-	// log.Debugf("<- %s", toSend)
+	//log.Debugf("<- %s", toSend)
 
 	n.conn.WriteMessage(websocket.TextMessage, toSend)
 }
 
 func startNotificationListener(wallet *RPCWallet) (*NotificationListener, error) {
-	<-wallet.InitChan()
-
 	notificationListener := &NotificationListener{wallet: wallet}
 	u := url.URL{Scheme: "wss", Host: wallet.rpcBasePath, Path: "/ws"}
 
@@ -85,11 +83,11 @@ func startNotificationListener(wallet *RPCWallet) (*NotificationListener, error)
 				}
 			}
 
-			// log.Debugf("-> %s", message)
-
 			if string(message) == "pong" {
 				continue
 			}
+
+			//log.Debugf("-> %s", message)
 
 			var getTx btcjson.GetTransactionResult
 			err = json.Unmarshal(message, &getTx)
@@ -121,7 +119,7 @@ func startNotificationListener(wallet *RPCWallet) (*NotificationListener, error)
 					blockHeight = int32(block.Height)
 				}
 
-				hits, err := wallet.DB.Ingest(transaction, blockHeight)
+				hits, err := wallet.txstore.Ingest(transaction, blockHeight, time.Unix(getTx.BlockTime, 0))
 				if err != nil {
 					log.Errorf("Error ingesting tx: %s\n", err.Error())
 					continue
@@ -133,7 +131,7 @@ func startNotificationListener(wallet *RPCWallet) (*NotificationListener, error)
 				notificationListener.updateFilterAndSend()
 				log.Infof("Tx %s ingested", transaction.TxHash().String())
 			} else {
-				fmt.Println(err)
+				log.Errorf("msg: %s, err: %s", string(message), err)
 			}
 		}
 	}()

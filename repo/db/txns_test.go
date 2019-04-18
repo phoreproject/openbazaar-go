@@ -4,19 +4,21 @@ import (
 	"bytes"
 	"database/sql"
 	"encoding/hex"
-	"github.com/phoreproject/btcd/wire"
+	"sync"
 	"testing"
 	"time"
+
+	"github.com/phoreproject/openbazaar-go/repo"
+	"github.com/phoreproject/wallet-interface"
+	"github.com/phoreproject/btcd/wire"
 )
 
-var txdb TxnsDB
+var txdb repo.TransactionStore
 
 func init() {
 	conn, _ := sql.Open("sqlite3", ":memory:")
 	initDatabaseTables(conn, "")
-	txdb = TxnsDB{
-		db: conn,
-	}
+	txdb = NewTransactionStore(conn, new(sync.Mutex), wallet.Bitcoin)
 }
 
 func TestTxnsPut(t *testing.T) {
@@ -26,11 +28,14 @@ func TestTxnsPut(t *testing.T) {
 	r := bytes.NewReader(raw)
 	tx.Deserialize(r)
 
-	err := txdb.Put(tx, 5, 1, time.Now(), false)
+	err := txdb.Put(raw, tx.TxHash().String(), 5, 1, time.Now(), false)
 	if err != nil {
 		t.Error(err)
 	}
-	stmt, err := txdb.db.Prepare("select tx, value, height, watchOnly from txns where txid=?")
+	stmt, err := txdb.PrepareQuery("select tx, value, height, watchOnly from txns where txid=?")
+	if err != nil {
+		t.Error(err)
+	}
 	defer stmt.Close()
 	var ret []byte
 	var val int
@@ -62,14 +67,16 @@ func TestTxnsGet(t *testing.T) {
 	tx.Deserialize(r)
 
 	now := time.Now()
-	err := txdb.Put(tx, 0, 1, now, false)
+	err := txdb.Put(raw, tx.TxHash().String(), 0, 1, now, false)
 	if err != nil {
 		t.Error(err)
 	}
-	tx2, txn, err := txdb.Get(tx.TxHash())
+	txn, err := txdb.Get(tx.TxHash())
 	if err != nil {
 		t.Error(err)
 	}
+	tx2 := wire.NewMsgTx(wire.TxVersion)
+	tx2.Deserialize(bytes.NewReader(txn.Bytes))
 	if tx.TxHash().String() != tx2.TxHash().String() {
 		t.Error("Txn db get failed")
 	}
@@ -91,7 +98,7 @@ func TestTxnsGetAll(t *testing.T) {
 	r := bytes.NewReader(raw)
 	tx.Deserialize(r)
 
-	err := txdb.Put(tx, 1, 5, time.Now(), true)
+	err := txdb.Put(raw, tx.TxHash().String(), 1, 5, time.Now(), true)
 	if err != nil {
 		t.Error(err)
 	}
@@ -111,7 +118,7 @@ func TestDeleteTxns(t *testing.T) {
 	r := bytes.NewReader(raw)
 	tx.Deserialize(r)
 
-	err := txdb.Put(tx, 0, 1, time.Now(), false)
+	err := txdb.Put(raw, tx.TxHash().String(), 0, 1, time.Now(), false)
 	if err != nil {
 		t.Error(err)
 	}
@@ -136,17 +143,20 @@ func TestTxnsDB_UpdateHeight(t *testing.T) {
 	txHex := "0100000001cbfe4948ebc9113244b802a96e4940fa063c0455a16ca1f39a1e1db03837d9c701000000da004830450221008994e3dba54cb0ea23ca008d0e361b4339ee7b44b5e9101f6837e6a1a89ce044022051be859c68a547feaf60ffacc43f528cf2963c088bde33424d859274505e3f450147304402206cd4ef92cc7f2862c67810479013330fcafe4d468f1370563d4dff6be5bcbedc02207688a09163e615bc82299a29e987e1d718cb99a91d46a1ab13d18c0f6e616a1601475221024760c9ba5fa6241da6ee8601f0266f0e0592f53735703f0feaae23eda6673ae821038cfa8e97caaafbe21455803043618440c28c501ec32d6ece6865003165a0d4d152aeffffffff029ae2c700000000001976a914f72f20a739ec3c3df1a1fd7eff122d13bd5ca39188acb64784240000000017a9140be09225644b4cfdbb472028d8ccaf6df736025c8700000000"
 	raw, _ := hex.DecodeString(txHex)
 	r := bytes.NewReader(raw)
-	tx.Deserialize(r)
+	err := tx.Deserialize(r)
+	if err != nil {
+		t.Error(err)
+	}
 
-	err := txdb.Put(tx, 0, 1, time.Now(), false)
+	err = txdb.Put(raw, tx.TxHash().String(), 0, 1, time.Now(), false)
 	if err != nil {
 		t.Error(err)
 	}
-	err = txdb.UpdateHeight(tx.TxHash(), -1)
+	err = txdb.UpdateHeight(tx.TxHash(), -1, time.Now())
 	if err != nil {
 		t.Error(err)
 	}
-	_, txn, err := txdb.Get(tx.TxHash())
+	txn, err := txdb.Get(tx.TxHash())
 	if err != nil {
 		t.Error(err)
 	}

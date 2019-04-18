@@ -15,8 +15,8 @@ import (
 	"time"
 
 	"github.com/OpenBazaar/jsonpb"
-	"github.com/golang/protobuf/ptypes"
 	"github.com/phoreproject/openbazaar-go/pb"
+	"github.com/golang/protobuf/ptypes"
 )
 
 const bufferSize = 5
@@ -39,12 +39,9 @@ func (n *OpenBazaarNode) ImportListings(r io.ReadCloser) error {
 	countLock := new(sync.Mutex)
 	count := 0
 
-	var ld []listingData
+	var ld []ListingData
 	indexLock := new(sync.Mutex)
 	wg := new(sync.WaitGroup)
-
-	stringPool := sync.Pool{New: func() interface{} { var s string; return s }}
-	stringSlicePool := sync.Pool{New: func() interface{} { var s []string; return s }}
 
 listingLoop:
 	for {
@@ -63,8 +60,7 @@ listingLoop:
 
 			countLock.Lock()
 			i := count
-			record := stringSlicePool.Get().([]string)
-			record, err = reader.Read()
+			record, err := reader.Read()
 			count++
 			countLock.Unlock()
 			if err == io.EOF {
@@ -162,7 +158,7 @@ listingLoop:
 				errChan <- fmt.Errorf("Error in record %d: %s", i, "price is a mandatory field")
 				return
 			}
-			if strings.ToUpper(listing.Metadata.PricingCurrency) != "BTC" {
+			if NormalizeCurrencyCode(listing.Metadata.PricingCurrency) != "BTC" {
 				f, err := strconv.ParseFloat(record[pos], 64)
 				if err != nil {
 					errChan <- fmt.Errorf("Error in record %d: %s", i, err.Error())
@@ -191,21 +187,17 @@ listingLoop:
 			pos, ok = fields["image_urls"]
 			if ok {
 				listing.Item.Images = []*pb.Listing_Item_Image{}
-				image_urls := stringSlicePool.Get().([]string)
-				image_urls = []string{}
-				image_urls = strings.Split(record[pos], ",")
+				imageUrls := strings.Split(record[pos], ",")
 				var l sync.Mutex
 				var wg sync.WaitGroup
-				var x int
-				img := stringPool.Get().(string)
-				for x, img = range image_urls {
+				for x, img := range imageUrls {
 					wg.Add(1)
 					go func(x int, img string) {
 						defer wg.Done()
-						b64 := stringPool.Get().(string)
+						var b64 string
 						var filename string
-						testUrl, err := url.Parse(img)
-						if err == nil && (testUrl.Scheme == "http" || testUrl.Scheme == "https") {
+						testURL, err := url.Parse(img)
+						if err == nil && (testURL.Scheme == "http" || testURL.Scheme == "https") {
 							b64, filename, err = n.GetBase64Image(img)
 							if err != nil {
 								errChan <- fmt.Errorf("Error in record %d: image %d failed to download", i, x)
@@ -298,7 +290,7 @@ listingLoop:
 						errChan <- fmt.Errorf("Error in record %d: %s", i, "shipping_option1_service1_estimated_price is a mandatory field")
 						return
 					}
-					if strings.ToUpper(listing.Metadata.PricingCurrency) != "BTC" {
+					if NormalizeCurrencyCode(listing.Metadata.PricingCurrency) != "BTC" {
 						f, err := strconv.ParseFloat(record[pos], 64)
 						if err != nil {
 							errChan <- fmt.Errorf("Error in record %d: %s", i, err.Error())
@@ -327,7 +319,7 @@ listingLoop:
 						errChan <- errors.New("shipping_option1_service2_estimated_price is a mandatory field")
 						return
 					}
-					if strings.ToUpper(listing.Metadata.PricingCurrency) != "BTC" {
+					if NormalizeCurrencyCode(listing.Metadata.PricingCurrency) != "BTC" {
 						f, err := strconv.ParseFloat(record[pos], 64)
 						if err != nil {
 							errChan <- fmt.Errorf("Error in record %d: %s", i, err.Error())
@@ -356,7 +348,7 @@ listingLoop:
 						errChan <- fmt.Errorf("Error in record %d: %s", i, "shipping_option1_service3_estimated_price is a mandatory field")
 						return
 					}
-					if strings.ToUpper(listing.Metadata.PricingCurrency) != "BTC" {
+					if NormalizeCurrencyCode(listing.Metadata.PricingCurrency) != "BTC" {
 						f, err := strconv.ParseFloat(record[pos], 64)
 						if err != nil {
 							errChan <- fmt.Errorf("Error in record %d: %s", i, err.Error())
@@ -406,7 +398,7 @@ listingLoop:
 						errChan <- fmt.Errorf("Error in record %d: %s", i, "shipping_option2_service1_estimated_price is a mandatory field")
 						return
 					}
-					if strings.ToUpper(listing.Metadata.PricingCurrency) != "BTC" {
+					if NormalizeCurrencyCode(listing.Metadata.PricingCurrency) != "BTC" {
 						f, err := strconv.ParseFloat(record[pos], 64)
 						if err != nil {
 							errChan <- fmt.Errorf("Error in record %d: %s", i, err.Error())
@@ -435,7 +427,7 @@ listingLoop:
 						errChan <- fmt.Errorf("Error in record %d: %s", i, "shipping_option2_service2_estimated_price is a mandatory field")
 						return
 					}
-					if strings.ToUpper(listing.Metadata.PricingCurrency) != "BTC" {
+					if NormalizeCurrencyCode(listing.Metadata.PricingCurrency) != "BTC" {
 						f, err := strconv.ParseFloat(record[pos], 64)
 						if err != nil {
 							errChan <- fmt.Errorf("Error in record %d: %s", i, err.Error())
@@ -464,7 +456,7 @@ listingLoop:
 						errChan <- fmt.Errorf("Error in record %d: %s", i, "shipping_option2_service3_estimated_price is a mandatory field")
 						return
 					}
-					if strings.ToUpper(listing.Metadata.PricingCurrency) != "BTC" {
+					if NormalizeCurrencyCode(listing.Metadata.PricingCurrency) != "BTC" {
 						f, err := strconv.ParseFloat(record[pos], 64)
 						if err != nil {
 							errChan <- fmt.Errorf("Error in record %d: %s", i, err.Error())
@@ -514,7 +506,7 @@ listingLoop:
 						errChan <- fmt.Errorf("Error in record %d: %s", i, "shipping_option3_service1_estimated_price is a mandatory field")
 						return
 					}
-					if strings.ToUpper(listing.Metadata.PricingCurrency) != "BTC" {
+					if NormalizeCurrencyCode(listing.Metadata.PricingCurrency) != "BTC" {
 						f, err := strconv.ParseFloat(record[pos], 64)
 						if err != nil {
 							errChan <- fmt.Errorf("Error in record %d: %s", i, err.Error())
@@ -543,7 +535,7 @@ listingLoop:
 						errChan <- fmt.Errorf("Error in record %d: %s", i, "shipping_option1_service2_estimated_price is a mandatory field")
 						return
 					}
-					if strings.ToUpper(listing.Metadata.PricingCurrency) != "BTC" {
+					if NormalizeCurrencyCode(listing.Metadata.PricingCurrency) != "BTC" {
 						f, err := strconv.ParseFloat(record[pos], 64)
 						if err != nil {
 							errChan <- fmt.Errorf("Error in record %d: %s", i, err.Error())
@@ -572,7 +564,7 @@ listingLoop:
 						errChan <- fmt.Errorf("Error in record %d: %s", i, "shipping_option3_service3_estimated_price is a mandatory field")
 						return
 					}
-					if strings.ToUpper(listing.Metadata.PricingCurrency) != "BTC" {
+					if NormalizeCurrencyCode(listing.Metadata.PricingCurrency) != "BTC" {
 						f, err := strconv.ParseFloat(record[pos], 64)
 						if err != nil {
 							errChan <- fmt.Errorf("Error in record %d: %s", i, err.Error())
@@ -639,6 +631,11 @@ listingLoop:
 
 			// Add listing data
 			data, err := n.extractListingData(signedListing)
+			if err != nil {
+				errChan <- fmt.Errorf("Error extractinng listings: %s", err.Error())
+				return
+			}
+
 			indexLock.Lock()
 			ld = append(ld, data)
 			indexLock.Unlock()

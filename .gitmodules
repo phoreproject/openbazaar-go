@@ -22,15 +22,6 @@
 	path = vendor/github.com/phoreproject/btcd
 	url = https://github.com/phoreproject/btcd
 	ignore = dirty
-[submodule "vendor/github.com/gogo/protobuf"]
-	path = vendor/github.com/gogo/protobuf
-	url = https://github.com/gogo/protobuf
-	ignore = dirty
-[submodule "vendor/github.com/icrowley/fake"]
-	path = vendor/github.com/icrowley/fake
-	url = https://github.com/icrowley/fake
-	ignore = dirty
-[submodule "vendor/github.com/corpix/uarand"]
-	path = vendor/github.com/corpix/uarand
-	url = https://github.com/corpix/uarand
-	ignore = dirty
+[submodule "vendor/github.com/phoreproject/go-x11"]
+	path = vendor/github.com/phoreproject/go-x11
+	url = https://github.com/phoreproject/go-x11

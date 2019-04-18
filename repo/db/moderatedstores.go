@@ -2,13 +2,17 @@ package db
 
 import (
 	"database/sql"
+	"github.com/phoreproject/openbazaar-go/repo"
 	"strconv"
 	"sync"
 )
 
 type ModeratedDB struct {
-	db   *sql.DB
-	lock sync.RWMutex
+	modelStore
+}
+
+func NewModeratedStore(db *sql.DB, lock *sync.Mutex) repo.ModeratedStore {
+	return &ModeratedDB{modelStore{db, lock}}
 }
 
 func (m *ModeratedDB) Put(peerID string) error {
@@ -28,8 +32,8 @@ func (m *ModeratedDB) Put(peerID string) error {
 }
 
 func (m *ModeratedDB) Get(offsetID string, limit int) ([]string, error) {
-	m.lock.RLock()
-	defer m.lock.RUnlock()
+	m.lock.Lock()
+	defer m.lock.Unlock()
 	var stm string
 	if offsetID != "" {
 		stm = "select peerID from moderatedstores order by rowid desc limit " + strconv.Itoa(limit) + " offset ((select coalesce(max(rowid)+1, 0) from moderatedstores)-(select rowid from moderatedstores where peerID='" + offsetID + "'))"

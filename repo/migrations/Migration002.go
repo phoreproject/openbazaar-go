@@ -8,12 +8,9 @@ import (
 	"path"
 )
 
-// Migration002 variable is used in one of several repo version migrations
-var Migration002 migration002
+type Migration002 struct{}
 
-type migration002 struct{}
-
-func (migration002) Up(repoPath string, dbPassword string, testnet bool) error {
+func (Migration002) Up(repoPath string, dbPassword string, testnet bool) error {
 	configFile, err := ioutil.ReadFile(path.Join(repoPath, "config"))
 	if err != nil {
 		return err
@@ -55,7 +52,7 @@ func (migration002) Up(repoPath string, dbPassword string, testnet bool) error {
 	if err != nil {
 		return err
 	}
-	_, err = f1.Write([]byte("2"))
+	_, err = f1.Write([]byte("3"))
 	if err != nil {
 		return err
 	}
@@ -63,7 +60,7 @@ func (migration002) Up(repoPath string, dbPassword string, testnet bool) error {
 	return nil
 }
 
-func (migration002) Down(repoPath string, dbPassword string, testnet bool) error {
+func (Migration002) Down(repoPath string, dbPassword string, testnet bool) error {
 	configFile, err := ioutil.ReadFile(path.Join(repoPath, "config"))
 	if err != nil {
 		return err
@@ -97,7 +94,7 @@ func (migration002) Down(repoPath string, dbPassword string, testnet bool) error
 	if err != nil {
 		return err
 	}
-	_, err = f1.Write([]byte("1"))
+	_, err = f1.Write([]byte("2"))
 	if err != nil {
 		return err
 	}

@@ -1,38 +1,45 @@
 package repo
 
 import (
-	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
+	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 
-	"time"
-
-	btc "github.com/phoreproject/btcutil"
-	notif "github.com/phoreproject/openbazaar-go/api/notifications"
+	"database/sql"
 	"github.com/phoreproject/openbazaar-go/ipfs"
 	"github.com/phoreproject/openbazaar-go/pb"
 	"github.com/phoreproject/wallet-interface"
+	btc "github.com/phoreproject/btcutil"
+	"time"
 )
 
 type Datastore interface {
 	Config() Config
-	Followers() Followers
-	Following() Following
-	OfflineMessages() OfflineMessages
-	Pointers() Pointers
-	Settings() Settings
-	Inventory() Inventory
-	Purchases() Purchases
-	Sales() Sales
-	Cases() Cases
-	Chat() Chat
-	Notifications() Notifications
-	Coupons() Coupons
-	TxMetadata() TxMetadata
-	ModeratedStores() ModeratedStores
+	Followers() FollowerStore
+	Following() FollowingStore
+	OfflineMessages() OfflineMessageStore
+	Pointers() PointerStore
+	Settings() ConfigurationStore
+	Inventory() InventoryStore
+	Purchases() PurchaseStore
+	Sales() SaleStore
+	Cases() CaseStore
+	Chat() ChatStore
+	Notifications() NotificationStore
+	Coupons() CouponStore
+	TxMetadata() TransactionMetadataStore
+	ModeratedStores() ModeratedStore
 	Ping() error
 	Close()
 }
 
-// Config interface defines basic database operations for configuration information
+type Queryable interface {
+	Lock()
+	Unlock()
+	BeginTransaction() (*sql.Tx, error)
+	PrepareQuery(string) (*sql.Stmt, error)
+	PrepareAndExecuteQuery(string, ...interface{}) (*sql.Rows, error)
+	ExecuteQuery(string, ...interface{}) (sql.Result, error)
+}
+
 type Config interface {
 	/* Initialize the database with the node's mnemonic seed and
 	   identity key. This will be called during repo init. */
@@ -51,14 +58,15 @@ type Config interface {
 	IsEncrypted() bool
 }
 
-// Followers interface defines basic database operations for followers of the user
-type Followers interface {
+type FollowerStore interface {
+	Queryable
+
 	// Put a B58 encoded follower ID and proof to the database
 	Put(follower string, proof []byte) error
 
 	/* Get followers from the database.
 	   The offset and limit arguments can be used to for lazy loading. */
-	Get(offsetID string, limit int) ([]Follower, error)
+	Get(offsetId string, limit int) ([]Follower, error)
 
 	// Delete a follower from the database
 	Delete(follower string) error
@@ -67,17 +75,18 @@ type Followers interface {
 	Count() int
 
 	// Are we followed by this peer?
-	FollowsMe(peerID string) bool
+	FollowsMe(peerId string) bool
 }
 
-// Following interface defines basic database operations for peers the user is following
-type Following interface {
+type FollowingStore interface {
+	Queryable
+
 	// Put a B58 encoded peer ID to the database
 	Put(peer string) error
 
 	/* Get a list of following peers from the database.
 	   The offset and limit arguments can be used to for lazy loading. */
-	Get(offsetID string, limit int) ([]string, error)
+	Get(offsetId string, limit int) ([]string, error)
 
 	// Delete a peer from the database
 	Delete(peer string) error
@@ -86,11 +95,12 @@ type Following interface {
 	Count() int
 
 	// Am I following this peer?
-	IsFollowing(peerID string) bool
+	IsFollowing(peerId string) bool
 }
 
-// OfflineMessages interface defines basic database operations for messages
-type OfflineMessages interface {
+type OfflineMessageStore interface {
+	Queryable
+
 	// Put a URL from a retrieved message
 	Put(url string) error
 
@@ -107,8 +117,9 @@ type OfflineMessages interface {
 	DeleteMessage(url string) error
 }
 
-// Pointers interface defines basic database operations for pointers
-type Pointers interface {
+type PointerStore interface {
+	Queryable
+
 	// Put a pointer to the database
 	Put(p ipfs.Pointer) error
 
@@ -128,8 +139,9 @@ type Pointers interface {
 	GetAll() ([]ipfs.Pointer, error)
 }
 
-// Settings interface defines basic database operations for settings information
-type Settings interface {
+type ConfigurationStore interface {
+	Queryable
+
 	// Put settings to the database, overriding all fields
 	Put(settings SettingsData) error
 
@@ -143,20 +155,21 @@ type Settings interface {
 	Delete() error
 }
 
-// Inventory interface defines basic database operations for inventory information
-type Inventory interface {
+type InventoryStore interface {
+	Queryable
+
 	/* Put an inventory count for a listing
 	   Override the existing count if it exists */
-	Put(slug string, variantIndex int, count int) error
+	Put(slug string, variantIndex int, count int64) error
 
 	// Return the count for a specific listing including variants
-	GetSpecific(slug string, variantIndex int) (int, error)
+	GetSpecific(slug string, variantIndex int) (int64, error)
 
 	// Get the count for all variants of a given listing
-	Get(slug string) (map[int]int, error)
+	Get(slug string) (map[int]int64, error)
 
 	// Fetch all inventory maps for each slug
-	GetAll() (map[string]map[int]int, error)
+	GetAll() (map[string]map[int]int64, error)
 
 	// Delete a listing and related count
 	Delete(slug string, variant int) error
@@ -165,8 +178,9 @@ type Inventory interface {
 	DeleteAll(slug string) error
 }
 
-// Purchases interface defines basic database operations for purchase information
-type Purchases interface {
+type PurchaseStore interface {
+	Queryable
+
 	// Save or update an order
 	Put(orderID string, contract pb.RicardianContract, state pb.OrderState, read bool) error
 
@@ -193,10 +207,25 @@ type Purchases interface {
 
 	// Return the number of purchases in the database
 	Count() int
+
+	// GetPurchasesForDisputeTimeoutNotification returns []*PurchaseRecord including
+	// each record which needs buyerDisputeTimeout Notifications to be generated.
+	GetPurchasesForDisputeTimeoutNotification() ([]*PurchaseRecord, error)
+
+	// GetPurchasesForDisputeExpiryNotification returns []*PurchaseRecord including
+	// each record which needs buyerDisputeExpiry Notifications to be generated.
+	GetPurchasesForDisputeExpiryNotification() ([]*PurchaseRecord, error)
+
+	// UpdatePurchasesLastDisputeTimeoutNotifiedAt  accepts []*PurchaseRecord and updates each records lastDisputeTimeoutNotifiedAt by its OrderID
+	UpdatePurchasesLastDisputeTimeoutNotifiedAt([]*PurchaseRecord) error
+
+	// UpdatePurchasesLastDisputeExpiryNotifiedAt  accepts []*PurchaseRecord and updates each records lastDisputeExpiryNotifiedAt by its OrderID
+	UpdatePurchasesLastDisputeExpiryNotifiedAt([]*PurchaseRecord) error
 }
 
-// Sales interface defines basic database operations for order/sale information
-type Sales interface {
+type SaleStore interface {
+	Queryable
+
 	// Save or update a sale
 	Put(orderID string, contract pb.RicardianContract, state pb.OrderState, read bool) error
 
@@ -229,12 +258,23 @@ type Sales interface {
 
 	// Return the number of sales in the database
 	Count() int
+
+	// GetSalesForDisputeTimeoutNotification returns []*SaleRecord including
+	// each record which needs Notifications to be generated.
+	GetSalesForDisputeTimeoutNotification() ([]*SaleRecord, error)
+
+	// UpdateSalesLastDisputeTimeoutNotifiedAt  accepts []*SaleRecord and updates each records lastDisputeTimeoutNotifiedAt by its CaseID
+	UpdateSalesLastDisputeTimeoutNotifiedAt([]*SaleRecord) error
 }
 
-// Cases interface saves/updates/deletes cases, marks them read/unread, counts them and returns metadata and other case details.
-type Cases interface {
+type CaseStore interface {
+	Queryable
+
 	// Save a new case
-	Put(caseID string, state pb.OrderState, buyerOpened bool, claim string) error
+	Put(caseID string, state pb.OrderState, buyerOpened bool, claim string, paymentCoin string, coinType string) error
+
+	// Save a new case
+	PutRecord(*DisputeCaseRecord) error
 
 	// Update a case with the buyer info
 	UpdateBuyerInfo(caseID string, buyerContract *pb.RicardianContract, buyerValidationErrors []string, buyerPayoutAddress string, buyerOutpoints []*pb.Outpoint) error
@@ -257,21 +297,28 @@ type Cases interface {
 	// Return the case metadata given a case ID
 	GetCaseMetadata(caseID string) (buyerContract, vendorContract *pb.RicardianContract, buyerValidationErrors, vendorValidationErrors []string, state pb.OrderState, read bool, timestamp time.Time, buyerOpened bool, claim string, resolution *pb.DisputeResolution, err error)
 
-	// Return the dispute payout data for a case
-	GetPayoutDetails(caseID string) (buyerContract, vendorContract *pb.RicardianContract, buyerPayoutAddress, vendorPayoutAddress string, buyerOutpoints, vendorOutpoints []*pb.Outpoint, state pb.OrderState, err error)
+	// GetByCaseID returns the dispute payout data for a case
+	GetByCaseID(caseID string) (*DisputeCaseRecord, error)
 
 	// Return the metadata for all cases given the search terms. Also returns the original size of the query.
 	GetAll(stateFilter []pb.OrderState, searchTerm string, sortByAscending bool, sortByRead bool, limit int, exclude []string) ([]Case, int, error)
 
 	// Return the number of cases in the database
 	Count() int
+
+	// GetDisputesForDisputeExpiryNotification returns []*DisputeCaseRecord including
+	// each record which needs Notifications to be generated.
+	GetDisputesForDisputeExpiryNotification() ([]*DisputeCaseRecord, error)
+
+	// UpdateDisputesLastDisputeExpiryNotifiedAt accepts []*DisputeCaseRecord and updates each records lastDisputeExpiryNotifiedAt by its CaseID
+	UpdateDisputesLastDisputeExpiryNotifiedAt([]*DisputeCaseRecord) error
 }
 
-// Chat interface defines basic database operations for chat information
-type Chat interface {
+type ChatStore interface {
+	Queryable
 
 	// Put a new chat message to the database
-	Put(messageId string, peerID string, subject string, message string, timestamp time.Time, read bool, outgoing bool) error
+	Put(messageId string, peerId string, subject string, message string, timestamp time.Time, read bool, outgoing bool) error
 
 	// Returns a list of open conversations
 	GetConversations() []ChatConversation
@@ -295,10 +342,11 @@ type Chat interface {
 }
 
 // Notifications interface defines basic database operations for notification information
-type Notifications interface {
+type NotificationStore interface {
+	Queryable
 
-	// Put a new notification to the database
-	Put(notifID string, notification notif.Data, notifType string, timestamp time.Time) error
+	// PutRecord persists a Notification to the database
+	PutRecord(*Notification) error
 
 	// Mark notification as read
 	MarkAsRead(notifID string) error
@@ -307,7 +355,7 @@ type Notifications interface {
 	MarkAllAsRead() error
 
 	// Fetch notifications from database
-	GetAll(offsetID string, limit int, typeFilter []string) ([]notif.Notification, int, error)
+	GetAll(offsetID string, limit int, typeFilter []string) ([]*Notification, int, error)
 
 	// Returns the unread count for all notifications
 	GetUnreadCount() (int, error)
@@ -317,7 +365,8 @@ type Notifications interface {
 }
 
 // Coupons interface defines basic database operations for coupon information
-type Coupons interface {
+type CouponStore interface {
+	Queryable
 
 	// Put a list of coupons to the db
 	Put(coupons []Coupon) error
@@ -330,7 +379,8 @@ type Coupons interface {
 }
 
 // TxMetadata interface defines basic database operations for transaction metadata
-type TxMetadata interface {
+type TransactionMetadataStore interface {
+	Queryable
 
 	// Put metadata for a transaction to the db
 	Put(m Metadata) error
@@ -346,7 +396,9 @@ type TxMetadata interface {
 }
 
 // ModeratedStores interface defines basic database operations for moderated stores
-type ModeratedStores interface {
+type ModeratedStore interface {
+	Queryable
+
 	// Put a B58 encoded peer ID to the database
 	Put(peerID string) error
 
@@ -356,4 +408,29 @@ type ModeratedStores interface {
 
 	// Delete a moderated store from the database
 	Delete(peerID string) error
+}
+
+type KeyStore interface {
+	Queryable
+	wallet.Keys
+}
+
+type SpentTransactionOutputStore interface {
+	Queryable
+	wallet.Stxos
+}
+
+type TransactionStore interface {
+	Queryable
+	wallet.Txns
+}
+
+type UnspentTransactionOutputStore interface {
+	Queryable
+	wallet.Utxos
+}
+
+type WatchedScriptStore interface {
+	Queryable
+	wallet.WatchedScripts
 }

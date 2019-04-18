@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"sync"
 
 	"github.com/phoreproject/openbazaar-go/repo"
@@ -12,8 +13,11 @@ import (
 var SettingsNotSetError error = errors.New("Settings not set")
 
 type SettingsDB struct {
-	db   *sql.DB
-	lock sync.RWMutex
+	modelStore
+}
+
+func NewConfigurationStore(db *sql.DB, lock *sync.Mutex) repo.ConfigurationStore {
+	return &SettingsDB{modelStore{db, lock}}
 }
 
 func (s *SettingsDB) Put(settings repo.SettingsData) error {
@@ -35,16 +39,20 @@ func (s *SettingsDB) Put(settings repo.SettingsData) error {
 
 	_, err = stmt.Exec("settings", string(b))
 	if err != nil {
-		tx.Rollback()
+		if errRollback := tx.Rollback(); errRollback != nil {
+			return fmt.Errorf("rollback: %s\n also: %s", errRollback.Error(), err.Error())
+		}
 		return err
 	}
-	tx.Commit()
+	if err := tx.Commit(); err != nil {
+		return err
+	}
 	return nil
 }
 
 func (s *SettingsDB) Get() (repo.SettingsData, error) {
-	s.lock.RLock()
-	defer s.lock.RUnlock()
+	s.lock.Lock()
+	defer s.lock.Unlock()
 	settings := repo.SettingsData{}
 	stmt, err := s.db.Prepare("select value from config where key=?")
 	if err != nil {

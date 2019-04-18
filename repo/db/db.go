@@ -5,41 +5,43 @@ import (
 	"path"
 	"sync"
 
+	"time"
+
+	"github.com/phoreproject/openbazaar-go/repo"
+	"github.com/phoreproject/openbazaar-go/schema"
+	"github.com/phoreproject/wallet-interface"
 	_ "github.com/mutecomm/go-sqlcipher"
 	"github.com/op/go-logging"
-	"github.com/phoreproject/openbazaar-go/repo"
-	"github.com/phoreproject/wallet-interface"
-	"time"
 )
 
 var log = logging.MustGetLogger("db")
 
 type SQLiteDatastore struct {
 	config          repo.Config
-	followers       repo.Followers
-	following       repo.Following
-	offlineMessages repo.OfflineMessages
-	pointers        repo.Pointers
-	keys            wallet.Keys
-	stxos           wallet.Stxos
-	txns            wallet.Txns
-	utxos           wallet.Utxos
-	watchedScripts  wallet.WatchedScripts
-	settings        repo.Settings
-	inventory       repo.Inventory
-	purchases       repo.Purchases
-	sales           repo.Sales
-	cases           repo.Cases
-	chat            repo.Chat
-	notifications   repo.Notifications
-	coupons         repo.Coupons
-	txMetadata      repo.TxMetadata
-	moderatedStores repo.ModeratedStores
+	followers       repo.FollowerStore
+	following       repo.FollowingStore
+	offlineMessages repo.OfflineMessageStore
+	pointers        repo.PointerStore
+	keys            repo.KeyStore
+	stxos           repo.SpentTransactionOutputStore
+	txns            repo.TransactionStore
+	utxos           repo.UnspentTransactionOutputStore
+	watchedScripts  repo.WatchedScriptStore
+	settings        repo.ConfigurationStore
+	inventory       repo.InventoryStore
+	purchases       repo.PurchaseStore
+	sales           repo.SaleStore
+	cases           repo.CaseStore
+	chat            repo.ChatStore
+	notifications   repo.NotificationStore
+	coupons         repo.CouponStore
+	txMetadata      repo.TransactionMetadataStore
+	moderatedStores repo.ModeratedStore
 	db              *sql.DB
-	lock            sync.RWMutex
+	lock            *sync.Mutex
 }
 
-func Create(repoPath, password string, testnet bool) (*SQLiteDatastore, error) {
+func Create(repoPath, password string, testnet bool, coinType wallet.CoinType) (*SQLiteDatastore, error) {
 	var dbPath string
 	if testnet {
 		dbPath = path.Join(repoPath, "datastore", "testnet.db")
@@ -54,94 +56,35 @@ func Create(repoPath, password string, testnet bool) (*SQLiteDatastore, error) {
 		p := "pragma key='" + password + "';"
 		conn.Exec(p)
 	}
-	var l sync.RWMutex
-	sqliteDB := &SQLiteDatastore{
-		config: &ConfigDB{
-			db:   conn,
-			lock: l,
-			path: dbPath,
-		},
-		followers: &FollowerDB{
-			db:   conn,
-			lock: l,
-		},
-		following: &FollowingDB{
-			db:   conn,
-			lock: l,
-		},
-		offlineMessages: &OfflineMessagesDB{
-			db:   conn,
-			lock: l,
-		},
-		pointers: &PointersDB{
-			db:   conn,
-			lock: l,
-		},
-		keys: &KeysDB{
-			db:   conn,
-			lock: l,
-		},
-		stxos: &StxoDB{
-			db:   conn,
-			lock: l,
-		},
-		txns: &TxnsDB{
-			db:   conn,
-			lock: l,
-		},
-		utxos: &UtxoDB{
-			db:   conn,
-			lock: l,
-		},
-		settings: &SettingsDB{
-			db:   conn,
-			lock: l,
-		},
-		inventory: &InventoryDB{
-			db:   conn,
-			lock: l,
-		},
-		purchases: &PurchasesDB{
-			db:   conn,
-			lock: l,
-		},
-		sales: &SalesDB{
-			db:   conn,
-			lock: l,
-		},
-		watchedScripts: &WatchedScriptsDB{
-			db:   conn,
-			lock: l,
-		},
-		cases: &CasesDB{
-			db:   conn,
-			lock: l,
-		},
-		chat: &ChatDB{
-			db:   conn,
-			lock: l,
-		},
-		notifications: &NotficationsDB{
-			db:   conn,
-			lock: l,
-		},
-		coupons: &CouponDB{
-			db:   conn,
-			lock: l,
-		},
-		txMetadata: &TxMetadataDB{
-			db:   conn,
-			lock: l,
-		},
-		moderatedStores: &ModeratedDB{
-			db:   conn,
-			lock: l,
-		},
-		db:   conn,
-		lock: l,
-	}
+	l := new(sync.Mutex)
+	return NewSQLiteDatastore(conn, l, coinType), nil
+}
 
-	return sqliteDB, nil
+func NewSQLiteDatastore(db *sql.DB, l *sync.Mutex, coinType wallet.CoinType) *SQLiteDatastore {
+	return &SQLiteDatastore{
+		config:          &ConfigDB{db: db, lock: l},
+		followers:       NewFollowerStore(db, l),
+		following:       NewFollowingStore(db, l),
+		offlineMessages: NewOfflineMessageStore(db, l),
+		pointers:        NewPointerStore(db, l),
+		keys:            NewKeyStore(db, l, coinType),
+		stxos:           NewSpentTransactionStore(db, l, coinType),
+		txns:            NewTransactionStore(db, l, coinType),
+		utxos:           NewUnspentTransactionStore(db, l, coinType),
+		settings:        NewConfigurationStore(db, l),
+		inventory:       NewInventoryStore(db, l),
+		purchases:       NewPurchaseStore(db, l),
+		sales:           NewSaleStore(db, l),
+		watchedScripts:  NewWatchedScriptStore(db, l, coinType),
+		cases:           NewCaseStore(db, l),
+		chat:            NewChatStore(db, l),
+		notifications:   NewNotificationStore(db, l),
+		coupons:         NewCouponStore(db, l),
+		txMetadata:      NewTransactionMetadataStore(db, l),
+		moderatedStores: NewModeratedStore(db, l),
+		db:              db,
+		lock:            l,
+	}
 }
 
 func (d *SQLiteDatastore) Ping() error {
@@ -156,19 +99,19 @@ func (d *SQLiteDatastore) Config() repo.Config {
 	return d.config
 }
 
-func (d *SQLiteDatastore) Followers() repo.Followers {
+func (d *SQLiteDatastore) Followers() repo.FollowerStore {
 	return d.followers
 }
 
-func (d *SQLiteDatastore) Following() repo.Following {
+func (d *SQLiteDatastore) Following() repo.FollowingStore {
 	return d.following
 }
 
-func (d *SQLiteDatastore) OfflineMessages() repo.OfflineMessages {
+func (d *SQLiteDatastore) OfflineMessages() repo.OfflineMessageStore {
 	return d.offlineMessages
 }
 
-func (d *SQLiteDatastore) Pointers() repo.Pointers {
+func (d *SQLiteDatastore) Pointers() repo.PointerStore {
 	return d.pointers
 }
 
@@ -188,19 +131,19 @@ func (d *SQLiteDatastore) Utxos() wallet.Utxos {
 	return d.utxos
 }
 
-func (d *SQLiteDatastore) Settings() repo.Settings {
+func (d *SQLiteDatastore) Settings() repo.ConfigurationStore {
 	return d.settings
 }
 
-func (d *SQLiteDatastore) Inventory() repo.Inventory {
+func (d *SQLiteDatastore) Inventory() repo.InventoryStore {
 	return d.inventory
 }
 
-func (d *SQLiteDatastore) Purchases() repo.Purchases {
+func (d *SQLiteDatastore) Purchases() repo.PurchaseStore {
 	return d.purchases
 }
 
-func (d *SQLiteDatastore) Sales() repo.Sales {
+func (d *SQLiteDatastore) Sales() repo.SaleStore {
 	return d.sales
 }
 
@@ -208,27 +151,27 @@ func (d *SQLiteDatastore) WatchedScripts() wallet.WatchedScripts {
 	return d.watchedScripts
 }
 
-func (d *SQLiteDatastore) Cases() repo.Cases {
+func (d *SQLiteDatastore) Cases() repo.CaseStore {
 	return d.cases
 }
 
-func (d *SQLiteDatastore) Chat() repo.Chat {
+func (d *SQLiteDatastore) Chat() repo.ChatStore {
 	return d.chat
 }
 
-func (d *SQLiteDatastore) Notifications() repo.Notifications {
+func (d *SQLiteDatastore) Notifications() repo.NotificationStore {
 	return d.notifications
 }
 
-func (d *SQLiteDatastore) Coupons() repo.Coupons {
+func (d *SQLiteDatastore) Coupons() repo.CouponStore {
 	return d.coupons
 }
 
-func (d *SQLiteDatastore) TxMetadata() repo.TxMetadata {
+func (d *SQLiteDatastore) TxMetadata() repo.TransactionMetadataStore {
 	return d.txMetadata
 }
 
-func (d *SQLiteDatastore) ModeratedStores() repo.ModeratedStores {
+func (d *SQLiteDatastore) ModeratedStores() repo.ModeratedStore {
 	return d.moderatedStores
 }
 
@@ -274,51 +217,14 @@ func (s *SQLiteDatastore) InitTables(password string) error {
 	return initDatabaseTables(s.db, password)
 }
 
-func initDatabaseTables(db *sql.DB, password string) error {
-	var sqlStmt string
-	if password != "" {
-		sqlStmt = "PRAGMA key = '" + password + "';"
-	}
-	sqlStmt += `
-	PRAGMA user_version = 0;
-	create table config (key text primary key not null, value blob);
-	create table followers (peerID text primary key not null, proof blob);
-	create table following (peerID text primary key not null);
-	create table offlinemessages (url text primary key not null, timestamp integer, message blob);
-	create table pointers (pointerID text primary key not null, key text, address text, cancelID text, purpose integer, timestamp integer);
-	create table keys (scriptAddress text primary key not null, purpose integer, keyIndex integer, used integer, key text);
-	create table utxos (outpoint text primary key not null, value integer, height integer, scriptPubKey text, watchOnly integer);
-	create table stxos (outpoint text primary key not null, value integer, height integer, scriptPubKey text, watchOnly integer, spendHeight integer, spendTxid text);
-	create table txns (txid text primary key not null, value integer, height integer, timestamp integer, watchOnly integer, tx blob);
-	create table txmetadata (txid text primary key not null, address text, memo text, orderID text, thumbnail text, canBumpFee integer);
-	create table inventory (invID text primary key not null, slug text, variantIndex integer, count integer);
-	create index index_inventory on inventory (slug);
-	create table purchases (orderID text primary key not null, contract blob, state integer, read integer, timestamp integer, total integer, thumbnail text, vendorID text, vendorHandle text, title text, shippingName text, shippingAddress text, paymentAddr text, funded integer, transactions blob);
-	create index index_purchases on purchases (paymentAddr, timestamp);
-	create table sales (orderID text primary key not null, contract blob, state integer, read integer, timestamp integer, total integer, thumbnail text, buyerID text, buyerHandle text, title text, shippingName text, shippingAddress text, paymentAddr text, funded integer, transactions blob, needsSync integer);
-	create index index_sales on sales (paymentAddr, timestamp);
-	create table watchedscripts (scriptPubKey text primary key not null);
-	create table cases (caseID text primary key not null, buyerContract blob, vendorContract blob, buyerValidationErrors blob, vendorValidationErrors blob, buyerPayoutAddress text, vendorPayoutAddress text, buyerOutpoints blob, vendorOutpoints blob, state integer, read integer, timestamp integer, buyerOpened integer, claim text, disputeResolution blob);
-	create index index_cases on cases (timestamp);
-	create table chat (messageID text primary key not null, peerID text, subject text, message text, read integer, timestamp integer, outgoing integer);
-	create index index_chat on chat (peerID, subject, read, timestamp);
-	create table notifications (notifID text primary key not null, serializedNotification blob, type text, timestamp integer, read integer);
-	create index index_notifications on notifications (read, type, timestamp);
-	create table coupons (slug text, code text, hash text);
-	create index index_coupons on coupons (slug);
-	create table moderatedstores (peerID text primary key not null);
-	`
-	_, err := db.Exec(sqlStmt)
-	if err != nil {
-		return err
-	}
-	return nil
+func initDatabaseTables(db *sql.DB, password string) (err error) {
+	_, err = db.Exec(schema.InitializeDatabaseSQL(password))
+	return err
 }
 
 type ConfigDB struct {
 	db   *sql.DB
-	lock sync.RWMutex
-	path string
+	lock *sync.Mutex
 }
 
 func (c *ConfigDB) Init(mnemonic string, identityKey []byte, password string, creationDate time.Time) error {
@@ -356,9 +262,12 @@ func (c *ConfigDB) Init(mnemonic string, identityKey []byte, password string, cr
 }
 
 func (c *ConfigDB) GetMnemonic() (string, error) {
-	c.lock.RLock()
-	defer c.lock.RUnlock()
+	c.lock.Lock()
+	defer c.lock.Unlock()
 	stmt, err := c.db.Prepare("select value from config where key=?")
+	if err != nil {
+		log.Fatal(err)
+	}
 	defer stmt.Close()
 	var mnemonic string
 	err = stmt.QueryRow("mnemonic").Scan(&mnemonic)
@@ -369,8 +278,8 @@ func (c *ConfigDB) GetMnemonic() (string, error) {
 }
 
 func (c *ConfigDB) GetIdentityKey() ([]byte, error) {
-	c.lock.RLock()
-	defer c.lock.RUnlock()
+	c.lock.Lock()
+	defer c.lock.Unlock()
 	stmt, err := c.db.Prepare("select value from config where key=?")
 	if err != nil {
 		return nil, err
@@ -385,8 +294,8 @@ func (c *ConfigDB) GetIdentityKey() ([]byte, error) {
 }
 
 func (c *ConfigDB) GetCreationDate() (time.Time, error) {
-	c.lock.RLock()
-	defer c.lock.RUnlock()
+	c.lock.Lock()
+	defer c.lock.Unlock()
 	var t time.Time
 	stmt, err := c.db.Prepare("select value from config where key=?")
 	if err != nil {
@@ -402,8 +311,8 @@ func (c *ConfigDB) GetCreationDate() (time.Time, error) {
 }
 
 func (c *ConfigDB) IsEncrypted() bool {
-	c.lock.RLock()
-	defer c.lock.RUnlock()
+	c.lock.Lock()
+	defer c.lock.Unlock()
 	pwdCheck := "select count(*) from sqlite_master;"
 	_, err := c.db.Exec(pwdCheck) // Fails if wrong password is entered
 	if err != nil {

@@ -1,32 +1,49 @@
-package db
+package db_test
 
 import (
-	"database/sql"
-	"github.com/phoreproject/openbazaar-go/repo"
+	"sync"
 	"testing"
+
+	"github.com/phoreproject/openbazaar-go/repo"
+	"github.com/phoreproject/openbazaar-go/repo/db"
+	"github.com/phoreproject/openbazaar-go/schema"
 )
 
-var coup CouponDB
-
-func init() {
-	conn, _ := sql.Open("sqlite3", ":memory:")
-	initDatabaseTables(conn, "")
-	coup = CouponDB{
-		db: conn,
+func buildNewCouponStore() (repo.CouponStore, func(), error) {
+	appSchema := schema.MustNewCustomSchemaManager(schema.SchemaContext{
+		DataPath:        schema.GenerateTempPath(),
+		TestModeEnabled: true,
+	})
+	if err := appSchema.BuildSchemaDirectories(); err != nil {
+		return nil, nil, err
 	}
+	if err := appSchema.InitializeDatabase(); err != nil {
+		return nil, nil, err
+	}
+	database, err := appSchema.OpenDatabase()
+	if err != nil {
+		return nil, nil, err
+	}
+	return db.NewCouponStore(database, new(sync.Mutex)), appSchema.DestroySchemaDirectories, nil
 }
 
 func TestPutCoupons(t *testing.T) {
+	var couponDB, teardown, err = buildNewCouponStore()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer teardown()
+
 	coupons := []repo.Coupon{
 		{"slug", "code1", "hash1"},
 		{"slug", "code2", "hash2"},
 	}
-	err := coup.Put(coupons)
+	err = couponDB.Put(coupons)
 	if err != nil {
 		t.Error(err)
 	}
 	stm := "select slug, code, hash from coupons where slug=slug;"
-	rows, err := coup.db.Query(stm)
+	rows, err := couponDB.PrepareAndExecuteQuery(stm)
 	if err != nil {
 		t.Error(err)
 		return
@@ -52,15 +69,21 @@ func TestPutCoupons(t *testing.T) {
 }
 
 func TestGetCoupons(t *testing.T) {
+	var couponDB, teardown, err = buildNewCouponStore()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer teardown()
+
 	coupons := []repo.Coupon{
 		{"s", "code1", "hash1"},
 		{"s", "code2", "hash2"},
 	}
-	err := coup.Put(coupons)
+	err = couponDB.Put(coupons)
 	if err != nil {
 		t.Error(err)
 	}
-	ret, err := coup.Get("s")
+	ret, err := couponDB.Get("s")
 	if err != nil {
 		t.Error(err)
 	}
@@ -76,19 +99,25 @@ func TestGetCoupons(t *testing.T) {
 }
 
 func TestDeleteCoupons(t *testing.T) {
+	var couponDB, teardown, err = buildNewCouponStore()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer teardown()
+
 	coupons := []repo.Coupon{
 		{"slug", "code1", "hash1"},
 		{"slug", "code2", "hash2"},
 	}
-	err := coup.Put(coupons)
+	err = couponDB.Put(coupons)
 	if err != nil {
 		t.Error(err)
 	}
-	err = coup.Delete("slug")
+	err = couponDB.Delete("slug")
 	if err != nil {
 		t.Error(err)
 	}
-	ret, err := coup.Get("slug")
+	ret, err := couponDB.Get("slug")
 	if err != nil {
 		t.Error(err)
 	}

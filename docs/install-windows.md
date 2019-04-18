@@ -24,8 +24,15 @@ Create a directory to store all your Go projects (e.g. `C:\goprojects`):
 ### Install openbazaar-go
 
 - Install `openbazaar-go`:
-    + Open the command prompt and type: `go get github.com/phoreproject/openbazaar-go`
-    + It will put the source code in `%GOPATH%\src\github.com\OpenBazaar\openbazaar-go`
+    - from master:
+        + Open the command prompt and type: `go get github.com/phoreproject/openbazaar-go`
+        + It will put the source code in `%GOPATH%\src\github.com\phoreproject\openbazaar-go`
+    - from other branch:
+        + Open the command prompt and type `cd %GOPATH%\src\github.com\phoreproject`
+        + Then `git clone --recursive -b BRANCH_NAME git@github.com:phoreproject/openbazaar-go`
+        + It will put the source code in `%GOPATH%\src\github.com\phoreproject\openbazaar-go`
+        
 - To compile and run `openbazaar-go`:
-    + Open the command prompt and navigate the source directory: `cd %GOPATH%\src\github.com\OpenBazaar\openbazaar-go` 
+    + Open the command prompt and navigate the source directory: `cd %GOPATH%\src\github.com\phoreproject\openbazaar-go` 
     + Type: `go run openbazaard.go start`
+

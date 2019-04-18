@@ -10,11 +10,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/phoreproject/openbazaar-go/bitcoin/phored"
+	"github.com/OpenBazaar/jsonpb"
 	"github.com/phoreproject/openbazaar-go/test"
+	"github.com/golang/protobuf/proto"
 
-	manet "gx/ipfs/QmX3U3YXCQ6UYBxq2LVWF8dARS1hPUTEYLrSx654Qyxyw6/go-multiaddr-net"
-	ma "gx/ipfs/QmXY77cVe7rVRQXZZQRioukUM7aRW3BTcAgJe12MCtb3Ji/go-multiaddr"
+	manet "gx/ipfs/QmRK2LxanhK2gZq6k6R7vk5ZoYZk8ULSSTB7FzDsMUX6CB/go-multiaddr-net"
+	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
+
 	"os"
 
 	"github.com/op/go-logging"
@@ -55,11 +57,6 @@ func newTestGateway() (*Gateway, error) {
 		return nil, err
 	}
 
-	node.Wallet.Start()
-
-	// always phored so we can safely cast here
-	<-node.Wallet.(*phored.RPCWallet).InitChan()
-
 	return NewGateway(node, *test.GetAuthCookie(), listener.NetListener(), *apiConfig, logging.NewLogBackend(os.Stdout, "", 0))
 }
 
@@ -73,56 +70,57 @@ type apiTest struct {
 	expectedResponseBody string
 }
 
+// setupAction is used to change state before and after a set of []apiTest
+type setupAction func(*test.Repository) error
+
 // apiTests is a slice of apiTest
 type apiTests []apiTest
 
-// request issues an http request directly to the blackbox handler
-func request(req *http.Request) (*http.Response, error) {
-	resp, err := testHTTPClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-
-	return resp, nil
-}
-
-// buildRequest issues an http request directly to the blackbox handler
-func buildRequest(method string, path string, body string) (*http.Request, error) {
-	// Create a JSON request to the given endpoint
-	req, err := http.NewRequest(method, testURIRoot+path, bytes.NewBufferString(body))
-	if err != nil {
-		return nil, err
-	}
-
-	// Set headers/auth/cookie
-	req.Header.Add("Content-Type", "application/json")
-	req.SetBasicAuth("test", "test")
-	req.AddCookie(test.GetAuthCookie())
-
-	return req, nil
-}
-
 func runAPITests(t *testing.T, tests apiTests) {
-	// Create test repo
-	repository, err := test.NewRepository()
+	_, err := test.ResetRepository()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	// Reset repo state
-	repository.Reset()
+	for _, jsonAPITest := range tests {
+		executeAPITest(t, jsonAPITest)
+	}
+}
+
+func runAPITestsWithSetup(t *testing.T, tests apiTests, runBefore, runAfter setupAction) {
+	repository, err := test.ResetRepository()
 	if err != nil {
 		t.Fatal(err)
+	}
+
+	if runBefore != nil {
+		if err := runBefore(repository); err != nil {
+			t.Fatal("runBefore:", err)
+		}
 	}
 
 	// Run each test in serial
 	for _, jsonAPITest := range tests {
-		runAPITest(t, jsonAPITest)
+		executeAPITest(t, jsonAPITest)
+	}
+
+	if runAfter != nil {
+		if err := runAfter(repository); err != nil {
+			t.Fatal("runAfter:", err)
+		}
 	}
 }
 
-// runTest executes the given test against the blackbox
-func runAPITest(t *testing.T, test apiTest) {
+func runAPITest(t *testing.T, subject apiTest) {
+	_, err := test.ResetRepository()
+	if err != nil {
+		t.Fatal(err)
+	}
+	executeAPITest(t, subject)
+}
+
+// executeAPITest executes the given test against the blackbox
+func executeAPITest(t *testing.T, test apiTest) {
 	// Make the request
 	req, err := buildRequest(test.method, test.path, test.requestBody)
 	if err != nil {
@@ -165,7 +163,52 @@ func runAPITest(t *testing.T, test apiTest) {
 		if !reflect.DeepEqual(responseJSON, expectedJSON) {
 			fmt.Println("expected:", test.expectedResponseBody)
 			fmt.Println("actual:", string(respBody))
-			t.Fatal("Incorrect response")
+			t.Error("Incorrect response")
 		}
 	}
+}
+
+// buildRequest issues an http request directly to the blackbox handler
+func buildRequest(method string, path string, body string) (*http.Request, error) {
+	// Create a JSON request to the given endpoint
+	req, err := http.NewRequest(method, testURIRoot+path, bytes.NewBufferString(body))
+	if err != nil {
+		return nil, err
+	}
+
+	// Set headers/auth/cookie
+	req.Header.Add("Content-Type", "application/json")
+	req.SetBasicAuth("test", "test")
+	req.AddCookie(test.GetAuthCookie())
+
+	return req, nil
+}
+
+func errorResponseJSON(err error) string {
+	return `{"success": false, "reason": "` + err.Error() + `"}`
+}
+
+func httpGet(endpoint string) ([]byte, error) {
+	req, err := buildRequest("GET", endpoint, "")
+	if err != nil {
+		return nil, err
+	}
+	resp, err := testHTTPClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode != 200 {
+		return nil, err
+	}
+	return ioutil.ReadAll(resp.Body)
+}
+
+func jsonFor(t *testing.T, fixture proto.Message) string {
+	m := jsonpb.Marshaler{}
+
+	json, err := m.MarshalToString(fixture)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return json
 }

@@ -4,13 +4,17 @@ package core
 
 import (
 	"fmt"
+	"runtime"
 	"syscall"
 )
 
-const fileDescriptorLimit uint64 = 32000
-
 // CheckAndSetUlimit raises the file descriptor limit
 func CheckAndSetUlimit() error {
+	var fileDescriptorLimit uint64 = 32000
+	if runtime.GOOS == "darwin" {
+		fileDescriptorLimit = 24000
+	}
+
 	var rLimit syscall.Rlimit
 	err := syscall.Getrlimit(syscall.RLIMIT_NOFILE, &rLimit)
 	if err != nil {

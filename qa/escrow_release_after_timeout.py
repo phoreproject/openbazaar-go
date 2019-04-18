@@ -78,7 +78,7 @@ class EscrowTimeoutRelease(OpenBazaarTestFramework):
         time.sleep(4)
 
         # get listing hash
-        api_url = alice["gateway_url"] + "ipns/" + alice["peerId"] + "/listings.json"
+        api_url = alice["gateway_url"] + "ob/listings/" + alice["peerId"]
         r = requests.get(api_url)
         if r.status_code != 200:
             raise TestFailure("EscrowTimeoutRelease - FAIL: Couldn't get listing index")
@@ -204,7 +204,6 @@ class EscrowTimeoutRelease(OpenBazaarTestFramework):
             resp = json.loads(r.text)
             raise TestFailure("EscrowTimeoutRelease - FAIL: Release escrow internal server error %s", resp["reason"])
         elif r.status_code != 401:
-            resp = json.loads(r.text)
             raise TestFailure("EscrowTimeoutRelease - FAIL: Failed to raise error when releasing escrow before timeout")
 
         for i in range(6):
@@ -237,6 +236,24 @@ class EscrowTimeoutRelease(OpenBazaarTestFramework):
                 raise TestFailure("RefundDirectTest - FAIL: Alice failed to receive the multisig payout")
         else:
             raise TestFailure("RefundDirectTest - FAIL: Failed to query Alice's balance")
+
+        # check alice's order was set to payment finalized
+        api_url = alice["gateway_url"] + "ob/order/" + orderId
+        r = requests.get(api_url)
+        if r.status_code != 200:
+            raise TestFailure("EscrowTimeoutRelease - FAIL: Couldn't load order from Bob")
+        resp = json.loads(r.text)
+        if resp["state"] != "PAYMENT_FINALIZED":
+            raise TestFailure("EscrowTimeoutRelease - FAIL: Alice failed to set order to payment finalized")
+
+        # check bob's order was set to payment finalized
+        api_url = bob["gateway_url"] + "ob/order/" + orderId
+        r = requests.get(api_url)
+        if r.status_code != 200:
+            raise TestFailure("EscrowTimeoutRelease - FAIL: Couldn't load order from Bob")
+        resp = json.loads(r.text)
+        if resp["state"] != "PAYMENT_FINALIZED":
+            raise TestFailure("EscrowTimeoutRelease - FAIL: Bob failed to set order to payment finalized")
 
         print("EscrowTimeoutRelease - PASS")
 

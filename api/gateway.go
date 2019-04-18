@@ -3,45 +3,40 @@ package api
 import (
 	"net"
 	"net/http"
-	"time"
 
+	"github.com/phoreproject/openbazaar-go/core"
+	"github.com/phoreproject/openbazaar-go/schema"
 	"github.com/ipfs/go-ipfs/core/corehttp"
 	"github.com/op/go-logging"
-	"github.com/phoreproject/openbazaar-go/core"
-	"github.com/phoreproject/openbazaar-go/repo"
 )
 
 var log = logging.MustGetLogger("api")
 
 // Gateway represents an HTTP API gateway
 type Gateway struct {
-	listener   net.Listener
-	handler    http.Handler
-	config     repo.APIConfig
-	shutdownCh chan struct{}
+	listener net.Listener
+	handler  http.Handler
+	config   schema.APIConfig
 }
 
 // NewGateway instantiates a new `Gateway`
-func NewGateway(n *core.OpenBazaarNode, authCookie http.Cookie, l net.Listener, config repo.APIConfig, logger logging.Backend, options ...corehttp.ServeOption) (*Gateway, error) {
+func NewGateway(n *core.OpenBazaarNode, authCookie http.Cookie, l net.Listener, config schema.APIConfig, logger logging.Backend, options ...corehttp.ServeOption) (*Gateway, error) {
 
 	log.SetBackend(logging.AddModuleLevel(logger))
 	topMux := http.NewServeMux()
 
-	jsonAPI, err := newJSONAPIHandler(n, authCookie, config)
-	if err != nil {
-		return nil, err
-	}
-	wsAPI, err := newWSAPIHandler(n, n.Context, authCookie, config)
-	if err != nil {
-		return nil, err
-	}
+	jsonAPI := newJsonAPIHandler(n, authCookie, config)
+	wsAPI := newWSAPIHandler(n, authCookie, config)
 	n.Broadcast = manageNotifications(n, wsAPI.h.Broadcast)
 
 	topMux.Handle("/ob/", jsonAPI)
 	topMux.Handle("/wallet/", jsonAPI)
 	topMux.Handle("/ws", wsAPI)
 
-	mux := topMux
+	var (
+		err error
+		mux = topMux
+	)
 	for _, option := range options {
 		mux, err = option(n.IpfsNode, l, mux)
 		if err != nil {
@@ -50,30 +45,15 @@ func NewGateway(n *core.OpenBazaarNode, authCookie http.Cookie, l net.Listener, 
 	}
 
 	return &Gateway{
-		listener:   l,
-		handler:    topMux,
-		config:     config,
-		shutdownCh: make(chan struct{}),
+		listener: l,
+		handler:  topMux,
+		config:   config,
 	}, nil
 }
 
 // Close shutsdown the Gateway listener
 func (g *Gateway) Close() error {
 	log.Infof("server at %s terminating...", g.listener.Addr())
-
-	// Print shutdown message every few seconds if we're taking too long
-	go func() {
-		select {
-		case <-g.shutdownCh:
-			return
-		case <-time.After(5 * time.Second):
-			log.Infof("waiting for server at %s to terminate...", g.listener.Addr())
-
-		}
-	}()
-
-	// Shutdown the listener
-	close(g.shutdownCh)
 	return g.listener.Close()
 }
 

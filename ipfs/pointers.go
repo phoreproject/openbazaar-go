@@ -3,24 +3,22 @@ package ipfs
 import (
 	"context"
 	"crypto/sha256"
-	"encoding/binary"
 	"encoding/hex"
-	"strconv"
 	"sync"
 
-	ps "gx/ipfs/QmPgDWmTmuzvP7QE5zwo1TmjbJme9pmZHNujB2453jkCTr/go-libp2p-peerstore"
-	multihash "gx/ipfs/QmU9a9NV9RdPNwZQDYd5uKsm6N6LJLSvLbywDDYFbaaC6P/go-multihash"
-	ma "gx/ipfs/QmXY77cVe7rVRQXZZQRioukUM7aRW3BTcAgJe12MCtb3Ji/go-multiaddr"
-	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
+	"encoding/binary"
+	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
+	ps "gx/ipfs/QmXauCuJzmzapetmC6W4TuDJLL1yFFrVzSHoWv8YdbmnxH/go-libp2p-peerstore"
+	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
+	multihash "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
 
 	"github.com/ipfs/go-ipfs/core"
 
-	cid "gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
+	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 	"time"
 
-	routing "gx/ipfs/QmUCS9EnqNq1kCnJds2eLDypBiS21aSiCf1MVzSUVB9TGA/go-libp2p-kad-dht"
-	dhtpb "gx/ipfs/QmUCS9EnqNq1kCnJds2eLDypBiS21aSiCf1MVzSUVB9TGA/go-libp2p-kad-dht/pb"
-	pb "gx/ipfs/QmUCS9EnqNq1kCnJds2eLDypBiS21aSiCf1MVzSUVB9TGA/go-libp2p-kad-dht/pb"
+	routing "gx/ipfs/QmRaVcGchmC1stHHK7YhcgEuTk5k1JiGS568pfYWMgT91H/go-libp2p-kad-dht"
+	dhtpb "gx/ipfs/QmRaVcGchmC1stHHK7YhcgEuTk5k1JiGS568pfYWMgT91H/go-libp2p-kad-dht/pb"
 )
 
 // MAGIC is a constant combined with a hashed key when creating a magic ID.
@@ -72,12 +70,12 @@ func NewPointer(mhKey multihash.Multihash, prefixLen int, addr ma.Multiaddr, ent
 }
 
 // PublishPointer adds and publishes pointer to the dht.
-func PublishPointer(ctx context.Context, node *core.IpfsNode, pointer Pointer) error {
-	return addPointer(ctx, node, pointer.Cid, pointer.Value)
+func PublishPointer(node *core.IpfsNode, ctx context.Context, pointer Pointer) error {
+	return addPointer(node, ctx, pointer.Cid, pointer.Value)
 }
 
 // FindPointersAsync fetches pointers from the dht. They will be returned asynchronously.
-func FindPointersAsync(ctx context.Context, dht *routing.IpfsDHT, mhKey multihash.Multihash, prefixLen int) <-chan ps.PeerInfo {
+func FindPointersAsync(dht *routing.IpfsDHT, ctx context.Context, mhKey multihash.Multihash, prefixLen int) <-chan ps.PeerInfo {
 	keyhash := CreatePointerKey(mhKey, prefixLen)
 	key, _ := cid.Decode(keyhash.B58String())
 	peerout := dht.FindProvidersAsync(ctx, key, 100000)
@@ -85,9 +83,9 @@ func FindPointersAsync(ctx context.Context, dht *routing.IpfsDHT, mhKey multihas
 }
 
 // FindPointers fetches pointers from the dht
-func FindPointers(ctx context.Context, dht *routing.IpfsDHT, mhKey multihash.Multihash, prefixLen int) ([]ps.PeerInfo, error) {
+func FindPointers(dht *routing.IpfsDHT, ctx context.Context, mhKey multihash.Multihash, prefixLen int) ([]ps.PeerInfo, error) {
 	var providers []ps.PeerInfo
-	for p := range FindPointersAsync(ctx, dht, mhKey, prefixLen) {
+	for p := range FindPointersAsync(dht, ctx, mhKey, prefixLen) {
 		providers = append(providers, p)
 	}
 	return providers, nil
@@ -102,7 +100,7 @@ func PutPointerToPeer(node *core.IpfsNode, ctx context.Context, peer peer.ID, po
 // GetPointersFromPeer sends a message to request dht pointers from a peer
 func GetPointersFromPeer(node *core.IpfsNode, ctx context.Context, p peer.ID, key *cid.Cid) ([]*ps.PeerInfo, error) {
 	dht := node.Routing.(*routing.IpfsDHT)
-	pmes := pb.NewMessage(pb.Message_GET_PROVIDERS, key.KeyString(), 0)
+	pmes := dhtpb.NewMessage(dhtpb.Message_GET_PROVIDERS, key.KeyString(), 0)
 	resp, err := dht.SendRequest(ctx, p, pmes)
 	if err != nil {
 		return []*ps.PeerInfo{}, err
@@ -110,7 +108,7 @@ func GetPointersFromPeer(node *core.IpfsNode, ctx context.Context, p peer.ID, ke
 	return dhtpb.PBPeersToPeerInfos(resp.GetProviderPeers()), nil
 }
 
-func addPointer(ctx context.Context, node *core.IpfsNode, k *cid.Cid, pi ps.PeerInfo) error {
+func addPointer(node *core.IpfsNode, ctx context.Context, k *cid.Cid, pi ps.PeerInfo) error {
 	dht := node.Routing.(*routing.IpfsDHT)
 	peers, err := dht.GetClosestPeers(ctx, k.KeyString())
 	if err != nil {
@@ -129,8 +127,8 @@ func addPointer(ctx context.Context, node *core.IpfsNode, k *cid.Cid, pi ps.Peer
 }
 
 func putPointer(ctx context.Context, dht *routing.IpfsDHT, p peer.ID, pi ps.PeerInfo, skey string) error {
-	pmes := pb.NewMessage(pb.Message_ADD_PROVIDER, skey, 0)
-	pmes.ProviderPeers = pb.RawPeerInfosToPBPeers([]ps.PeerInfo{pi})
+	pmes := dhtpb.NewMessage(dhtpb.Message_ADD_PROVIDER, skey, 0)
+	pmes.ProviderPeers = dhtpb.RawPeerInfosToPBPeers([]ps.PeerInfo{pi})
 
 	err := dht.SendMessage(ctx, p, pmes)
 	if err != nil {
@@ -142,31 +140,21 @@ func putPointer(ctx context.Context, dht *routing.IpfsDHT, p peer.ID, pi ps.Peer
 func CreatePointerKey(mh multihash.Multihash, prefixLen int) multihash.Multihash {
 	// Grab the first 8 bytes from the multihash digest
 	m, _ := multihash.Decode(mh)
-	prefix64 := binary.BigEndian.Uint64(m.Digest[:8])
+	prefix := m.Digest[:8]
 
-	// Convert to binary string
-	bin := strconv.FormatUint(prefix64, 2)
+	truncatedPrefix := make([]byte, 8)
 
-	// Pad with leading zeros
-	leadingZeros := 64 - len(bin)
-	for i := 0; i < leadingZeros; i++ {
-		bin = "0" + bin
-	}
+	// Prefix to uint64 to shift bits to the right
+	prefix64 := binary.BigEndian.Uint64(prefix)
 
-	// Grab the bits corresponding to the prefix length and convert to int
-	intPrefix, _ := strconv.ParseUint(bin[:prefixLen], 2, 64)
-
-	// Convert to 8 byte array
-	bs := make([]byte, 8)
-	binary.BigEndian.PutUint64(bs, intPrefix)
+	// Perform the bit shift
+	binary.BigEndian.PutUint64(truncatedPrefix, prefix64>>uint(64-prefixLen))
 
 	// Hash the array
-	hash := sha256.New()
-	hash.Write(bs)
-	md := hash.Sum(nil)
+	md := sha256.Sum256(truncatedPrefix)
 
 	// Encode as multihash
-	keyHash, _ := multihash.Encode(md, multihash.SHA2_256)
+	keyHash, _ := multihash.Encode(md[:], multihash.SHA2_256)
 	return keyHash
 }
 

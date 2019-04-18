@@ -5,15 +5,15 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"github.com/phoreproject/openbazaar-go/repo"
+	"github.com/phoreproject/openbazaar-go/schema"
+	"github.com/ipfs/go-ipfs/repo/fsrepo"
+	"golang.org/x/crypto/ssh/terminal"
 	"io/ioutil"
 	"os"
 	"path"
 	"strings"
 	"syscall"
-
-	"github.com/ipfs/go-ipfs/repo/fsrepo"
-	"github.com/phoreproject/openbazaar-go/repo"
-	"golang.org/x/crypto/ssh/terminal"
 )
 
 type SetAPICreds struct {
@@ -39,7 +39,7 @@ func (x *SetAPICreds) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
-	apiCfg, err := repo.GetAPIConfig(configFile)
+	apiCfg, err := schema.GetAPIConfig(configFile)
 	if err != nil {
 		log.Error(err)
 		return err
@@ -87,8 +87,10 @@ func (x *SetAPICreds) Execute(args []string) error {
 		apiCfg.AllowedIPs = []string{}
 	}
 
-	if err := r.SetConfigKey("JSON-API", apiCfg); err != nil {
+	err = r.SetConfigKey("JSON-API", apiCfg)
+	if err != nil {
 		return err
 	}
+
 	return nil
 }

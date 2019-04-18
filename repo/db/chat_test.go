@@ -1,48 +1,65 @@
-package db
+package db_test
 
 import (
-	"database/sql"
+	"sync"
 	"testing"
 	"time"
+
+	"github.com/phoreproject/openbazaar-go/repo"
+	"github.com/phoreproject/openbazaar-go/repo/db"
+	"github.com/phoreproject/openbazaar-go/schema"
 )
 
-var chdb ChatDB
-
-func init() {
-	setupDB()
-}
-
-func setupDB() {
-	conn, _ := sql.Open("sqlite3", ":memory:")
-	initDatabaseTables(conn, "")
-	chdb = ChatDB{
-		db: conn,
+func buildNewChatStore() (repo.ChatStore, func(), error) {
+	appSchema := schema.MustNewCustomSchemaManager(schema.SchemaContext{
+		DataPath:        schema.GenerateTempPath(),
+		TestModeEnabled: true,
+	})
+	if err := appSchema.BuildSchemaDirectories(); err != nil {
+		return nil, nil, err
 	}
+	if err := appSchema.InitializeDatabase(); err != nil {
+		return nil, nil, err
+	}
+	database, err := appSchema.OpenDatabase()
+	if err != nil {
+		return nil, nil, err
+	}
+	return db.NewChatStore(database, new(sync.Mutex)), appSchema.DestroySchemaDirectories, nil
 }
 
 func TestChatDB_Put(t *testing.T) {
-	err := chdb.Put("12345", "abc", "", "mess", time.Now(), true, true)
+	var chdb, teardown, err = buildNewChatStore()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer teardown()
+
+	err = chdb.Put("12345", "abc", "", "mess", time.Now(), true, true)
 	if err != nil {
 		t.Error(err)
 	}
-	stmt, err := chdb.db.Prepare("select messageID, peerID, subject, message, read, timestamp, outgoing from chat where peerID=?")
+	stmt, err := chdb.PrepareQuery("select messageID, peerID, subject, message, read, timestamp, outgoing from chat where peerID=?")
+	if err != nil {
+		t.Error(err)
+	}
 	defer stmt.Close()
 	var msgId string
-	var peerID string
+	var peerId string
 	var subject string
 	var message string
 	var read int
 	var timestamp int
 	var outgoing int
-	err = stmt.QueryRow("abc").Scan(&msgId, &peerID, &subject, &message, &read, &timestamp, &outgoing)
+	err = stmt.QueryRow("abc").Scan(&msgId, &peerId, &subject, &message, &read, &timestamp, &outgoing)
 	if err != nil {
 		t.Error(err)
 	}
 	if msgId != "12345" {
-		t.Errorf(`Expected "abc" got %s`, peerID)
+		t.Errorf(`Expected "abc" got %s`, peerId)
 	}
-	if peerID != "abc" {
-		t.Errorf(`Expected "abc" got %s`, peerID)
+	if peerId != "abc" {
+		t.Errorf(`Expected "abc" got %s`, peerId)
 	}
 	if subject != "" {
 		t.Errorf(`Expected "" got %s`, subject)
@@ -62,7 +79,13 @@ func TestChatDB_Put(t *testing.T) {
 }
 
 func TestChatDB_GetConversations(t *testing.T) {
-	err := chdb.Put("11111", "abc", "", "mess", time.Now(), false, true)
+	var chdb, teardown, err = buildNewChatStore()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer teardown()
+
+	err = chdb.Put("11111", "abc", "", "mess", time.Now(), false, true)
 	if err != nil {
 		t.Error(err)
 	}
@@ -95,8 +118,13 @@ func TestChatDB_GetConversations(t *testing.T) {
 }
 
 func TestChatDB_GetMessages(t *testing.T) {
-	setupDB()
-	err := chdb.Put("11111", "abc", "", "mess", time.Now(), false, true)
+	var chdb, teardown, err = buildNewChatStore()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer teardown()
+
+	err = chdb.Put("11111", "abc", "", "mess", time.Now(), false, true)
 	if err != nil {
 		t.Error(err)
 	}
@@ -172,9 +200,43 @@ func TestChatDB_GetMessages(t *testing.T) {
 	}
 }
 
+func TestChatDB_MarkAsRead_ReturnsHighestReadID(t *testing.T) {
+	var chdb, teardown, err = buildNewChatStore()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer teardown()
+
+	err = chdb.Put("33333", "xyz", "", "mess", time.Now(), false, true)
+	if err != nil {
+		t.Error(err)
+	}
+	err = chdb.Put("44444", "xyz", "", "mess", time.Now().Add(time.Second), false, true)
+	if err != nil {
+		t.Error(err)
+	}
+	err = chdb.Put("55555", "xyz", "", "mess", time.Now().Add(time.Second*2), false, true)
+	if err != nil {
+		t.Error(err)
+	}
+
+	last, _, err := chdb.MarkAsRead("xyz", "", true, "")
+	if err != nil {
+		t.Error(err)
+	}
+	if last != "55555" {
+		t.Fatal("Expected last ID to be 55555, but was not")
+	}
+}
+
 func TestChatDB_MarkAsRead(t *testing.T) {
-	setupDB()
-	err := chdb.Put("11111", "abc", "", "mess", time.Now(), false, true)
+	var chdb, teardown, err = buildNewChatStore()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer teardown()
+
+	err = chdb.Put("11111", "abc", "", "mess", time.Now(), false, true)
 	if err != nil {
 		t.Error(err)
 	}
@@ -206,7 +268,10 @@ func TestChatDB_MarkAsRead(t *testing.T) {
 	if !updated {
 		t.Error("Updated bool returned incorrectly")
 	}
-	stmt, err := chdb.db.Prepare("select read from chat where messageID=?")
+	stmt, err := chdb.PrepareQuery("select read from chat where messageID=?")
+	if err != nil {
+		t.Error(err)
+	}
 	defer stmt.Close()
 	var read int
 	err = stmt.QueryRow("11111").Scan(&read)
@@ -219,7 +284,10 @@ func TestChatDB_MarkAsRead(t *testing.T) {
 	if last != "11111" {
 		t.Error("Returned incorrect last message Id")
 	}
-	stmt2, err := chdb.db.Prepare("select read from chat where messageID=?")
+	stmt2, err := chdb.PrepareQuery("select read from chat where messageID=?")
+	if err != nil {
+		t.Error(err)
+	}
 	defer stmt2.Close()
 	err = stmt2.QueryRow("22222").Scan(&read)
 	if err != nil {
@@ -235,7 +303,10 @@ func TestChatDB_MarkAsRead(t *testing.T) {
 	if !updated {
 		t.Error("Updated bool returned incorrectly")
 	}
-	stmt3, err := chdb.db.Prepare("select read from chat where messageID=?")
+	stmt3, err := chdb.PrepareQuery("select read from chat where messageID=?")
+	if err != nil {
+		t.Error(err)
+	}
 	defer stmt3.Close()
 	err = stmt3.QueryRow("22222").Scan(&read)
 	if err != nil {
@@ -255,7 +326,11 @@ func TestChatDB_MarkAsRead(t *testing.T) {
 		t.Error("Updated bool returned incorrectly")
 	}
 	stm := `select read, messageID from chat where peerID="xyz"`
-	rows, _ := chdb.db.Query(stm)
+	rows, err := chdb.PrepareAndExecuteQuery(stm)
+	if err != nil {
+		t.Error(err.Error())
+	}
+
 	defer rows.Close()
 	for rows.Next() {
 		var msgID string
@@ -273,9 +348,27 @@ func TestChatDB_MarkAsRead(t *testing.T) {
 	}
 }
 
+func TestChatDB_MarkAsRead_Issue1041(t *testing.T) {
+	var chdb, teardown, err = buildNewChatStore()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer teardown()
+
+	_, _, err = chdb.MarkAsRead("nonexistantpeerid", "", false, "")
+	if err != nil {
+		t.Error(err)
+	}
+}
+
 func TestChatDB_GetUnreadCount(t *testing.T) {
-	setupDB()
-	err := chdb.Put("11111", "abc", "sub", "mess", time.Now(), false, false)
+	var chdb, teardown, err = buildNewChatStore()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer teardown()
+
+	err = chdb.Put("11111", "abc", "sub", "mess", time.Now(), false, false)
 	if err != nil {
 		t.Error(err)
 	}
@@ -293,8 +386,13 @@ func TestChatDB_GetUnreadCount(t *testing.T) {
 }
 
 func TestChatDB_DeleteMessage(t *testing.T) {
-	setupDB()
-	err := chdb.Put("11111", "abc", "", "mess", time.Now(), false, true)
+	var chdb, teardown, err = buildNewChatStore()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer teardown()
+
+	err = chdb.Put("11111", "abc", "", "mess", time.Now(), false, true)
 	if err != nil {
 		t.Error(err)
 	}
@@ -307,7 +405,10 @@ func TestChatDB_DeleteMessage(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	stmt, err := chdb.db.Prepare("select messageID from chat where messageID=?")
+	stmt, err := chdb.PrepareQuery("select messageID from chat where messageID=?")
+	if err != nil {
+		t.Error(err)
+	}
 	defer stmt.Close()
 	var msgId int
 	err = stmt.QueryRow(messages[0].MessageId).Scan(&msgId)
@@ -317,8 +418,13 @@ func TestChatDB_DeleteMessage(t *testing.T) {
 }
 
 func TestChatDB_DeleteConversation(t *testing.T) {
-	setupDB()
-	err := chdb.Put("11111", "abc", "", "mess", time.Now(), false, true)
+	var chdb, teardown, err = buildNewChatStore()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer teardown()
+
+	err = chdb.Put("11111", "abc", "", "mess", time.Now(), false, true)
 	if err != nil {
 		t.Error(err)
 	}
@@ -335,7 +441,10 @@ func TestChatDB_DeleteConversation(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	stmt, err := chdb.db.Prepare("select messageID from chat where messageID=?")
+	stmt, err := chdb.PrepareQuery("select messageID from chat where messageID=?")
+	if err != nil {
+		t.Error(err)
+	}
 	var msgId int
 	err = stmt.QueryRow(messages[0].MessageId).Scan(&msgId)
 	if err == nil {

@@ -3,14 +3,20 @@ package db
 import (
 	"database/sql"
 	"encoding/hex"
+	"github.com/phoreproject/openbazaar-go/repo"
+	"github.com/phoreproject/wallet-interface"
 	"sync"
 )
 
 // WatchScriptsDB type definition.
 // Sets a pointer to SQL database and syncs reader/writer mutex-based lock.
 type WatchedScriptsDB struct {
-	db   *sql.DB
-	lock sync.RWMutex
+	modelStore
+	coinType wallet.CoinType
+}
+
+func NewWatchedScriptStore(db *sql.DB, lock *sync.Mutex, coinType wallet.CoinType) repo.WatchedScriptStore {
+	return &WatchedScriptsDB{modelStore{db, lock}, coinType}
 }
 
 // WatchdScriptsDB Put method insert and replace operations based on watched script public keys.
@@ -18,13 +24,13 @@ func (w *WatchedScriptsDB) Put(scriptPubKey []byte) error {
 	w.lock.Lock()
 	defer w.lock.Unlock()
 	tx, _ := w.db.Begin()
-	stmt, err := tx.Prepare("insert or replace into watchedscripts(scriptPubKey) values(?)")
+	stmt, err := tx.Prepare("insert or replace into watchedscripts(coin, scriptPubKey) values(?,?)")
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
 	defer stmt.Close()
-	_, err = stmt.Exec(hex.EncodeToString(scriptPubKey))
+	_, err = stmt.Exec(w.coinType.CurrencyCode(), hex.EncodeToString(scriptPubKey))
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -35,11 +41,11 @@ func (w *WatchedScriptsDB) Put(scriptPubKey []byte) error {
 
 // WatchedScriptsDB GetAll() method Returns all watched script public keys.
 func (w *WatchedScriptsDB) GetAll() ([][]byte, error) {
-	w.lock.RLock()
-	defer w.lock.RUnlock()
+	w.lock.Lock()
+	defer w.lock.Unlock()
 	var ret [][]byte
-	stm := "select scriptPubKey from watchedscripts"
-	rows, err := w.db.Query(stm)
+	stm := "select scriptPubKey from watchedscripts where coin=?"
+	rows, err := w.db.Query(stm, w.coinType.CurrencyCode())
 	if err != nil {
 		return ret, err
 	}
@@ -62,7 +68,7 @@ func (w *WatchedScriptsDB) GetAll() ([][]byte, error) {
 func (w *WatchedScriptsDB) Delete(scriptPubKey []byte) error {
 	w.lock.Lock()
 	defer w.lock.Unlock()
-	_, err := w.db.Exec("delete from watchedscripts where scriptPubKey=?", hex.EncodeToString(scriptPubKey))
+	_, err := w.db.Exec("delete from watchedscripts where scriptPubKey=? and coin=?", hex.EncodeToString(scriptPubKey), w.coinType.CurrencyCode())
 	if err != nil {
 		return err
 	}

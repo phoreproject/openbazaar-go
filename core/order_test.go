@@ -3,10 +3,10 @@ package core_test
 import (
 	"testing"
 
-	"github.com/golang/protobuf/proto"
 	"github.com/phoreproject/openbazaar-go/core"
 	"github.com/phoreproject/openbazaar-go/pb"
 	"github.com/phoreproject/openbazaar-go/test"
+	"github.com/golang/protobuf/proto"
 )
 
 func TestOpenBazaarNode_CalculateOrderTotal(t *testing.T) {
@@ -160,9 +160,9 @@ func TestOpenBazaarNode_CalculateOrderTotal(t *testing.T) {
 	}
 	contract.VendorListings[0].Coupons = []*pb.Listing_Coupon{
 		{
-			Code:     &pb.Listing_Coupon_Hash{couponHash.B58String()},
+			Code:     &pb.Listing_Coupon_Hash{Hash: couponHash.B58String()},
 			Title:    "coup",
-			Discount: &pb.Listing_Coupon_PercentDiscount{10},
+			Discount: &pb.Listing_Coupon_PercentDiscount{PercentDiscount: 10},
 		},
 	}
 
@@ -191,9 +191,9 @@ func TestOpenBazaarNode_CalculateOrderTotal(t *testing.T) {
 	}
 	contract.VendorListings[0].Coupons = []*pb.Listing_Coupon{
 		{
-			Code:     &pb.Listing_Coupon_Hash{couponHash.B58String()},
+			Code:     &pb.Listing_Coupon_Hash{Hash: couponHash.B58String()},
 			Title:    "coup",
-			Discount: &pb.Listing_Coupon_PriceDiscount{6000},
+			Discount: &pb.Listing_Coupon_PriceDiscount{PriceDiscount: 6000},
 		},
 	}
 
@@ -291,6 +291,7 @@ func TestOpenBazaarNode_CalculateOrderTotal(t *testing.T) {
 	contract2 := &pb.RicardianContract{
 		VendorListings: []*pb.Listing{{
 			Metadata: &pb.Listing_Metadata{
+				Version:            3,
 				ContractType:       pb.Listing_Metadata_PHYSICAL_GOOD,
 				Format:             pb.Listing_Metadata_FIXED_PRICE,
 				AcceptedCurrencies: []string{"BTC"},
@@ -306,8 +307,9 @@ func TestOpenBazaarNode_CalculateOrderTotal(t *testing.T) {
 					Type:    pb.Listing_ShippingOption_FIXED_PRICE,
 					Services: []*pb.Listing_ShippingOption_Service{
 						{
-							Name:  "Standard shipping",
-							Price: 25000,
+							Name:                "Standard shipping",
+							Price:               25000,
+							AdditionalItemPrice: 10000,
 						},
 					},
 				},
@@ -315,7 +317,7 @@ func TestOpenBazaarNode_CalculateOrderTotal(t *testing.T) {
 		}},
 	}
 
-	ser, err = proto.Marshal(contract.VendorListings[0])
+	ser, err = proto.Marshal(contract2.VendorListings[0])
 	if err != nil {
 		t.Error(err)
 	}
@@ -327,7 +329,7 @@ func TestOpenBazaarNode_CalculateOrderTotal(t *testing.T) {
 		Items: []*pb.Order_Item{
 			{
 				ListingHash: listingID.String(),
-				Quantity:    1,
+				Quantity64:  10,
 				ShippingOption: &pb.Order_Item_ShippingOption{
 					Name:    "UPS",
 					Service: "Standard shipping",
@@ -339,4 +341,13 @@ func TestOpenBazaarNode_CalculateOrderTotal(t *testing.T) {
 		},
 	}
 	contract2.BuyerOrder = order2
+
+	// Test quantity64
+	total, err = node.CalculateOrderTotal(contract2)
+	if err != nil {
+		t.Error(err)
+	}
+	if total != 1115000 {
+		t.Error("Calculated wrong order total")
+	}
 }

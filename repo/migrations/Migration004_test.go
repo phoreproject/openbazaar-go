@@ -24,7 +24,7 @@ func TestMigration004(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	var m migration004
+	var m Migration004
 	err = m.Up("./", "letmein", false)
 	if err != nil {
 		t.Error(err)
@@ -38,7 +38,7 @@ func TestMigration004(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if string(repoVer) != "4" {
+	if string(repoVer) != "5" {
 		t.Error("Failed to write new repo version")
 	}
 
@@ -56,7 +56,7 @@ func TestMigration004(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if string(repoVer) != "3" {
+	if string(repoVer) != "4" {
 		t.Error("Failed to write new repo version")
 	}
 	os.RemoveAll("./datastore")

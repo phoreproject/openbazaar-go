@@ -3,9 +3,9 @@ package flags
 import (
 	"bytes"
 	"fmt"
+	"os"
 	"reflect"
 	"strings"
-	"syscall"
 	"unicode/utf8"
 )
 
@@ -82,6 +82,7 @@ type Option struct {
 
 	tag            multiTag
 	isSet          bool
+	isSetDefault   bool
 	preventDefault bool
 
 	defaultLiteral string
@@ -138,6 +139,57 @@ func (option *Option) LongNameWithNamespace() string {
 	return longName
 }
 
+// EnvKeyWithNamespace returns the option's env key with the group namespaces
+// prepended by walking up the option's group tree. Namespaces and the env key
+// itself are separated by the parser's namespace delimiter. If the env key is
+// empty an empty string is returned.
+func (option *Option) EnvKeyWithNamespace() string {
+	if len(option.EnvDefaultKey) == 0 {
+		return ""
+	}
+
+	// fetch the namespace delimiter from the parser which is always at the
+	// end of the group hierarchy
+	namespaceDelimiter := ""
+	g := option.group
+
+	for {
+		if p, ok := g.parent.(*Parser); ok {
+			namespaceDelimiter = p.EnvNamespaceDelimiter
+
+			break
+		}
+
+		switch i := g.parent.(type) {
+		case *Command:
+			g = i.Group
+		case *Group:
+			g = i
+		}
+	}
+
+	// concatenate long name with namespace
+	key := option.EnvDefaultKey
+	g = option.group
+
+	for g != nil {
+		if g.EnvNamespace != "" {
+			key = g.EnvNamespace + namespaceDelimiter + key
+		}
+
+		switch i := g.parent.(type) {
+		case *Command:
+			g = i.Group
+		case *Group:
+			g = i
+		case *Parser:
+			g = nil
+		}
+	}
+
+	return key
+}
+
 // String converts an option to a human friendly readable string describing the
 // option.
 func (option *Option) String() string {
@@ -168,9 +220,19 @@ func (option *Option) Value() interface{} {
 	return option.value.Interface()
 }
 
+// Field returns the reflect struct field of the option.
+func (option *Option) Field() reflect.StructField {
+	return option.field
+}
+
 // IsSet returns true if option has been set
 func (option *Option) IsSet() bool {
 	return option.isSet
+}
+
+// IsSetDefault returns true if option has been set via the default option tag
+func (option *Option) IsSetDefault() bool {
+	return option.isSetDefault
 }
 
 // Set the value of an option to the specified value. An error will be returned
@@ -249,24 +311,24 @@ func (option *Option) empty() {
 func (option *Option) clearDefault() {
 	usedDefault := option.Default
 
-	if envKey := option.EnvDefaultKey; envKey != "" {
-		// os.Getenv() makes no distinction between undefined and
-		// empty values, so we use syscall.Getenv()
-		if value, ok := syscall.Getenv(envKey); ok {
+	if envKey := option.EnvKeyWithNamespace(); envKey != "" {
+		if value, ok := os.LookupEnv(envKey); ok {
 			if option.EnvDefaultDelim != "" {
-				usedDefault = strings.Split(value,
-					option.EnvDefaultDelim)
+				usedDefault = strings.Split(value, option.EnvDefaultDelim)
 			} else {
 				usedDefault = []string{value}
 			}
 		}
 	}
 
+	option.isSetDefault = true
+
 	if len(usedDefault) > 0 {
 		option.empty()
 
 		for _, d := range usedDefault {
 			option.set(&d)
+			option.isSetDefault = true
 		}
 	} else {
 		tp := option.value.Type()
@@ -332,14 +394,27 @@ func (option *Option) isBool() bool {
 
 	for {
 		switch tp.Kind() {
+		case reflect.Slice, reflect.Ptr:
+			tp = tp.Elem()
 		case reflect.Bool:
 			return true
-		case reflect.Slice:
-			return (tp.Elem().Kind() == reflect.Bool)
 		case reflect.Func:
 			return tp.NumIn() == 0
-		case reflect.Ptr:
+		default:
+			return false
+		}
+	}
+}
+
+func (option *Option) isSignedNumber() bool {
+	tp := option.value.Type()
+
+	for {
+		switch tp.Kind() {
+		case reflect.Slice, reflect.Ptr:
 			tp = tp.Elem()
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Float32, reflect.Float64:
+			return true
 		default:
 			return false
 		}

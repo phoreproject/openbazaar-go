@@ -1,16 +1,17 @@
 package test
 
 import (
-	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
-	crypto "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
-
-	"github.com/phoreproject/btcd/chaincfg"
 	"github.com/phoreproject/openbazaar-go/bitcoin/phored"
+	"github.com/ipfs/go-ipfs/core/mock"
+	"github.com/phoreproject/btcd/chaincfg"
+	// "github.com/ipfs/go-ipfs/thirdparty/testutil"
 	"github.com/phoreproject/openbazaar-go/core"
 	"github.com/phoreproject/openbazaar-go/ipfs"
 	"github.com/phoreproject/openbazaar-go/net"
 	"github.com/phoreproject/openbazaar-go/net/service"
-	bip39 "github.com/tyler-smith/go-bip39"
+	"github.com/tyler-smith/go-bip39"
+	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
+	"gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 )
 
 // NewNode creates a new *core.OpenBazaarNode prepared for testing
@@ -27,7 +28,7 @@ func NewNode() (*core.OpenBazaarNode, error) {
 	}
 
 	// Create test ipfs node
-	ipfsNode, err := ipfs.NewMockNode()
+	ipfsNode, err := coremock.NewMockNode()
 	if err != nil {
 		return nil, err
 	}
@@ -50,23 +51,18 @@ func NewNode() (*core.OpenBazaarNode, error) {
 
 	ipfsNode.Identity = id
 
-	// Create test context
-	ctx, err := ipfs.MockCmdsCtx()
-	if err != nil {
-		return nil, err
-	}
-
 	// Create test wallet
 	mnemonic, err := repository.DB.Config().GetMnemonic()
 	if err != nil {
 		return nil, err
 	}
 
-	wallet := phored.NewRPCWallet(mnemonic, &chaincfg.MainNetParams, repository.Path, repository.DB, "rpc.phore.io")
-
+	wallet, err := phored.NewRPCWallet(mnemonic, &chaincfg.MainNetParams, repository.Path, repository.DB, "rpc.phore.io")
+	if err != nil {
+		return nil, err
+	}
 	// Put it all together in an OpenBazaarNode
 	node := &core.OpenBazaarNode{
-		Context:    ctx,
 		RepoPath:   GetRepoPath(),
 		IpfsNode:   ipfsNode,
 		Datastore:  repository.DB,
@@ -74,7 +70,7 @@ func NewNode() (*core.OpenBazaarNode, error) {
 		BanManager: net.NewBanManager([]peer.ID{}),
 	}
 
-	node.Service = service.New(node, ctx, repository.DB)
+	node.Service = service.New(node, repository.DB)
 
 	return node, nil
 }

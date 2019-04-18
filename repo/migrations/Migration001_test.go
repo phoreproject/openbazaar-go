@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-var testConfig1 = `{
+var testConfig1 string = `{
     "Datastore": {
 	    "BloomFilterSize": 0,
 	    "GCPeriod": "1h",
@@ -34,7 +34,7 @@ func TestMigration001(t *testing.T) {
 	}
 	f.Write([]byte(testConfig1))
 	f.Close()
-	var m migration001
+	var m Migration001
 
 	// Up
 	err = m.Up("./", "", false)
@@ -93,7 +93,7 @@ func TestMigration001(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if string(repoVer) != "1" {
+	if string(repoVer) != "2" {
 		t.Error("Failed to write new repo version")
 	}
 
@@ -148,7 +148,7 @@ func TestMigration001(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if string(repoVer) != "0" {
+	if string(repoVer) != "1" {
 		t.Error("Failed to write new repo version")
 	}
 

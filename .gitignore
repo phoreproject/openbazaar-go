@@ -1,7 +1,12 @@
+# Test artifacts
+
+repo/testdata/
+
 # Compiled Object files, Static and Dynamic libs (Shared Objects)
 *.o
 *.a
 *.so
+*.pyc
 
 # Folders
 _obj
@@ -34,6 +39,8 @@ dist
 *.sw?
 debug
 .vscode
+config*
+openbazaar-go*
 
 # macOS
 .DS_Store

@@ -4,11 +4,16 @@ import (
 	"database/sql"
 	"strconv"
 	"sync"
+
+	"github.com/phoreproject/openbazaar-go/repo"
 )
 
 type FollowingDB struct {
-	db   *sql.DB
-	lock sync.RWMutex
+	modelStore
+}
+
+func NewFollowingStore(db *sql.DB, lock *sync.Mutex) repo.FollowingStore {
+	return &FollowingDB{modelStore{db, lock}}
 }
 
 func (f *FollowingDB) Put(follower string) error {
@@ -27,8 +32,8 @@ func (f *FollowingDB) Put(follower string) error {
 }
 
 func (f *FollowingDB) Get(offsetID string, limit int) ([]string, error) {
-	f.lock.RLock()
-	defer f.lock.RUnlock()
+	f.lock.Lock()
+	defer f.lock.Unlock()
 	var stm string
 	if offsetID != "" {
 		stm = "select peerID from following order by rowid desc limit " + strconv.Itoa(limit) + " offset ((select coalesce(max(rowid)+1, 0) from following)-(select rowid from following where peerID='" + offsetID + "'))"
@@ -52,13 +57,16 @@ func (f *FollowingDB) Get(offsetID string, limit int) ([]string, error) {
 func (f *FollowingDB) Delete(follower string) error {
 	f.lock.Lock()
 	defer f.lock.Unlock()
-	f.db.Exec("delete from following where peerID=?", follower)
+	_, err := f.db.Exec("delete from following where peerID=?", follower)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
 func (f *FollowingDB) Count() int {
-	f.lock.RLock()
-	defer f.lock.RUnlock()
+	f.lock.Lock()
+	defer f.lock.Unlock()
 	row := f.db.QueryRow("select Count(*) from following")
 	var count int
 	row.Scan(&count)
@@ -66,9 +74,12 @@ func (f *FollowingDB) Count() int {
 }
 
 func (f *FollowingDB) IsFollowing(peerID string) bool {
-	f.lock.RLock()
-	defer f.lock.RUnlock()
+	f.lock.Lock()
+	defer f.lock.Unlock()
 	stmt, err := f.db.Prepare("select peerID from following where peerID=?")
+	if err != nil {
+		return false
+	}
 	defer stmt.Close()
 	var follower string
 	err = stmt.QueryRow(peerID).Scan(&follower)
