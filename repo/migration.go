@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/OpenBazaar/openbazaar-go/repo/migrations"
+	"github.com/phoreproject/openbazaar-go/repo/migrations"
 )
 
 type Migration interface {

@@ -4,8 +4,8 @@ import (
 	"io/ioutil"
 
 	"github.com/OpenBazaar/jsonpb"
-	"github.com/OpenBazaar/openbazaar-go/pb"
-	"github.com/OpenBazaar/openbazaar-go/repo"
+	"github.com/phoreproject/openbazaar-go/pb"
+	"github.com/phoreproject/openbazaar-go/repo"
 )
 
 func GetSignedListingFromPath(p string) (*pb.SignedListing, error) {

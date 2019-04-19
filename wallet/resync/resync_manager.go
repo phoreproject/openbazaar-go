@@ -4,8 +4,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/OpenBazaar/multiwallet"
-	"github.com/OpenBazaar/openbazaar-go/repo"
+	"github.com/phoreproject/multiwallet"
+	"github.com/phoreproject/openbazaar-go/repo"
 	"github.com/op/go-logging"
 )
 

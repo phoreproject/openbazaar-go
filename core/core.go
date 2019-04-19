@@ -15,14 +15,17 @@ import (
 	"sync"
 	"time"
 
-	"github.com/OpenBazaar/multiwallet"
-	"github.com/OpenBazaar/openbazaar-go/ipfs"
-	"github.com/OpenBazaar/openbazaar-go/net"
-	rep "github.com/OpenBazaar/openbazaar-go/net/repointer"
-	ret "github.com/OpenBazaar/openbazaar-go/net/retriever"
-	"github.com/OpenBazaar/openbazaar-go/repo"
-	sto "github.com/OpenBazaar/openbazaar-go/storage"
-	"github.com/btcsuite/btcutil/hdkeychain"
+	"github.com/phoreproject/multiwallet"
+
+	"github.com/phoreproject/openbazaar-go/ipfs"
+	"github.com/phoreproject/openbazaar-go/net"
+	rep "github.com/phoreproject/openbazaar-go/net/repointer"
+	ret "github.com/phoreproject/openbazaar-go/net/retriever"
+	"github.com/phoreproject/openbazaar-go/repo"
+	sto "github.com/phoreproject/openbazaar-go/storage"
+
+	"github.com/phoreproject/btcutil/hdkeychain"
+
 	"github.com/gosimple/slug"
 	"github.com/ipfs/go-ipfs/core"
 	logging "github.com/op/go-logging"

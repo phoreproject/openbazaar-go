@@ -7,8 +7,8 @@ import (
 	"gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
 	"gx/ipfs/QmUDTcnDp2WssbmiDLC6aYurUeyt7QeRakHUQMxA2mZ5iB/go-libp2p"
 
-	"github.com/OpenBazaar/multiwallet"
-	"github.com/OpenBazaar/multiwallet/config"
+	"github.com/phoreproject/multiwallet"
+	"github.com/phoreproject/multiwallet/config"
 	"github.com/phoreproject/openbazaar-go/core"
 	"github.com/phoreproject/openbazaar-go/ipfs"
 	"github.com/phoreproject/openbazaar-go/net"
@@ -16,6 +16,7 @@ import (
 	wi "github.com/phoreproject/wallet-interface"
 	"github.com/phoreproject/btcd/chaincfg"
 	"github.com/phoreproject/btcutil/hdkeychain"
+
 	"github.com/ipfs/go-ipfs/core/mock"
 	"github.com/tyler-smith/go-bip39"
 )

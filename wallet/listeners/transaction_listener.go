@@ -4,7 +4,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/OpenBazaar/multiwallet"
+	"github.com/phoreproject/multiwallet"
 	"github.com/phoreproject/openbazaar-go/core"
 	"github.com/phoreproject/openbazaar-go/pb"
 	"github.com/phoreproject/openbazaar-go/repo"
