@@ -61,6 +61,11 @@ class OutOfInventoryTest(OpenBazaarTestFramework):
         self.send_bitcoin_cmd("sendtoaddress", address, 10)
         time.sleep(3)
 
+        # shutdown alice
+        api_url = alice["gateway_url"] + "ob/shutdown"
+        requests.post(api_url, data="")
+        time.sleep(10)
+
         # bob send order
         with open('testdata/order_direct.json') as order_file:
             order_json = json.load(order_file, object_pairs_hook=OrderedDict)
@@ -174,7 +179,7 @@ class OutOfInventoryTest(OpenBazaarTestFramework):
         if r.status_code == 200:
             resp = json.loads(r.text)
             confirmed = int(resp["confirmed"])
-            # unconfirmed = int(resp["unconfirmed"])
+            #unconfirmed = int(resp["unconfirmed"])
             if confirmed <= 0:
                 raise TestFailure("OutOfInventoryTest - FAIL: Alice failed to receive the multisig payout")
         else:
@@ -203,6 +208,7 @@ class OutOfInventoryTest(OpenBazaarTestFramework):
             raise TestFailure("OutOfInventoryTest - FAIL: Alice incorrectly saved as unfunded")
 
         print("OutOfInventoryTest - PASS")
+
 
 if __name__ == '__main__':
     print("Running OutOfInventoryTest")
