@@ -2,14 +2,15 @@ package main
 
 import (
 	"fmt"
-	"github.com/ipfs/go-ipfs/repo/fsrepo"
-	"github.com/jessevdk/go-flags"
-	"github.com/op/go-logging"
-	"github.com/phoreproject/openbazaar-go/cmd"
-	"github.com/phoreproject/openbazaar-go/core"
 	"os"
 	"os/signal"
 	"path/filepath"
+
+	"github.com/phoreproject/openbazaar-go/cmd"
+	"github.com/phoreproject/openbazaar-go/core"
+	"github.com/ipfs/go-ipfs/repo/fsrepo"
+	"github.com/jessevdk/go-flags"
+	"github.com/op/go-logging"
 )
 
 var log = logging.MustGetLogger("main")
@@ -47,7 +48,7 @@ func main() {
 				core.Node.Datastore.Close()
 				repoLockFile := filepath.Join(core.Node.RepoPath, fsrepo.LockFile)
 				os.Remove(repoLockFile)
-				core.Node.Wallet.Close()
+				core.Node.Multiwallet.Close()
 				core.Node.IpfsNode.Close()
 			}
 			os.Exit(1)

@@ -3,9 +3,10 @@ package migrations
 import (
 	"database/sql"
 	"fmt"
-	"github.com/phoreproject/wallet-interface"
 	"path"
 	"strings"
+
+	"github.com/phoreproject/wallet-interface"
 )
 
 var WalletCoinType wallet.CoinType

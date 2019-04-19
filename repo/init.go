@@ -4,21 +4,20 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/phoreproject/openbazaar-go/repo/migrations"
 	"os"
 	"path"
 	"time"
 
+	"github.com/phoreproject/openbazaar-go/ipfs"
+	"github.com/phoreproject/openbazaar-go/schema"
 	"github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/namesys"
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
 	"github.com/op/go-logging"
-	"github.com/phoreproject/openbazaar-go/ipfs"
-	"github.com/phoreproject/openbazaar-go/schema"
 	"github.com/tyler-smith/go-bip39"
 )
 
-const RepoVersion = "15"
+const RepoVersion = "16"
 
 var log = logging.MustGetLogger("repo")
 var ErrRepoExists = errors.New("IPFS configuration file exists. Reinitializing would overwrite your keys. Use -f to force overwrite.")
@@ -172,56 +171,6 @@ func addConfigExtensions(repoRoot string) error {
 		return err
 	}
 	var (
-		w = schema.WalletConfig{
-			Type:             "phored",
-			MaxFee:           2000,
-			FeeAPI:           "https://btc.fees.openbazaar.org",
-			HighFeeDefault:   160,
-			MediumFeeDefault: 60,
-			LowFeeDefault:    20,
-			TrustedPeer:      "",
-			RPCLocation:      "rpc.phore.io",
-		}
-		ws = schema.WalletsConfig{
-			BTC: schema.CoinConfig{
-				Type:             "API",
-				API:              "https://btc.bloqapi.net/insight-api",
-				APITestnet:       "https://test-insight.bitpay.com/api",
-				MaxFee:           200,
-				FeeAPI:           "https://btc.fees.openbazaar.org",
-				HighFeeDefault:   50,
-				MediumFeeDefault: 10,
-				LowFeeDefault:    1,
-			},
-			BCH: schema.CoinConfig{
-				Type:             "API",
-				API:              "https://bch-insight.bitpay.com/api",
-				APITestnet:       "https://test-bch-insight.bitpay.com/api",
-				MaxFee:           200,
-				HighFeeDefault:   10,
-				MediumFeeDefault: 5,
-				LowFeeDefault:    1,
-			},
-			LTC: schema.CoinConfig{
-				Type:             "API",
-				API:              "https://insight.litecore.io/api",
-				APITestnet:       "https://testnet.litecore.io/api",
-				MaxFee:           200,
-				HighFeeDefault:   20,
-				MediumFeeDefault: 10,
-				LowFeeDefault:    5,
-			},
-			ZEC: schema.CoinConfig{
-				Type:             "API",
-				API:              "https://zcashnetwork.info/api",
-				APITestnet:       "https://explorer.testnet.z.cash/api",
-				MaxFee:           200,
-				HighFeeDefault:   20,
-				MediumFeeDefault: 10,
-				LowFeeDefault:    5,
-			},
-		}
-
 		a = schema.APIConfig{
 			Enabled:     true,
 			AllowedIPs:  []string{},
@@ -239,10 +188,7 @@ func addConfigExtensions(repoRoot string) error {
 			Id: "https://resolver.onename.com/",
 		}
 	)
-	if err := r.SetConfigKey("Wallet", w); err != nil {
-		return err
-	}
-	if err := r.SetConfigKey("Wallets", ws); err != nil {
+	if err := r.SetConfigKey("Wallets", schema.DefaultWalletsConfig()); err != nil {
 		return err
 	}
 	if err := r.SetConfigKey("DataSharing", ds); err != nil {

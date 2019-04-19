@@ -4,12 +4,13 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
-	"github.com/op/go-logging"
-	"github.com/phoreproject/openbazaar-go/repo"
-	"github.com/phoreproject/wallet-interface"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/phoreproject/openbazaar-go/repo"
+	"github.com/phoreproject/wallet-interface"
+	"github.com/op/go-logging"
 )
 
 var log = logging.MustGetLogger("cmd")

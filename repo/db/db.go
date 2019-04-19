@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"path"
 	"sync"
-
 	"time"
 
 	"github.com/phoreproject/openbazaar-go/repo"
@@ -85,6 +84,15 @@ func NewSQLiteDatastore(db *sql.DB, l *sync.Mutex, coinType wallet.CoinType) *SQ
 		db:              db,
 		lock:            l,
 	}
+}
+
+type DB struct {
+	SqlDB *sql.DB
+	Lock  *sync.Mutex
+}
+
+func (d *SQLiteDatastore) DB() *DB {
+	return &DB{d.db, d.lock}
 }
 
 func (d *SQLiteDatastore) Ping() error {
@@ -315,8 +323,5 @@ func (c *ConfigDB) IsEncrypted() bool {
 	defer c.lock.Unlock()
 	pwdCheck := "select count(*) from sqlite_master;"
 	_, err := c.db.Exec(pwdCheck) // Fails if wrong password is entered
-	if err != nil {
-		return true
-	}
-	return false
+	return err != nil
 }

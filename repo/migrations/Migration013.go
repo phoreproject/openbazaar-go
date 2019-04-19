@@ -207,6 +207,9 @@ func migration013_updateRecords(tx *sql.Tx, records []migration013_record, query
 }
 
 func Migration013_ChainConfigParams(testnet bool) *chaincfg.Params {
+	if testnet {
+		return &chaincfg.TestNet3Params
+	}
 	return &chaincfg.MainNetParams
 }
 

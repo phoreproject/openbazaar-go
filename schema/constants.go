@@ -39,6 +39,10 @@ const (
 	// End SQL Statements
 
 	// Configuration defaults
+	EthereumRegistryAddressMainnet = "0x403d907982474cdd51687b09a8968346159378f3"
+	EthereumRegistryAddressRinkeby = "0x403d907982474cdd51687b09a8968346159378f3"
+	EthereumRegistryAddressRopsten = "0x403d907982474cdd51687b09a8968346159378f3"
+
 	DataPushNodeOne = "QmWbi8z4uPkEdrWHtgxCkQGE5vxJnrStXAeEQnupmQnKRh"
 
 	BootstrapNodeDefault_LeMarcheSerpette = "/ip4/159.203.115.78/tcp/5001/ipfs/QmPJuP4Myo8pGL1k56b85Q4rpaoSnmn5L3wLjYHTzbBrk1"
@@ -61,7 +65,46 @@ var (
 		BootstrapNodeDefault_LeMarcheSerpette,
 		BootstrapNodeDefault_BrixtonVillage,
 		BootstrapNodeDefault_Johari,
-		BootstrapNodeDefault_DuoSearch,
 	}
 	BootstrapAddressesTestnet = []string{}
+)
+
+func EthereumDefaultOptions() map[string]interface{} {
+	return map[string]interface{}{
+		"RegistryAddress":        EthereumRegistryAddressMainnet,
+		"RinkebyRegistryAddress": EthereumRegistryAddressRinkeby,
+		"RopstenRegistryAddress": EthereumRegistryAddressRopsten,
+	}
+}
+
+const (
+	WalletTypeAPI = "API"
+	WalletTypeSPV = "SPV"
+)
+
+const (
+	CoinAPIOpenBazaarBTC = "https://btc.api.openbazaar.org/api"
+	CoinAPIOpenBazaarBCH = "https://bch.api.openbazaar.org/api"
+	CoinAPIOpenBazaarLTC = "https://ltc.api.openbazaar.org/api"
+	CoinAPIOpenBazaarZEC = "https://zec.api.openbazaar.org/api"
+	CoinAPIOpenBazaarETH = "https://rinkeby.infura.io"
+
+	CoinAPIOpenBazaarTBTC = "https://tbtc.api.openbazaar.org/api"
+	CoinAPIOpenBazaarTBCH = "https://tbch.api.openbazaar.org/api"
+	CoinAPIOpenBazaarTLTC = "https://tltc.api.openbazaar.org/api"
+	CoinAPIOpenBazaarTZEC = "https://tzec.api.openbazaar.org/api"
+)
+
+var (
+	CoinPoolBTC = []string{CoinAPIOpenBazaarBTC}
+	CoinPoolBCH = []string{CoinAPIOpenBazaarBCH}
+	CoinPoolLTC = []string{CoinAPIOpenBazaarLTC}
+	CoinPoolZEC = []string{CoinAPIOpenBazaarZEC}
+	CoinPoolETH = []string{CoinAPIOpenBazaarETH}
+
+	CoinPoolTBTC = []string{CoinAPIOpenBazaarTBTC}
+	CoinPoolTBCH = []string{CoinAPIOpenBazaarTBCH}
+	CoinPoolTLTC = []string{CoinAPIOpenBazaarTLTC}
+	CoinPoolTZEC = []string{CoinAPIOpenBazaarTZEC}
+	CoinPoolTETH = []string{CoinAPIOpenBazaarETH}
 )

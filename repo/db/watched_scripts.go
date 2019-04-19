@@ -3,9 +3,10 @@ package db
 import (
 	"database/sql"
 	"encoding/hex"
+	"sync"
+
 	"github.com/phoreproject/openbazaar-go/repo"
 	"github.com/phoreproject/wallet-interface"
-	"sync"
 )
 
 // WatchScriptsDB type definition.

@@ -3,13 +3,14 @@ package db
 import (
 	"database/sql"
 	"encoding/hex"
+	"strconv"
+	"strings"
+	"sync"
+
 	"github.com/phoreproject/btcd/chaincfg/chainhash"
 	"github.com/phoreproject/openbazaar-go/repo"
 	"github.com/phoreproject/btcd/wire"
 	"github.com/phoreproject/wallet-interface"
-	"strconv"
-	"strings"
-	"sync"
 )
 
 type StxoDB struct {

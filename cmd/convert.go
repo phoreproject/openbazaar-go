@@ -1,34 +1,30 @@
 package cmd
 
 import (
+	"bufio"
+	"context"
 	"database/sql"
 	"encoding/json"
-
-	"context"
+	"errors"
 	"fmt"
-	"github.com/OpenBazaar/jsonpb"
-	"github.com/phoreproject/openbazaar-go/pb"
+	"io/ioutil"
 	"os"
 	"path"
-
-	"github.com/phoreproject/openbazaar-go/ipfs"
-
-	ipfscore "github.com/ipfs/go-ipfs/core"
-	"io/ioutil"
 	"strings"
-
-	"bufio"
-	"errors"
-	"github.com/phoreproject/openbazaar-go/repo"
-	"github.com/phoreproject/openbazaar-go/repo/db"
-
-	"github.com/golang/protobuf/proto"
-	"github.com/ipfs/go-ipfs/repo/fsrepo"
-	"github.com/phoreproject/openbazaar-go/core"
-	"github.com/phoreproject/wallet-interface"
-	"golang.org/x/crypto/ssh/terminal"
 	"syscall"
 	"time"
+
+	"github.com/OpenBazaar/jsonpb"
+	"github.com/phoreproject/openbazaar-go/core"
+	"github.com/phoreproject/openbazaar-go/ipfs"
+	"github.com/phoreproject/openbazaar-go/pb"
+	"github.com/phoreproject/openbazaar-go/repo"
+	"github.com/phoreproject/openbazaar-go/repo/db"
+	"github.com/phoreproject/wallet-interface"
+	"github.com/golang/protobuf/proto"
+	ipfscore "github.com/ipfs/go-ipfs/core"
+	"github.com/ipfs/go-ipfs/repo/fsrepo"
+	"golang.org/x/crypto/ssh/terminal"
 )
 
 type Convert struct {
@@ -186,6 +182,7 @@ func (x *Convert) Execute(args []string) error {
 	if sqliteDB.Config().IsEncrypted() {
 		sqliteDB.Close()
 		fmt.Print("Database is encrypted, enter your password: ")
+		// nolint:unconvert
 		bytePassword, _ := terminal.ReadPassword(int(syscall.Stdin))
 		fmt.Println("")
 		pw := string(bytePassword)

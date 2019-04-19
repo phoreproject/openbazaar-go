@@ -85,9 +85,6 @@ func (f *FollowerDB) FollowsMe(peerID string) bool {
 	}
 	defer stmt.Close()
 	var follower string
-	err = stmt.QueryRow(peerID).Scan(&follower)
-	if err != nil {
-		return false
-	}
-	return true
+	err = stmt.QueryRow(peerId).Scan(&follower)
+	return err == nil
 }

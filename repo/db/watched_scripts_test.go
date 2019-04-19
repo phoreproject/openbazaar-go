@@ -4,10 +4,11 @@ import (
 	"bytes"
 	"database/sql"
 	"encoding/hex"
-	"github.com/phoreproject/openbazaar-go/repo"
-	"github.com/phoreproject/wallet-interface"
 	"sync"
 	"testing"
+
+	"github.com/phoreproject/openbazaar-go/repo"
+	"github.com/phoreproject/wallet-interface"
 )
 
 var wsdb repo.WatchedScriptStore

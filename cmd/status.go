@@ -2,12 +2,13 @@ package cmd
 
 import (
 	"fmt"
+	"os"
+
 	obnet "github.com/phoreproject/openbazaar-go/net"
 	"github.com/phoreproject/openbazaar-go/repo"
 	"github.com/phoreproject/openbazaar-go/repo/db"
 	"github.com/phoreproject/wallet-interface"
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
-	"os"
 )
 
 type Status struct {
