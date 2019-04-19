@@ -8,12 +8,14 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	routing "gx/ipfs/QmRaVcGchmC1stHHK7YhcgEuTk5k1JiGS568pfYWMgT91H/go-libp2p-kad-dht"
-	dshelp "gx/ipfs/QmTmqJGRQfuH8eKWD1FjThwPRipt1QhqJQNZ8MpzmfAAxo/go-ipfs-ds-help"
-	ps "gx/ipfs/QmXauCuJzmzapetmC6W4TuDJLL1yFFrVzSHoWv8YdbmnxH/go-libp2p-peerstore"
-	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
-	mh "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
-	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
+
+	cid "gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
+	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
+	routing "gx/ipfs/QmPpYHPRGVpSJTkQDQDwTYZ1cYUR2NM4HS6M3iAXi8aoUa/go-libp2p-kad-dht"
+	peer "gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
+	ps "gx/ipfs/QmTTJcDL3gsnGDALjh2fDGg1onGRUdVgNL2hU2WEZcVrMX/go-libp2p-peerstore"
+	datastore "gx/ipfs/QmaRb5yNXKonhbkpNxNawoydk4N6es6b4fPj19sjEKsh5D/go-datastore"
+
 	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
@@ -27,6 +29,12 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ipfs/go-ipfs/core/coreapi"
+	"github.com/ipfs/go-ipfs/core/coreapi/interface"
+	"github.com/ipfs/go-ipfs/namesys"
+
+	ipnspath "gx/ipfs/QmT3rzed1ppXefourpmoZ7tyVQfsGPQZ1pHDngLmCvXxd3/go-path"
+
 	"github.com/OpenBazaar/jsonpb"
 	"github.com/phoreproject/openbazaar-go/core"
 	"github.com/phoreproject/openbazaar-go/ipfs"
@@ -39,10 +47,8 @@ import (
 	"github.com/phoreproject/btcutil/base58"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
-	"github.com/ipfs/go-ipfs/core/coreunix"
-	ipnspb "github.com/ipfs/go-ipfs/namesys/pb"
-	ipnspath "github.com/ipfs/go-ipfs/path"
-	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
+
+	"github.com/ipfs/go-ipfs/repo/fsrepo"
 )
 
 type JSONAPIConfig struct {
@@ -535,7 +541,7 @@ func (i *jsonAPIHandler) PUTListing(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = i.node.UpdateListing(ld)
+	err = i.node.UpdateListing(ld, true)
 	if err != nil {
 		if err == core.ErrListingDoesNotExist {
 			ErrorResponse(w, http.StatusNotFound, "Listing not found.")
@@ -1074,12 +1080,6 @@ func (i *jsonAPIHandler) GETFollowers(w http.ResponseWriter, r *http.Request) {
 		}
 		SanitizedResponse(w, string(ret))
 	} else {
-		pid, err := i.node.NameSystem.Resolve(context.Background(), peerID)
-		if err != nil {
-			ErrorResponse(w, http.StatusNotFound, err.Error())
-			return
-		}
-		peerID = pid.Pretty()
 		followBytes, err := i.node.IPNSResolveThenCat(ipnspath.FromString(path.Join(peerID, "followers.json")), time.Minute, useCache)
 		if err != nil {
 			ErrorResponse(w, http.StatusNotFound, err.Error())
@@ -1133,12 +1133,6 @@ func (i *jsonAPIHandler) GETFollowing(w http.ResponseWriter, r *http.Request) {
 		}
 		SanitizedResponse(w, string(ret))
 	} else {
-		pid, err := i.node.NameSystem.Resolve(context.Background(), peerID)
-		if err != nil {
-			ErrorResponse(w, http.StatusNotFound, err.Error())
-			return
-		}
-		peerID = pid.Pretty()
 		followBytes, err := i.node.IPNSResolveThenCat(ipnspath.FromString(path.Join(peerID, "following.json")), time.Minute, useCache)
 		if err != nil {
 			ErrorResponse(w, http.StatusNotFound, err.Error())
@@ -1165,7 +1159,7 @@ func (i *jsonAPIHandler) GETInventory(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// If we want our own inventory get it from the local database and return
-	getPersonalInventory := (peerIDString == "" || peerIDString == i.node.IPFSIdentityString())
+	getPersonalInventory := peerIDString == "" || peerIDString == i.node.IPFSIdentityString()
 	if getPersonalInventory {
 		var (
 			err       error
@@ -1350,12 +1344,6 @@ func (i *jsonAPIHandler) GETListings(w http.ResponseWriter, r *http.Request) {
 		}
 		SanitizedResponse(w, string(listingsBytes))
 	} else {
-		pid, err := i.node.NameSystem.Resolve(context.Background(), peerID)
-		if err != nil {
-			ErrorResponse(w, http.StatusNotFound, err.Error())
-			return
-		}
-		peerID = pid.Pretty()
 		listingsBytes, err := i.node.IPNSResolveThenCat(ipnspath.FromString(path.Join(peerID, "listings.json")), time.Minute, useCache)
 		if err != nil {
 			ErrorResponse(w, http.StatusNotFound, err.Error())
@@ -1399,25 +1387,15 @@ func (i *jsonAPIHandler) GETListing(w http.ResponseWriter, r *http.Request) {
 			}
 			sl.Hash = hash
 		}
+
 		savedCoupons, err := i.node.Datastore.Coupons().Get(sl.Listing.Slug)
 		if err != nil {
-			ErrorResponse(w, http.StatusInternalServerError, err.Error())
 			return
 		}
-		for _, coupon := range sl.Listing.Coupons {
-			for _, c := range savedCoupons {
-				if coupon.GetHash() == c.Hash {
-					coupon.Code = &pb.Listing_Coupon_DiscountCode{c.Code}
-					break
-				}
-			}
-		}
-		if sl.Listing.Metadata != nil && sl.Listing.Metadata.Version == 1 {
-			for _, so := range sl.Listing.ShippingOptions {
-				for _, ser := range so.Services {
-					ser.AdditionalItemPrice = ser.Price
-				}
-			}
+		err = core.AssignMatchingCoupons(savedCoupons, sl)
+		if err != nil {
+			ErrorResponse(w, http.StatusNotFound, "Could not apply coupons to listing.")
+			return
 		}
 
 		out, err := m.MarshalToString(sl)
@@ -1441,12 +1419,6 @@ func (i *jsonAPIHandler) GETListing(w http.ResponseWriter, r *http.Request) {
 		hash = listingID
 		w.Header().Set("Cache-Control", "public, max-age=29030400, immutable")
 	} else {
-		pid, err := i.node.NameSystem.Resolve(context.Background(), peerID)
-		if err != nil {
-			ErrorResponse(w, http.StatusNotFound, err.Error())
-			return
-		}
-		peerID = pid.Pretty()
 		listingBytes, err = i.node.IPNSResolveThenCat(ipnspath.FromString(path.Join(peerID, "listings", listingID+".json")), time.Minute, useCache)
 		if err != nil {
 			ErrorResponse(w, http.StatusNotFound, err.Error())
@@ -1491,12 +1463,6 @@ func (i *jsonAPIHandler) GETProfile(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	} else {
-		pid, err := i.node.NameSystem.Resolve(context.Background(), peerID)
-		if err != nil {
-			ErrorResponse(w, http.StatusNotFound, err.Error())
-			return
-		}
-		peerID = pid.Pretty()
 		profile, err = i.node.FetchProfile(peerID, useCache)
 		if err != nil {
 			ErrorResponse(w, http.StatusNotFound, err.Error())
@@ -1551,8 +1517,10 @@ func (i *jsonAPIHandler) POSTOrderConfirmation(w http.ResponseWriter, r *http.Re
 	}
 
 	// TODO: Remove once broken contracts are migrated
-	if _, err := repo.NewCurrencyCode(contract.BuyerOrder.Payment.Coin); err != nil {
-		log.Warningf("missing contract BuyerOrder.Payment.Coin on order (%s)", conf.OrderID)
+	lookupCoin := contract.BuyerOrder.Payment.Coin
+	_, err = repo.LoadCurrencyDefinitions().Lookup(lookupCoin)
+	if err != nil {
+		log.Warningf("invalid BuyerOrder.Payment.Coin (%s) on order (%s)", lookupCoin, conf.OrderID)
 		contract.BuyerOrder.Payment.Coin = paymentCoin.String()
 	}
 
@@ -1598,8 +1566,10 @@ func (i *jsonAPIHandler) POSTOrderCancel(w http.ResponseWriter, r *http.Request)
 	}
 
 	// TODO: Remove once broken contracts are migrated
-	if _, err := repo.NewCurrencyCode(contract.BuyerOrder.Payment.Coin); err != nil {
-		log.Warningf("missing contract BuyerOrder.Payment.Coin on order (%s)", can.OrderID)
+	lookupCoin := contract.BuyerOrder.Payment.Coin
+	_, err = repo.LoadCurrencyDefinitions().Lookup(lookupCoin)
+	if err != nil {
+		log.Warningf("invalid BuyerOrder.Payment.Coin (%s) on order (%s)", lookupCoin, can.OrderID)
 		contract.BuyerOrder.Payment.Coin = paymentCoin.String()
 	}
 
@@ -1667,8 +1637,10 @@ func (i *jsonAPIHandler) GETOrder(w http.ResponseWriter, r *http.Request) {
 	resp.State = state
 
 	// TODO: Remove once broken contracts are migrated
-	if _, err := repo.NewCurrencyCode(contract.BuyerOrder.Payment.Coin); err != nil {
-		log.Warningf("missing contract BuyerOrder.Payment.Coin on order (%s)", orderID)
+	lookupCoin := contract.BuyerOrder.Payment.Coin
+	_, err = repo.LoadCurrencyDefinitions().Lookup(lookupCoin)
+	if err != nil {
+		log.Warningf("invalid BuyerOrder.Payment.Coin (%s) on order (%s)", lookupCoin, orderID)
 		contract.BuyerOrder.Payment.Coin = paymentCoin.String()
 	}
 
@@ -1745,8 +1717,10 @@ func (i *jsonAPIHandler) POSTRefund(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// TODO: Remove once broken contracts are migrated
-	if _, err := repo.NewCurrencyCode(contract.BuyerOrder.Payment.Coin); err != nil {
-		log.Warningf("missing contract BuyerOrder.Payment.Coin on order (%s)", can.OrderID)
+	lookupCoin := contract.BuyerOrder.Payment.Coin
+	_, err = repo.LoadCurrencyDefinitions().Lookup(lookupCoin)
+	if err != nil {
+		log.Warningf("invalid BuyerOrder.Payment.Coin (%s) on order (%s)", lookupCoin, can.OrderID)
 		contract.BuyerOrder.Payment.Coin = paymentCoin.String()
 	}
 
@@ -1938,8 +1912,10 @@ func (i *jsonAPIHandler) POSTOrderFulfill(w http.ResponseWriter, r *http.Request
 	}
 
 	// TODO: Remove once broken contracts are migrated
-	if _, err := repo.NewCurrencyCode(contract.BuyerOrder.Payment.Coin); err != nil {
-		log.Warningf("missing contract BuyerOrder.Payment.Coin on order (%s)", fulfill.OrderId)
+	lookupCoin := contract.BuyerOrder.Payment.Coin
+	_, err = repo.LoadCurrencyDefinitions().Lookup(lookupCoin)
+	if err != nil {
+		log.Warningf("invalid BuyerOrder.Payment.Coin (%s) on order (%s)", lookupCoin, fulfill.OrderId)
 		contract.BuyerOrder.Payment.Coin = paymentCoin.String()
 	}
 
@@ -1977,8 +1953,10 @@ func (i *jsonAPIHandler) POSTOrderComplete(w http.ResponseWriter, r *http.Reques
 	}
 
 	// TODO: Remove once broken contracts are migrated
-	if _, err := repo.NewCurrencyCode(contract.BuyerOrder.Payment.Coin); err != nil {
-		log.Warningf("missing contract BuyerOrder.Payment.Coin on order (%s)", or.OrderID)
+	lookupCoin := contract.BuyerOrder.Payment.Coin
+	_, err = repo.LoadCurrencyDefinitions().Lookup(lookupCoin)
+	if err != nil {
+		log.Warningf("invalid BuyerOrder.Payment.Coin (%s) on order (%s)", lookupCoin, or.OrderID)
 		contract.BuyerOrder.Payment.Coin = paymentCoin.String()
 	}
 
@@ -2063,8 +2041,10 @@ func (i *jsonAPIHandler) POSTOpenDispute(w http.ResponseWriter, r *http.Request)
 	}
 
 	// TODO: Remove once broken contracts are migrated
-	if _, err := repo.NewCurrencyCode(contract.BuyerOrder.Payment.Coin); err != nil {
-		log.Warningf("missing contract BuyerOrder.Payment.Coin on order (%s)", d.OrderID)
+	lookupCoin := contract.BuyerOrder.Payment.Coin
+	_, err = repo.LoadCurrencyDefinitions().Lookup(lookupCoin)
+	if err != nil {
+		log.Warningf("invalid BuyerOrder.Payment.Coin (%s) on order (%s)", lookupCoin, d.OrderID)
 		contract.BuyerOrder.Payment.Coin = paymentCoin.String()
 	}
 
@@ -2205,8 +2185,10 @@ func (i *jsonAPIHandler) POSTReleaseFunds(w http.ResponseWriter, r *http.Request
 	}
 
 	// TODO: Remove once broken contracts are migrated
-	if _, err := repo.NewCurrencyCode(contract.BuyerOrder.Payment.Coin); err != nil {
-		log.Warningf("missing contract BuyerOrder.Payment.Coin on order (%s)", rel.OrderID)
+	lookupCoin := contract.BuyerOrder.Payment.Coin
+	_, err = repo.LoadCurrencyDefinitions().Lookup(lookupCoin)
+	if err != nil {
+		log.Warningf("invalid BuyerOrder.Payment.Coin (%s) on order (%s)", lookupCoin, rel.OrderID)
 		contract.BuyerOrder.Payment.Coin = paymentCoin.String()
 	}
 
@@ -2248,8 +2230,10 @@ func (i *jsonAPIHandler) POSTReleaseEscrow(w http.ResponseWriter, r *http.Reques
 	}
 
 	// TODO: Remove once broken contracts are migrated
-	if _, err := repo.NewCurrencyCode(contract.BuyerOrder.Payment.Coin); err != nil {
-		log.Warningf("missing contract BuyerOrder.Payment.Coin on order (%s)", rel.OrderID)
+	lookupCoin := contract.BuyerOrder.Payment.Coin
+	_, err = repo.LoadCurrencyDefinitions().Lookup(lookupCoin)
+	if err != nil {
+		log.Warningf("invalid BuyerOrder.Payment.Coin (%s) on order (%s)", lookupCoin, rel.OrderID)
 		contract.BuyerOrder.Payment.Coin = paymentCoin.String()
 	}
 
@@ -2295,6 +2279,75 @@ func (i *jsonAPIHandler) POSTReleaseEscrow(w http.ResponseWriter, r *http.Reques
 	}
 
 	SanitizedResponse(w, `{}`)
+}
+
+func (i *jsonAPIHandler) POSTSignMessage(w http.ResponseWriter, r *http.Request) {
+	type plaintext struct {
+		Content []byte `json:"content"`
+	}
+	var msg plaintext
+	decoder := json.NewDecoder(r.Body)
+	err := decoder.Decode(&msg)
+	if err != nil {
+		ErrorResponse(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	sig, pubKey, err := core.SignPayload(msg.Content, i.node.IpfsNode.PrivateKey)
+	if err != nil {
+		ErrorResponse(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	SanitizedResponse(w, fmt.Sprintf(`{"signature": "%s","pubkey":"%s","peerId":"%s"}`,
+		hex.EncodeToString(sig),
+		hex.EncodeToString(pubKey),
+		i.node.IpfsNode.Identity.Pretty()))
+}
+
+func (i *jsonAPIHandler) POSTVerifyMessage(w http.ResponseWriter, r *http.Request) {
+	type ciphertext struct {
+		Content   string `json:"content"`
+		Signature string `json:"signature"`
+		Pubkey    string `json:"pubkey"`
+		PeerId    string `json:"peerId"`
+	}
+	var msg ciphertext
+	decoder := json.NewDecoder(r.Body)
+	err := decoder.Decode(&msg)
+	if err != nil {
+		ErrorResponse(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	keyBytes, err := hex.DecodeString(msg.Pubkey)
+	if err != nil {
+		ErrorResponse(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	contentBytes, err := hex.DecodeString(msg.Content)
+	if err != nil {
+		ErrorResponse(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	sigBytes, err := hex.DecodeString(msg.Signature)
+	if err != nil {
+		ErrorResponse(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	peerID, err := core.VerifyPayload(contentBytes, sigBytes, keyBytes)
+	if err != nil {
+		SanitizedResponse(w, `{"error":"VERIFICATION_FAILED"}`)
+		return
+	}
+
+	if peerID != msg.PeerId {
+		SanitizedResponse(w, `{"error":"PEER_ID_PUBKEY_MISMATCH"}`)
+		return
+	}
+	SanitizedResponse(w, fmt.Sprintf(`{"error":"","peerId":"%s"}`, msg.PeerId))
 }
 
 func (i *jsonAPIHandler) POSTChat(w http.ResponseWriter, r *http.Request) {
@@ -2615,11 +2668,20 @@ func (i *jsonAPIHandler) GETImage(w http.ResponseWriter, r *http.Request) {
 	_, imageHash := path.Split(r.URL.Path)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute*2)
 	defer cancel()
-	dr, err := coreunix.Cat(ctx, i.node.IpfsNode, "/ipfs/"+imageHash)
+
+	api := coreapi.NewCoreAPI(i.node.IpfsNode)
+	pth, err := iface.ParsePath("/ipfs/" + imageHash)
 	if err != nil {
 		ErrorResponse(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+
+	dr, err := api.Unixfs().Get(ctx, pth)
+	if err != nil {
+		ErrorResponse(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
 	defer dr.Close()
 	w.Header().Set("Cache-Control", "public, max-age=29030400, immutable")
 	w.Header().Del("Content-Type")
@@ -3099,7 +3161,7 @@ func (i *jsonAPIHandler) POSTBlockNode(w http.ResponseWriter, r *http.Request) {
 			nodes = append(nodes, pid)
 		}
 	}
-	go ipfs.RemoveAll(i.node.IpfsNode, peerID)
+	go ipfs.RemoveAll(i.node.IpfsNode, peerID, i.node.IPNSQuorumSize)
 	nodes = append(nodes, peerID)
 	settings.BlockedNodes = &nodes
 	if err := i.node.Datastore.Settings().Put(settings); err != nil {
@@ -3271,7 +3333,7 @@ func (i *jsonAPIHandler) GETEstimateFee(w http.ResponseWriter, r *http.Request) 
 			return
 		}
 	}
-	fmt.Fprintf(w, `{"estimatedFee": %d}`, (fee))
+	fmt.Fprintf(w, `{"estimatedFee": %d}`, fee)
 }
 
 func (i *jsonAPIHandler) GETFees(w http.ResponseWriter, r *http.Request) {
@@ -3686,38 +3748,30 @@ func (i *jsonAPIHandler) GETWalletStatus(w http.ResponseWriter, r *http.Request)
 	SanitizedResponse(w, string(out))
 }
 
-func (i *jsonAPIHandler) GETResolve(w http.ResponseWriter, r *http.Request) {
-	_, name := path.Split(r.URL.Path)
-	pid, err := i.node.NameSystem.Resolve(context.Background(), name)
-	if err != nil {
-		ErrorResponse(w, http.StatusNotFound, err.Error())
-		return
-	}
-	fmt.Fprint(w, pid.Pretty())
-}
-
 func (i *jsonAPIHandler) GETIPNS(w http.ResponseWriter, r *http.Request) {
 	_, peerID := path.Split(r.URL.Path)
 
-	val, err := i.node.IpfsNode.Repo.Datastore().Get(dshelp.NewKeyFromBinary([]byte("/ipns/" + peerID)))
-	if err != nil { // No record in datastore
-		ErrorResponse(w, http.StatusNotFound, err.Error())
-		return
-	}
 	pid, err := peer.IDB58Decode(peerID)
 	if err != nil {
 		ErrorResponse(w, http.StatusBadRequest, err.Error())
 		return
 	}
+
+	val, err := i.node.IpfsNode.Repo.Datastore().Get(namesys.IpnsDsKey(pid))
+	if err != nil { // No record in datastore
+		ErrorResponse(w, http.StatusNotFound, err.Error())
+		return
+	}
+
 	var keyBytes []byte
 	pubkey := i.node.IpfsNode.Peerstore.PubKey(pid)
 	if pubkey == nil || !pid.MatchesPublicKey(pubkey) {
-		keyval, err := i.node.IpfsNode.Repo.Datastore().Get(dshelp.NewKeyFromBinary([]byte(core.KeyCachePrefix + peerID)))
+		keyval, err := i.node.IpfsNode.Repo.Datastore().Get(datastore.NewKey(core.KeyCachePrefix + peerID))
 		if err != nil {
 			ErrorResponse(w, http.StatusNotFound, err.Error())
 			return
 		}
-		keyBytes = keyval.([]byte)
+		keyBytes = keyval
 	} else {
 		keyBytes, err = pubkey.Bytes()
 		if err != nil {
@@ -3727,28 +3781,17 @@ func (i *jsonAPIHandler) GETIPNS(w http.ResponseWriter, r *http.Request) {
 	}
 
 	type KeyAndRecord struct {
-		Pubkey           string `json:"pubkey"`
-		SerializedRecord string `json:"serializedRecord"`
+		Pubkey string `json:"pubkey"`
+		Record string `json:"record"`
 	}
 
-	entry := new(ipnspb.IpnsEntry)
-	err = proto.Unmarshal(val.([]byte), entry)
-	if err != nil {
-		ErrorResponse(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-	b, err := proto.Marshal(entry)
-	if err != nil {
-		ErrorResponse(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-	ret := KeyAndRecord{hex.EncodeToString(keyBytes), hex.EncodeToString(b)}
+	ret := KeyAndRecord{hex.EncodeToString(keyBytes), string(val)}
 	retBytes, err := json.MarshalIndent(ret, "", "    ")
 	if err != nil {
 		ErrorResponse(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	go ipfs.Resolve(i.node.IpfsNode, pid, time.Minute, false)
+	go ipfs.Resolve(i.node.IpfsNode, pid, time.Minute, i.node.IPNSQuorumSize, false)
 	fmt.Fprint(w, string(retBytes))
 }
 
@@ -3791,6 +3834,35 @@ func (i *jsonAPIHandler) GETPeerInfo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	SanitizedResponse(w, string(out))
+}
+
+func (i *jsonAPIHandler) POSTBulkUpdateCurrency(w http.ResponseWriter, r *http.Request) {
+	// Retrieve attribute and values to update
+	type BulkUpdateRequest struct {
+		Currencies []string `json:"currencies"`
+	}
+
+	var bulkUpdate BulkUpdateRequest
+	err := json.NewDecoder(r.Body).Decode(&bulkUpdate)
+	if err != nil {
+		http.Error(w, err.Error(), 400)
+		return
+	}
+
+	// Check for no currencies selected
+	if len(bulkUpdate.Currencies) == 0 {
+		SanitizedResponse(w, `{"success": "false", "reason":"No currencies specified"}`)
+		return
+	}
+
+	log.Info("Updating currencies for all listings to: ", bulkUpdate.Currencies)
+	err = i.node.SetCurrencyOnListings(bulkUpdate.Currencies)
+	if err != nil {
+		http.Error(w, err.Error(), 400)
+		return
+	}
+
+	SanitizedResponse(w, `{"success": "true"}`)
 }
 
 // POSTS
@@ -3979,12 +4051,6 @@ func (i *jsonAPIHandler) GETPosts(w http.ResponseWriter, r *http.Request) {
 		}
 		SanitizedResponse(w, string(postsBytes))
 	} else {
-		pid, err := i.node.NameSystem.Resolve(context.Background(), peerID)
-		if err != nil {
-			ErrorResponse(w, http.StatusNotFound, err.Error())
-			return
-		}
-		peerID = pid.Pretty()
 		postsBytes, err := i.node.IPNSResolveThenCat(ipnspath.FromString(path.Join(peerID, "posts.json")), time.Minute, useCache)
 		if err != nil {
 			ErrorResponse(w, http.StatusNotFound, err.Error())
@@ -4051,12 +4117,6 @@ func (i *jsonAPIHandler) GETPost(w http.ResponseWriter, r *http.Request) {
 		hash = postID
 		w.Header().Set("Cache-Control", "public, max-age=29030400, immutable")
 	} else {
-		pid, err := i.node.NameSystem.Resolve(context.Background(), peerID)
-		if err != nil {
-			ErrorResponse(w, http.StatusNotFound, err.Error())
-			return
-		}
-		peerID = pid.Pretty()
 		postBytes, err = i.node.IPNSResolveThenCat(ipnspath.FromString(path.Join(peerID, "posts", postID+".json")), time.Minute, useCache)
 		if err != nil {
 			ErrorResponse(w, http.StatusNotFound, err.Error())

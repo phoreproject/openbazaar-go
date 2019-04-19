@@ -6,6 +6,9 @@ package phored
 import (
 	"bytes"
 	"errors"
+	"sync"
+	"time"
+
 	"github.com/phoreproject/wallet-interface"
 	"github.com/phoreproject/btcd/blockchain"
 	"github.com/phoreproject/btcd/chaincfg"
@@ -14,9 +17,6 @@ import (
 	"github.com/phoreproject/btcd/wire"
 	"github.com/phoreproject/btcutil"
 	"github.com/phoreproject/btcutil/bloom"
-	"github.com/phoreproject/spvwallet"
-	"sync"
-	"time"
 )
 
 // TxStore handles transactions we've sent and our addresses

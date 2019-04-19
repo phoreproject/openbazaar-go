@@ -4,9 +4,10 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
-	dht "gx/ipfs/QmRaVcGchmC1stHHK7YhcgEuTk5k1JiGS568pfYWMgT91H/go-libp2p-kad-dht"
-	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
-	libp2p "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
+
+	libp2p "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
+	"gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
+
 	"strconv"
 	"sync"
 	"time"
@@ -191,14 +192,14 @@ func (n *OpenBazaarNode) VerifySignatureOnDisputeOpen(contract *pb.RicardianCont
 		return err
 	}
 	if len(deser.VendorListings) == 0 || deser.BuyerOrder == nil {
-		return errors.New("Invalid serialized contract")
+		return errors.New("invalid serialized contract")
 	}
 	if peerID == deser.BuyerOrder.BuyerID.PeerID {
 		pubkey = deser.BuyerOrder.BuyerID.Pubkeys.Identity
 	} else if peerID == deser.VendorListings[0].VendorID.PeerID {
 		pubkey = deser.VendorListings[0].VendorID.Pubkeys.Identity
 	} else {
-		return errors.New("Peer ID doesn't match either buyer or vendor")
+		return errors.New("peer ID doesn't match either buyer or vendor")
 	}
 
 	if err := verifyMessageSignature(
@@ -210,11 +211,11 @@ func (n *OpenBazaarNode) VerifySignatureOnDisputeOpen(contract *pb.RicardianCont
 	); err != nil {
 		switch err.(type) {
 		case noSigError:
-			return errors.New("Contract does not contain a signature for the dispute")
+			return errors.New("contract does not contain a signature for the dispute")
 		case invalidSigError:
-			return errors.New("Guid signature on contact failed to verify")
+			return errors.New("guid signature on contact failed to verify")
 		case matchKeyError:
-			return errors.New("Public key in dispute does not match reported ID")
+			return errors.New("public key in dispute does not match reported ID")
 		default:
 			return err
 		}
@@ -228,7 +229,7 @@ func (n *OpenBazaarNode) ProcessDisputeOpen(rc *pb.RicardianContract, peerID str
 	defer DisputeWg.Done()
 
 	if rc.Dispute == nil {
-		return errors.New("Dispute message is nil")
+		return errors.New("dispute message is nil")
 	}
 
 	// Deserialize contract
@@ -238,7 +239,7 @@ func (n *OpenBazaarNode) ProcessDisputeOpen(rc *pb.RicardianContract, peerID str
 		return err
 	}
 	if len(contract.VendorListings) == 0 || contract.BuyerOrder == nil || contract.BuyerOrder.Payment == nil {
-		return errors.New("Serialized contract is malformatted")
+		return errors.New("serialized contract is malformatted")
 	}
 
 	orderID, err := n.CalcOrderID(contract.BuyerOrder)
@@ -297,7 +298,7 @@ func (n *OpenBazaarNode) ProcessDisputeOpen(rc *pb.RicardianContract, peerID str
 				return err
 			}
 		} else {
-			return errors.New("Peer ID doesn't match either buyer or vendor")
+			return errors.New("peer ID doesn't match either buyer or vendor")
 		}
 		if err != nil {
 			return err
@@ -314,7 +315,7 @@ func (n *OpenBazaarNode) ProcessDisputeOpen(rc *pb.RicardianContract, peerID str
 		}
 		// Check this order is currently in a state which can be disputed
 		if state == pb.OrderState_COMPLETED || state == pb.OrderState_DISPUTED || state == pb.OrderState_DECIDED || state == pb.OrderState_RESOLVED || state == pb.OrderState_REFUNDED || state == pb.OrderState_CANCELED || state == pb.OrderState_DECLINED || state == pb.OrderState_PROCESSING_ERROR {
-			return errors.New("Contract can no longer be disputed")
+			return errors.New("contract can no longer be disputed")
 		}
 
 		// Build dispute update message
@@ -371,7 +372,7 @@ func (n *OpenBazaarNode) ProcessDisputeOpen(rc *pb.RicardianContract, peerID str
 		}
 		// Check this order is currently in a state which can be disputed
 		if state == pb.OrderState_COMPLETED || state == pb.OrderState_DISPUTED || state == pb.OrderState_DECIDED || state == pb.OrderState_RESOLVED || state == pb.OrderState_REFUNDED || state == pb.OrderState_CANCELED || state == pb.OrderState_DECLINED {
-			return errors.New("Contact can no longer be disputed")
+			return errors.New("contract can no longer be disputed")
 		}
 
 		// Build dispute update message
@@ -413,7 +414,7 @@ func (n *OpenBazaarNode) ProcessDisputeOpen(rc *pb.RicardianContract, peerID str
 			return err
 		}
 	} else {
-		return errors.New("We are not involved in this dispute")
+		return errors.New("we are not involved in this dispute")
 	}
 
 	notif := repo.DisputeOpenNotification{
@@ -460,7 +461,7 @@ func (n *OpenBazaarNode) CloseDispute(orderID string, buyerPercentage, vendorPer
 	}
 
 	if dispute.VendorContract == nil && vendorPercentage > 0 {
-		return errors.New("Vendor must provide his copy of the contract before you can release funds to the vendor")
+		return errors.New("vendor must provide his copy of the contract before you can release funds to the vendor")
 	}
 
 	if dispute.BuyerContract == nil {
@@ -469,8 +470,10 @@ func (n *OpenBazaarNode) CloseDispute(orderID string, buyerPercentage, vendorPer
 	preferredContract := dispute.ResolutionPaymentContract(payDivision)
 
 	// TODO: Remove once broken contracts are migrated
-	if _, err := repo.NewCurrencyCode(preferredContract.BuyerOrder.Payment.Coin); err != nil {
-		log.Warningf("missing contract BuyerOrder.Payment.Coin on order (%s)", orderID)
+	paymentCoin := preferredContract.BuyerOrder.Payment.Coin
+	_, err = repo.LoadCurrencyDefinitions().Lookup(paymentCoin)
+	if err != nil {
+		log.Warningf("invalid BuyerOrder.Payment.Coin (%s) on order (%s)", paymentCoin, orderID)
 		preferredContract.BuyerOrder.Payment.Coin = paymentCoinHint.String()
 	}
 
@@ -567,7 +570,7 @@ func (n *OpenBazaarNode) CloseDispute(orderID string, buyerPercentage, vendorPer
 	}
 
 	if len(outputs) == 0 {
-		return errors.New("Transaction has no outputs")
+		return errors.New("transaction has no outputs")
 	}
 
 	// Create inputs
@@ -586,7 +589,7 @@ func (n *OpenBazaarNode) CloseDispute(orderID string, buyerPercentage, vendorPer
 	}
 
 	if len(inputs) == 0 {
-		return errors.New("Transaction has no inputs")
+		return errors.New("transaction has no inputs")
 	}
 
 	// Calculate total fee
@@ -962,7 +965,7 @@ func (n *OpenBazaarNode) verifySignatureOnDisputeResolution(contract *pb.Ricardi
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	pubkey, err := n.IpfsNode.Routing.(*dht.IpfsDHT).GetPublicKey(ctx, moderatorID)
+	pubkey, err := n.DHT.GetPublicKey(ctx, moderatorID)
 	if err != nil {
 		log.Errorf("Failed to find public key for %s", moderatorID.Pretty())
 		return err
@@ -981,11 +984,11 @@ func (n *OpenBazaarNode) verifySignatureOnDisputeResolution(contract *pb.Ricardi
 	); err != nil {
 		switch err.(type) {
 		case noSigError:
-			return errors.New("Contract does not contain a signature for the dispute resolution")
+			return errors.New("contract does not contain a signature for the dispute resolution")
 		case invalidSigError:
-			return errors.New("Guid signature on contact failed to verify")
+			return errors.New("guid signature on contact failed to verify")
 		case matchKeyError:
-			return errors.New("Public key in dispute does not match reported ID")
+			return errors.New("public key in dispute does not match reported ID")
 		default:
 			return err
 		}

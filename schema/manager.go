@@ -2,19 +2,22 @@ package schema
 
 import (
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
 	"runtime"
 	"strings"
 	"time"
 
-	"github.com/ipfs/go-ipfs/repo/config"
+	"gx/ipfs/QmPEpj17FDRpc7K1aArKZp3RsHtzRMKykeK9GVgn4WQGPR/go-ipfs-config"
+
+	"github.com/phoreproject/openbazaar-go/ipfs"
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
 	_ "github.com/mutecomm/go-sqlcipher"
-	"github.com/phoreproject/openbazaar-go/ipfs"
 	"github.com/tyler-smith/go-bip39"
 )
 
@@ -165,10 +168,10 @@ func (m *openbazaarSchemaManager) DataPathJoin(pathArgs ...string) string {
 func (m *openbazaarSchemaManager) VerifySchemaVersion(expectedVersion string) error {
 	schemaVersion, err := ioutil.ReadFile(m.SchemaVersionFilePath())
 	if err != nil {
-		return fmt.Errorf("Accessing schema version: %s", err.Error())
+		return fmt.Errorf("accessing schema version: %s", err.Error())
 	}
 	if string(schemaVersion) != expectedVersion {
-		return fmt.Errorf("Schema does not match expected version %s", expectedVersion)
+		return fmt.Errorf("schema does not match expected version %s", expectedVersion)
 	}
 	return nil
 }
@@ -439,6 +442,28 @@ func (m *openbazaarSchemaManager) initializeIPFSDirectoryWithConfig(c *config.Co
 	return fsrepo.Init(m.DataPath(), c)
 }
 
+func (m *openbazaarSchemaManager) CleanIdentityFromConfig() error {
+	configPath := path.Join(m.dataPath, "config")
+	configFile, err := ioutil.ReadFile(configPath)
+	if err != nil {
+		return err
+	}
+	var cfgIface interface{}
+	if err := json.Unmarshal(configFile, &cfgIface); err != nil {
+		return err
+	}
+	cfg, ok := cfgIface.(map[string]interface{})
+	if !ok {
+		return errors.New("invalid config file")
+	}
+	delete(cfg, "Identity")
+	out, err := json.MarshalIndent(cfg, "", "    ")
+	if err != nil {
+		return err
+	}
+	return ioutil.WriteFile(configPath, out, os.ModePerm)
+}
+
 // IdentityKey will return a []byte representing a node's verifiable identity
 // based on the provided mnemonic string. If the string is empty, it will return
 // an error
@@ -484,8 +509,8 @@ func MustDefaultConfig() *config.Config {
 				"/ip4/0.0.0.0/tcp/10005/ws",
 				"/ip6/::/tcp/10005/ws",
 			},
-			API:     "",
-			Gateway: "/ip4/127.0.0.1/tcp/5002",
+			API:     []string{""},
+			Gateway: []string{"/ip4/127.0.0.1/tcp/5002"},
 		},
 
 		Datastore: config.Datastore{
@@ -534,11 +559,9 @@ func MustDefaultConfig() *config.Config {
 		},
 
 		Ipns: config.Ipns{
-			ResolveCacheSize:   128,
-			RecordLifetime:     "7d",
-			RepublishPeriod:    "24h",
-			QuerySize:          5,
-			UsePersistentCache: true,
+			ResolveCacheSize: 128,
+			RecordLifetime:   "168h",
+			RepublishPeriod:  "24h",
 		},
 
 		Gateway: config.Gateway{
