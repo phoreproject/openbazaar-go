@@ -1134,12 +1134,10 @@ func (w *RPCWallet) RetrieveTransactions() error {
 	w.txstore.addrMutex.Unlock()
 
 	// receive transactions for P2PKH and P2PK
-	err := w.receiveTransactions(addrs, true)
-	if err != nil {
-		return err
-	}
+	w.receiveTransactions(addrs, false)
 
 	// receive transactions for P2SH
+	log.Debugf("extracting P2SH script addresses")
 	scriptAddresses := make([]btc.Address, len(w.txstore.watchedScripts))
 	for idx, scriptBytes := range w.txstore.watchedScripts {
 		_, localScriptAddress, _, err := txscript.ExtractPkScriptAddrs(scriptBytes, w.txstore.params)
@@ -1153,10 +1151,11 @@ func (w *RPCWallet) RetrieveTransactions() error {
 		scriptAddresses[idx] = localScriptAddress[0]
 	}
 
-	return w.receiveTransactions(scriptAddresses, false)
+	w.receiveTransactions(scriptAddresses, false)
+	return nil
 }
 
-func (w *RPCWallet) receiveTransactions(addrs []btc.Address, lookAhead bool) error {
+func (w *RPCWallet) receiveTransactions(addrs []btc.Address, lookAhead bool) {
 	numEmptyAddrs := 0
 
 	for i := range addrs {
@@ -1165,7 +1164,8 @@ func (w *RPCWallet) receiveTransactions(addrs []btc.Address, lookAhead bool) err
 		txs, err := w.rpcClient.SearchRawTransactionsVerbose(addrs[i], 0, 1000000, false, false, []string{})
 		w.rpcLock.Unlock()
 		if err != nil {
-			return err
+			log.Errorf("fetching transactions for address %s failed with error: %s", addrs[i].String(), err)
+			continue
 		}
 
 		if lookAhead {
@@ -1174,7 +1174,7 @@ func (w *RPCWallet) receiveTransactions(addrs []btc.Address, lookAhead bool) err
 			}
 
 			if numEmptyAddrs >= LookAheadDistance {
-				return nil
+				return
 			}
 		}
 
@@ -1183,7 +1183,8 @@ func (w *RPCWallet) receiveTransactions(addrs []btc.Address, lookAhead bool) err
 
 			hash, err := chainhash.NewHashFromStr(txs[t].BlockHash)
 			if err != nil {
-				return err
+				log.Error(err)
+				continue
 			}
 
 			w.rpcLock.Lock()
@@ -1191,18 +1192,21 @@ func (w *RPCWallet) receiveTransactions(addrs []btc.Address, lookAhead bool) err
 			w.rpcLock.Unlock()
 
 			if err != nil {
-				return err
+				log.Error(err)
+				continue
 			}
 
 			transactionBytes, err := hex.DecodeString(txs[t].Hex)
 			if err != nil {
-				return err
+				log.Error(err)
+				continue
 			}
 
 			transaction := wire.MsgTx{}
 			err = transaction.BtcDecode(bytes.NewReader(transactionBytes), 1, wire.BaseEncoding)
 			if err != nil {
-				return err
+				log.Error(err)
+				continue
 			}
 
 			w.txstore.Ingest(&transaction, int32(block.Height), time.Unix(block.Time, 0))
@@ -1210,5 +1214,4 @@ func (w *RPCWallet) receiveTransactions(addrs []btc.Address, lookAhead bool) err
 			log.Debugf("ingested tx hash %s", transaction.TxHash().String())
 		}
 	}
-	return nil
 }
