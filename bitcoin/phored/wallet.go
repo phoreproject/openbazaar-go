@@ -500,10 +500,23 @@ func (w *RPCWallet) Close() {
 	if w.started {
 		log.Info("Disconnecting from peers and shutting down")
 		w.rpcLock.Lock()
-		log.Debug("Disconnecting from peers and shutting down - rpc locked")
-		w.rpcClient.Shutdown()
-		w.rpcLock.Unlock()
-		log.Debug("Disconnecting from peers and shutting down - rpc unlocked")
+		defer w.rpcLock.Unlock()
+
+		// add timer to shutdown execution
+		ch := make(chan bool, 1)
+		defer close(ch)
+
+		go func() {
+			w.rpcClient.Shutdown()
+			ch <- true
+		}()
+
+		select {
+		case <-ch:
+			log.Debugf("RPC client shutdown normally")
+		case <-time.After(60 * time.Second):
+			log.Debugf("RPC client shutdown timeout")
+		}
 		w.started = false
 	}
 }
