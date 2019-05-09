@@ -8,7 +8,7 @@ import (
 
 	"github.com/phoreproject/openbazaar-go/repo"
 	"github.com/phoreproject/openbazaar-go/schema"
-	"github.com/phoreproject/wallet-interface"
+	"github.com/OpenBazaar/wallet-interface"
 	_ "github.com/mutecomm/go-sqlcipher"
 	"github.com/op/go-logging"
 )

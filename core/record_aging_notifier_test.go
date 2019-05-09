@@ -13,7 +13,7 @@ import (
 	"github.com/phoreproject/openbazaar-go/repo/db"
 	"github.com/phoreproject/openbazaar-go/schema"
 	"github.com/phoreproject/openbazaar-go/test/factory"
-	wi "github.com/phoreproject/wallet-interface"
+	wi "github.com/OpenBazaar/wallet-interface"
 	"github.com/op/go-logging"
 )
 

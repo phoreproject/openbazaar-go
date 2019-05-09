@@ -18,7 +18,7 @@ running instances.
 
 ### How to integrate your altcoin
 
-The first thing you need to do is create a wallet implementation that conforms to the wallet interface found [here](https://github.com/phoreproject/wallet-interface).
+The first thing you need to do is create a wallet implementation that conforms to the wallet interface found [here](https://github.com/OpenBazaar/wallet-interface).
 The interface *should* be agnostic enough to support most bitcoin derived altcoins, though if you find it isn't just talk to us and we'll see if
 we can make the necessary changes. 
 

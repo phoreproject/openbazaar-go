@@ -10,7 +10,7 @@ import (
 	"github.com/phoreproject/openbazaar-go/repo"
 	"github.com/phoreproject/openbazaar-go/schema"
 	"github.com/phoreproject/openbazaar-go/test/factory"
-	"github.com/phoreproject/wallet-interface"
+	"github.com/OpenBazaar/wallet-interface"
 )
 
 func buildNewUnspentTransactionOutputStore() (repo.UnspentTransactionOutputStore, func(), error) {

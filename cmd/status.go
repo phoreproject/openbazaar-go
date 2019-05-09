@@ -7,7 +7,7 @@ import (
 	obnet "github.com/phoreproject/openbazaar-go/net"
 	"github.com/phoreproject/openbazaar-go/repo"
 	"github.com/phoreproject/openbazaar-go/repo/db"
-	"github.com/phoreproject/wallet-interface"
+	"github.com/OpenBazaar/wallet-interface"
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
 )
 

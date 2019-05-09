@@ -9,9 +9,9 @@ import (
 
 	"github.com/phoreproject/openbazaar-go/repo"
 	"github.com/phoreproject/openbazaar-go/schema"
-	"github.com/phoreproject/wallet-interface"
-	"github.com/phoreproject/btcd/chaincfg/chainhash"
-	"github.com/phoreproject/btcd/wire"
+	"github.com/OpenBazaar/wallet-interface"
+	"github.com/btcsuite/btcd/chaincfg/chainhash"
+	"github.com/btcsuite/btcd/wire"
 )
 
 func mustNewStxo() wallet.Stxo {

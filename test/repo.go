@@ -7,7 +7,7 @@ import (
 
 	"github.com/phoreproject/openbazaar-go/repo"
 	"github.com/phoreproject/openbazaar-go/repo/db"
-	"github.com/phoreproject/wallet-interface"
+	"github.com/OpenBazaar/wallet-interface"
 )
 
 // Repository represents a test (temporary/volitile) repository

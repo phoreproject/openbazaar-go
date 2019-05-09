@@ -8,7 +8,7 @@ import (
 
 	"github.com/phoreproject/openbazaar-go/ipfs"
 	"github.com/phoreproject/openbazaar-go/pb"
-	"github.com/phoreproject/wallet-interface"
+	"github.com/OpenBazaar/wallet-interface"
 	btc "github.com/btcsuite/btcutil"
 )
 

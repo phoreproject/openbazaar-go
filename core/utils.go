@@ -14,8 +14,8 @@ import (
 
 	"github.com/phoreproject/openbazaar-go/pb"
 	"github.com/phoreproject/openbazaar-go/repo"
-	"github.com/phoreproject/wallet-interface"
-	"github.com/phoreproject/btcd/chaincfg/chainhash"
+	"github.com/OpenBazaar/wallet-interface"
+	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/golang/protobuf/ptypes"
 	google_protobuf "github.com/golang/protobuf/ptypes/timestamp"
 )

@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/phoreproject/openbazaar-go/repo"
-	"github.com/phoreproject/wallet-interface"
-	"github.com/phoreproject/btcd/chaincfg/chainhash"
+	"github.com/OpenBazaar/wallet-interface"
+	"github.com/btcsuite/btcd/chaincfg/chainhash"
 )
 
 type TxnsDB struct {

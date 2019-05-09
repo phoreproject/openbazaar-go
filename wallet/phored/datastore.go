@@ -9,14 +9,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/phoreproject/wallet-interface"
-	"github.com/phoreproject/btcd/blockchain"
-	"github.com/phoreproject/btcd/chaincfg"
-	"github.com/phoreproject/btcd/chaincfg/chainhash"
-	"github.com/phoreproject/btcd/txscript"
-	"github.com/phoreproject/btcd/wire"
-	"github.com/phoreproject/btcutil"
-	"github.com/phoreproject/btcutil/bloom"
+	"github.com/OpenBazaar/wallet-interface"
+	"github.com/btcsuite/btcd/blockchain"
+	"github.com/btcsuite/btcd/chaincfg"
+	"github.com/btcsuite/btcd/chaincfg/chainhash"
+	"github.com/btcsuite/btcd/txscript"
+	"github.com/btcsuite/btcd/wire"
+	"github.com/btcsuite/btcutil"
+	"github.com/btcsuite/btcutil/bloom"
 )
 
 // TxStore handles transactions we've sent and our addresses

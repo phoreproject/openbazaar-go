@@ -13,9 +13,9 @@ import (
 	"github.com/phoreproject/openbazaar-go/ipfs"
 	"github.com/phoreproject/openbazaar-go/net"
 	"github.com/phoreproject/openbazaar-go/net/service"
-	wi "github.com/phoreproject/wallet-interface"
-	"github.com/phoreproject/btcd/chaincfg"
-	"github.com/phoreproject/btcutil/hdkeychain"
+	wi "github.com/OpenBazaar/wallet-interface"
+	"github.com/btcsuite/btcd/chaincfg"
+	"github.com/btcsuite/btcutil/hdkeychain"
 
 	"github.com/ipfs/go-ipfs/core/mock"
 	"github.com/tyler-smith/go-bip39"

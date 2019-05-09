@@ -10,8 +10,8 @@ import (
 	"github.com/OpenBazaar/jsonpb"
 	"github.com/phoreproject/openbazaar-go/pb"
 	"github.com/phoreproject/openbazaar-go/repo"
-	"github.com/phoreproject/wallet-interface"
-	btc "github.com/phoreproject/btcutil"
+	"github.com/OpenBazaar/wallet-interface"
+	btc "github.com/btcsuite/btcutil"
 )
 
 type PurchasesDB struct {

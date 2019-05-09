@@ -24,7 +24,7 @@ import (
 	"github.com/phoreproject/openbazaar-go/repo"
 	sto "github.com/phoreproject/openbazaar-go/storage"
 
-	"github.com/phoreproject/btcutil/hdkeychain"
+	"github.com/btcsuite/btcutil/hdkeychain"
 
 	"github.com/gosimple/slug"
 	"github.com/ipfs/go-ipfs/core"

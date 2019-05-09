@@ -8,7 +8,7 @@ import (
 	peer "gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
 
 	"github.com/golang/protobuf/proto"
-	"github.com/phoreproject/btcd/btcec"
+	"github.com/btcsuite/btcd/btcec"
 	"github.com/phoreproject/openbazaar-go/pb"
 )
 

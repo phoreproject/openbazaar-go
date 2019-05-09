@@ -20,7 +20,7 @@ import (
 	"github.com/phoreproject/openbazaar-go/pb"
 	"github.com/phoreproject/openbazaar-go/repo"
 	"github.com/phoreproject/openbazaar-go/repo/db"
-	"github.com/phoreproject/wallet-interface"
+	"github.com/OpenBazaar/wallet-interface"
 	"github.com/golang/protobuf/proto"
 	ipfscore "github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/repo/fsrepo"

@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/phoreproject/openbazaar-go/repo"
-	"github.com/phoreproject/wallet-interface"
+	"github.com/OpenBazaar/wallet-interface"
 	"github.com/btcsuite/btcd/btcec"
 )
 

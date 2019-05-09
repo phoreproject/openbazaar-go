@@ -24,8 +24,8 @@ import (
 	"github.com/OpenBazaar/jsonpb"
 	"github.com/phoreproject/openbazaar-go/pb"
 	"github.com/phoreproject/openbazaar-go/repo"
-	"github.com/phoreproject/wallet-interface"
-	hd "github.com/phoreproject/btcutil/hdkeychain"
+	"github.com/OpenBazaar/wallet-interface"
+	hd "github.com/btcsuite/btcutil/hdkeychain"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 )

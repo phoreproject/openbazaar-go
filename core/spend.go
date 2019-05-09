@@ -8,8 +8,8 @@ import (
 
 	"github.com/phoreproject/openbazaar-go/pb"
 	"github.com/phoreproject/openbazaar-go/repo"
-	"github.com/phoreproject/wallet-interface"
-	"github.com/phoreproject/btcutil"
+	"github.com/OpenBazaar/wallet-interface"
+	"github.com/btcsuite/btcutil"
 )
 
 // DefaultCurrencyDivisibility is the Divisibility of the Currency if not

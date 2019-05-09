@@ -6,7 +6,7 @@ import (
 	"sync"
 
 	"github.com/phoreproject/openbazaar-go/repo"
-	"github.com/phoreproject/wallet-interface"
+	"github.com/OpenBazaar/wallet-interface"
 )
 
 // WatchScriptsDB type definition.

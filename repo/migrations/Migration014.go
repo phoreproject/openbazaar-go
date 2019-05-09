@@ -6,7 +6,7 @@ import (
 	"path"
 	"strings"
 
-	"github.com/phoreproject/wallet-interface"
+	"github.com/OpenBazaar/wallet-interface"
 )
 
 var WalletCoinType wallet.CoinType
