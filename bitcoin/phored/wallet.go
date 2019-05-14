@@ -1175,6 +1175,11 @@ func (w *RPCWallet) receiveTransactions(addrs []btc.Address, lookAhead bool) {
 		log.Debugf("fetching transactions for address %s", addrs[i].String())
 		w.rpcLock.Lock()
 		txs, err := w.rpcClient.SearchRawTransactionsVerbose(addrs[i], 0, 1000000, false, false, []string{})
+		if err != nil {
+			// try download transactions again, rpc use multiple nodes one of them could be not updated yet
+			log.Warningf("trying to download transactions for address %s again, because of error: %s", addrs[i], err)
+			txs, err = w.rpcClient.SearchRawTransactionsVerbose(addrs[i], 0, 1000000, false, false, []string{})
+		}
 		w.rpcLock.Unlock()
 		if err != nil {
 			log.Errorf("fetching transactions for address %s failed with error: %s", addrs[i].String(), err)
@@ -1202,10 +1207,15 @@ func (w *RPCWallet) receiveTransactions(addrs []btc.Address, lookAhead bool) {
 
 			w.rpcLock.Lock()
 			block, err := w.rpcClient.GetBlockVerbose(hash)
+			if err != nil {
+				// try download block again, rpc use multiple nodes one of them could be not updated yet
+				log.Warningf("trying to download block %s again, because of error: %s", hash, err)
+				block, err = w.rpcClient.GetBlockVerbose(hash)
+			}
 			w.rpcLock.Unlock()
 
 			if err != nil {
-				log.Error(err)
+				log.Errorf("Cannot download block %s. %s", hash, err)
 				continue
 			}
 
