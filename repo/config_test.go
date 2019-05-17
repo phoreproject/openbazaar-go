@@ -1,18 +1,14 @@
 package repo
 
 import (
+	"github.com/phoreproject/openbazaar-go/schema"
 	"reflect"
 	"testing"
 
 	"io/ioutil"
-	"os"
-	"path/filepath"
 	"time"
-
-	"github.com/ipfs/go-ipfs/repo/fsrepo"
 )
 
-const testConfigFolder = "testdata"
 const testConfigPath = "testdata/config"
 
 func TestGetApiConfig(t *testing.T) {
@@ -21,7 +17,7 @@ func TestGetApiConfig(t *testing.T) {
 		t.Error(err)
 	}
 
-	config, err := GetAPIConfig(configFile)
+	config, err := schema.GetAPIConfig(configFile)
 	if config.Username != "TestUsername" {
 		t.Error("Expected TestUsername, got ", config.Username)
 	}
@@ -56,7 +52,7 @@ func TestGetApiConfig(t *testing.T) {
 		t.Error("GetAPIAuthentication threw an unexpected error")
 	}
 
-	_, err = GetAPIConfig([]byte{})
+	_, err = schema.GetAPIConfig([]byte{})
 	if err == nil {
 		t.Error("GetAPIAuthentication didn`t throw an error")
 	}
@@ -67,14 +63,14 @@ func TestGetWalletConfig(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	config, err := GetWalletConfig(configFile)
+	config, err := schema.GetWalletConfig(configFile)
 	if config.RPCLocation != "rpc.phore.io" {
 		t.Error("RPCLocation does not equal expected value")
 	}
 	if config.Type != "phored" {
 		t.Error("Type does not equal expected value")
 	}
-	_, err = GetWalletConfig([]byte{})
+	_, err = schema.GetWalletConfig([]byte{})
 	if err == nil {
 		t.Error("GetFeeAPI didn't throw an error")
 	}
@@ -85,7 +81,7 @@ func TestGetDropboxApiToken(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	dropboxApiToken, err := GetDropboxApiToken(configFile)
+	dropboxApiToken, err := schema.GetDropboxApiToken(configFile)
 	if dropboxApiToken != "dropbox123" {
 		t.Error("dropboxApiToken does not equal expected value")
 	}
@@ -93,7 +89,7 @@ func TestGetDropboxApiToken(t *testing.T) {
 		t.Error("GetDropboxApiToken threw an unexpected error")
 	}
 
-	dropboxApiToken, err = GetDropboxApiToken([]byte{})
+	dropboxApiToken, err = schema.GetDropboxApiToken([]byte{})
 	if dropboxApiToken != "" {
 		t.Error("Expected empty string, got ", dropboxApiToken)
 	}
@@ -107,7 +103,7 @@ func TestRepublishInterval(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	interval, err := GetRepublishInterval(configFile)
+	interval, err := schema.GetRepublishInterval(configFile)
 	if interval != time.Hour*24 {
 		t.Error("RepublishInterval does not equal expected value")
 	}
@@ -115,7 +111,7 @@ func TestRepublishInterval(t *testing.T) {
 		t.Error("RepublishInterval threw an unexpected error")
 	}
 
-	interval, err = GetRepublishInterval([]byte{})
+	interval, err = schema.GetRepublishInterval([]byte{})
 	if interval != time.Second*0 {
 		t.Error("Expected zero duration, got ", interval)
 	}
@@ -129,58 +125,11 @@ func TestGetResolverConfig(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	resolvers, err := GetResolverConfig(configFile)
+	resolvers, err := schema.GetResolverConfig(configFile)
 	if err != nil {
 		t.Error("GetResolverUrl threw an unexpected error")
 	}
 	if resolvers.Id != "https://resolver.onename.com/" {
 		t.Error("resolverUrl does not equal expected value")
-	}
-}
-
-func TestExtendConfigFile(t *testing.T) {
-	r, err := fsrepo.Open(testConfigFolder)
-	if err != nil {
-		t.Error("fsrepo.Open threw an unexpected error", err)
-		return
-	}
-	configFile, err := ioutil.ReadFile(testConfigPath)
-	if err != nil {
-		t.Error(err)
-	}
-	config, _ := GetWalletConfig(configFile)
-	originalMaxFee := config.MaxFee
-	newMaxFee := config.MaxFee + 1
-	if err := extendConfigFile(r, "Wallet.MaxFee", newMaxFee); err != nil {
-		t.Error("extendConfigFile threw an unexpected error ", err)
-		return
-	}
-	configFile, err = ioutil.ReadFile(testConfigPath)
-	if err != nil {
-		t.Error(err)
-	}
-	config, _ = GetWalletConfig(configFile)
-	if config.MaxFee != newMaxFee {
-		t.Errorf("Expected maxFee to be %v, got %v", newMaxFee, config.MaxFee)
-		return
-	}
-	// Reset maxFee to original value
-	extendConfigFile(r, "Wallet.MaxFee", originalMaxFee)
-
-	// Teardown
-	os.RemoveAll(filepath.Join(testConfigFolder, "datastore"))
-	os.RemoveAll(filepath.Join(testConfigFolder, "repo.lock"))
-}
-
-func TestInitConfig(t *testing.T) {
-	config, err := InitConfig(testConfigFolder)
-	if config == nil {
-		t.Error("config empty", err)
-	}
-	if err != nil {
-		t.Error("InitConfig threw an unexpected error")
-	}
-	if config.Addresses.Gateway != "/ip4/127.0.0.1/tcp/5002" {
-		t.Error("config.Addresses.Gateway is not set")
 	}
 }

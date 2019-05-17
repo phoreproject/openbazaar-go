@@ -13,6 +13,7 @@ func TestOpenBazaarNode_CalculateOrderTotal(t *testing.T) {
 	node, err := test.NewNode()
 	if err != nil {
 		t.Error(err)
+		return
 	}
 	contract := &pb.RicardianContract{
 		VendorListings: []*pb.Listing{{
@@ -294,8 +295,8 @@ func TestOpenBazaarNode_CalculateOrderTotal(t *testing.T) {
 				Version:            3,
 				ContractType:       pb.Listing_Metadata_PHYSICAL_GOOD,
 				Format:             pb.Listing_Metadata_FIXED_PRICE,
-				AcceptedCurrencies: []string{"BTC"},
-				PricingCurrency:    "BTC",
+				AcceptedCurrencies: []string{"PHR"},
+				PricingCurrency:    "PHR",
 			},
 			Item: &pb.Listing_Item{
 				Price: 100000,

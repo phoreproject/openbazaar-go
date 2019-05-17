@@ -300,9 +300,9 @@ const moderatorValidJSON = `{
 // Wallet
 //
 
-const walletMneumonicJSONResponse = `{"mnemonic": "correct horse battery staple"}`
+const walletMneumonicJSONResponse = `{"mnemonic": "pulp open fabric travel possible slogan sense piano fog knock weird merge"}`
 
-const walletAddressJSONResponse = `{"address": "PGR63nGwTeB6ZmbbgDMxoYPsxkbXhTmnRn"}`
+const walletAddressJSONResponse = `{"address": "PCNz5VN3ddp4EdfdiZBZhhxFRazuGwT3Wg"}`
 
 const walletBalanceJSONResponse = `{"confirmed": 0, "unconfirmed": 0, "height": 0}`
 

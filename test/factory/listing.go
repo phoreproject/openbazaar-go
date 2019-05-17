@@ -12,8 +12,8 @@ func NewListing(slug string) *pb.Listing {
 		RefundPolicy:       "Sample Refund policy",
 		Metadata: &pb.Listing_Metadata{
 			Version:            1,
-			AcceptedCurrencies: []string{"TBTC"},
-			PricingCurrency:    "TBTC",
+			AcceptedCurrencies: []string{"PHR"},
+			PricingCurrency:    "PHR",
 			Expiry:             &timestamp.Timestamp{Seconds: 2147483647},
 			Format:             pb.Listing_Metadata_FIXED_PRICE,
 			ContractType:       pb.Listing_Metadata_PHYSICAL_GOOD,

@@ -51,6 +51,10 @@ func TestGetApiConfig(t *testing.T) {
 
 func TestGetWalletConfig(t *testing.T) {
 	config, err := GetWalletConfig(configFixture())
+	if err != nil {
+		t.Errorf(err.Error())
+		return
+	}
 	if config.FeeAPI != "https://btc.fees.openbazaar.org" {
 		t.Error("FeeApi does not equal expected value")
 	}
@@ -375,7 +379,8 @@ func configFixture() []byte {
     "RPCPassword": "password",
     "RPCUser": "username",
     "TrustedPeer": "127.0.0.1:8333",
-    "Type": "spvwallet"
+    "Type": "spvwallet",
+	"RPCLocation": "rpc.phore.io"
   },
   "Wallets": {
     "BCH": {
