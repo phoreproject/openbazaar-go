@@ -47,6 +47,10 @@ func (n *NotificationListener) updateFilterAndSend() {
 
 func connectToWebsocket(n *NotificationListener, dialer* websocket.Dialer, url url.URL) error {
 	conn, _, err := dialer.Dial(url.String(), nil)
+	if err != nil{
+		return err
+	}
+
 	conn.SetPingHandler(nil)
 	conn.SetPongHandler(nil)
 
@@ -58,8 +62,11 @@ func connectToWebsocket(n *NotificationListener, dialer* websocket.Dialer, url u
 	}
 	conn.SetCloseHandler(closeHandlerFunc)
 
+	if n.conn != nil {
+		n.conn.Close()
+	}
 	n.conn = conn
-	return err
+	return nil
 }
 
 func startNotificationListener(wallet *RPCWallet) (*NotificationListener, error) {
