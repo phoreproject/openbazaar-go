@@ -180,7 +180,7 @@ func addConfigExtensions(repoRoot string) error {
 			MediumFeeDefault: 60,
 			LowFeeDefault:    20,
 			TrustedPeer:      "",
-			RPCLocation:      "rpc.phore.io",
+			RPCLocation:      "rpc2.phore.io",
 		}
 		ws = schema.WalletsConfig{
 			BTC: schema.CoinConfig{

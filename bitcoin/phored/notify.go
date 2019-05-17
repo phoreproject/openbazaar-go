@@ -39,60 +39,76 @@ func (n *NotificationListener) updateFilterAndSend() {
 
 	toSend := []byte(fmt.Sprintf("subscribeBloom %s %d %d 0", hex.EncodeToString(message.Filter), message.HashFuncs, message.Tweak))
 
-	//log.Debugf("<- toSend %s", toSend)
-
 	err = n.conn.WriteMessage(websocket.TextMessage, toSend)
 	if err != nil{
 		log.Errorf("Bloom filter subscription failed %s", err)
 	}
 }
 
+func connectToWebsocket(n *NotificationListener, dialer* websocket.Dialer, url url.URL) error {
+	conn, _, err := dialer.Dial(url.String(), nil)
+	conn.SetPingHandler(nil)
+	conn.SetPongHandler(nil)
+
+	closeHandlerFunc := func(code int, text string) error {
+		if code == 4000 { // current node was marked as dead and connection was closed
+			return connectToWebsocket(n, dialer, url)
+		}
+		return nil
+	}
+	conn.SetCloseHandler(closeHandlerFunc)
+
+	n.conn = conn
+	return err
+}
+
 func startNotificationListener(wallet *RPCWallet) (*NotificationListener, error) {
 	notificationListener := &NotificationListener{wallet: wallet}
-	u := url.URL{Scheme: "wss", Host: wallet.rpcBasePath, Path: "/ws"}
-
-	log.Infof("Connecting to %s", u.String())
+	websocketURL := url.URL{Scheme: "wss", Host: wallet.rpcBasePath, Path: "/ws"}
 
 	dialerWithCookies := websocket.DefaultDialer
 	dialerWithCookies.Jar = *new(http.CookieJar)
-	conn, _, err := dialerWithCookies.Dial(u.String(), nil)
+
+	log.Infof("Connecting to %s", websocketURL.String())
+	err := connectToWebsocket(notificationListener, dialerWithCookies, websocketURL)
 	if err != nil {
 		return nil, err
 	}
 	log.Info("Connected to websockets!")
 
-	notificationListener.conn = conn
-
 	ticker := time.NewTicker(15 * time.Second)
 	go func() {
 		for range ticker.C {
 			// log.Debugf("<- ping")
-			err := notificationListener.conn.WriteMessage(websocket.TextMessage, []byte("ping"))
+			err := notificationListener.conn.WriteControl(websocket.PingMessage, []byte("ping"), time.Now().Add(time.Second))
 			if err != nil {
 				log.Errorf("Error when pinging websocket. %s", err)
+				log.Info("Trying to reconnect")
+				err = connectToWebsocket(notificationListener, dialerWithCookies, websocketURL); if err != nil {
+					log.Errorf("Reconnection failed. %s", err)
+				}
 			}
 		}
 	}()
 
 	go func() {
 		for {
-			_, message, err := conn.ReadMessage()
+			_, message, err := notificationListener.conn.ReadMessage()
 			if err != nil {
 				if websocket.IsCloseError(err) || websocket.IsUnexpectedCloseError(err) {
-					log.Infof("Reconnecting to %s", u.String())
-					conn, _, err := dialerWithCookies.Dial(u.String(), nil)
-					if err != nil {
-						log.Error(err)
-						return
+					log.Warning(err)
+					log.Infof("Reconnecting to %s", websocketURL.String())
+					err = connectToWebsocket(notificationListener, dialerWithCookies, websocketURL); if err != nil {
+						log.Errorf("Reconnection failed. %s", err)
 					}
-					notificationListener.conn = conn
+
 				} else {
 					log.Error(err)
 					return
 				}
 			}
 
-			if string(message) == "pong" || string(message) == "ping" || string(message) == "success" {
+			if  string(message) == "success" || len(message) == 0 {
 				continue
 			}
 
@@ -100,8 +116,6 @@ func startNotificationListener(wallet *RPCWallet) (*NotificationListener, error)
 				log.Warningf("Websocket returned - %s", string(message))
 				continue
 			}
-
-			log.Debugf("-> %s", message)
 
 			var getTx btcjson.GetTransactionResult
 			err = json.Unmarshal(message, &getTx)
