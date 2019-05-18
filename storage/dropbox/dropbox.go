@@ -8,21 +8,17 @@ import (
 	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	mh "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
 
-	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox"
-	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox/files"
-	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox/sharing"
-	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox/users"
+	"github.com/dropbox/dropbox-sdk-go-unofficial"
+	"github.com/dropbox/dropbox-sdk-go-unofficial/files"
+	"github.com/dropbox/dropbox-sdk-go-unofficial/sharing"
 )
 
-// DropBoxStorage is a pluggable dropbox storage for OB
 type DropBoxStorage struct {
 	apiToken string
 }
 
-// NewDropBoxStorage generates a new API client
 func NewDropBoxStorage(apiToken string) (*DropBoxStorage, error) {
-	config := dropbox.Config{Token: apiToken}
-	api := users.New(config)
+	api := dropbox.Client(apiToken, dropbox.Options{Verbose: true})
 	if _, err := api.GetCurrentAccount(); err != nil {
 		return nil, err
 	}
@@ -31,25 +27,22 @@ func NewDropBoxStorage(apiToken string) (*DropBoxStorage, error) {
 	}, nil
 }
 
-// Store stores a file on dropbox
 func (s *DropBoxStorage) Store(peerID peer.ID, ciphertext []byte) (ma.Multiaddr, error) {
-	config := dropbox.Config{Token: s.apiToken, LogLevel: dropbox.LogDebug}
-	filesAPI := files.New(config)
-	sharingAPI := sharing.New(config)
+	api := dropbox.Client(s.apiToken, dropbox.Options{Verbose: true})
 	hash := sha256.Sum256(ciphertext)
 	hex := hex.EncodeToString(hash[:])
 
 	// Upload ciphertext
 	uploadArg := files.NewCommitInfo("/" + hex)
 	r := bytes.NewReader(ciphertext)
-	_, err := filesAPI.Upload(uploadArg, r)
+	_, err := api.Upload(uploadArg, r)
 	if err != nil {
 		return nil, err
 	}
 
 	// Set public sharing
 	sharingArg := sharing.NewCreateSharedLinkArg("/" + hex)
-	res, err := sharingAPI.CreateSharedLink(sharingArg)
+	res, err := api.CreateSharedLink(sharingArg)
 	if err != nil {
 		return nil, err
 	}
