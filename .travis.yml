@@ -18,3 +18,4 @@ after_success:
   # Build the snap.
   - docker run -v $(pwd):/cwd snapcore/snapcraft sh -c 'cd /cwd && sudo apt update && snapcraft'
   - ./deploy.sh
+install: true
