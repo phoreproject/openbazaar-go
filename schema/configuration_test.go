@@ -380,7 +380,7 @@ func configFixture() []byte {
     "RPCUser": "username",
     "TrustedPeer": "127.0.0.1:8333",
     "Type": "spvwallet",
-	"RPCLocation": "rpc.phore.io"
+	"RPCLocation": "rpc2.phore.io"
   },
   "Wallets": {
     "BCH": {

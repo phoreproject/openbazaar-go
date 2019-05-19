@@ -127,7 +127,7 @@
     "LowFeeDefault": 20,
     "MaxFee": 2000,
     "MediumFeeDefault": 60,
-    "RPCLocation": "rpc.phore.io",
+    "RPCLocation": "rpc2.phore.io",
     "Type": "phored"
   }
 }

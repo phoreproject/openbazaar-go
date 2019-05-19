@@ -294,6 +294,10 @@ func GetWalletConfig(cfgBytes []byte) (*WalletConfig, error) {
 		return nil, MalformedConfigError
 	}
 
+	if rpcLocationStr == "rpc.phore.io" {
+		rpcLocationStr = "rpc2.phore.io"
+	}
+
 	wCfg := &WalletConfig{
 		Type:             walletTypeStr,
 		Binary:           binaryStr,
