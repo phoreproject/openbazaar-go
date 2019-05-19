@@ -223,39 +223,8 @@ func Migration013_ScriptToAddress(coinType string, script []byte, testmodeEnanab
 			return "", fmt.Errorf("unable to convert %s address to script", coinType)
 		}
 		return addrs[0].String(), nil
-		//case "bch", "tbch":
-		//	addr, err := bchutil.ExtractPkScriptAddrs(script, params)
-		//	if err != nil {
-		//		return "", fmt.Errorf("converting %s script to address: %s", coinType, err.Error())
-		//	}
-		//	return btcutil.Address(addr).String(), nil
-		//case "zec", "tzec":
-		//	addr, err := zcashd.ExtractPkScriptAddrs(script, params)
-		//	if err != nil {
-		//		return "", fmt.Errorf("converting %s script to address: %s", coinType, err.Error())
-		//	}
-		//	return addr.String(), nil
 	}
 	return "", fmt.Errorf("unable to migrate coinType %s", coinType)
-}
-
-func migration013_DecodeBCHAddress(addr string, params *chaincfg.Params) (*btcutil.Address, error) {
-	// Legacy
-	decoded, err := btcutil.DecodeAddress(addr, params)
-	if err == nil {
-		return &decoded, nil
-	}
-	//// Cashaddr
-	//decoded, err = bchutil.DecodeAddress(addr, params)
-	//if err == nil {
-	//	return &decoded, nil
-	//}
-	//// Bitpay
-	//decoded, err = bchutil.DecodeBitpay(addr, params)
-	//if err == nil {
-	//	return &decoded, nil
-	//}
-	return nil, fmt.Errorf("unable to decode BCH address")
 }
 
 func Migration013_AddressToScript(coinType string, addr string, testmodeEnanabled bool) ([]byte, error) {
@@ -272,26 +241,6 @@ func Migration013_AddressToScript(coinType string, addr string, testmodeEnanable
 			return nil, fmt.Errorf("converting %s address to script: %s", coinType, err.Error())
 		}
 		return script, nil
-		//case "bch", "tbch":
-		//	addr, err := migration013_DecodeBCHAddress(addr, params)
-		//	if err != nil {
-		//		return nil, fmt.Errorf("decoding %s address: %s", coinType, err.Error())
-		//	}
-		//	script, err := bchutil.PayToAddrScript(*addr)
-		//	if err != nil {
-		//		return nil, fmt.Errorf("converting %s address to script: %s", coinType, err.Error())
-		//	}
-		//	return script, nil
-		//case "zec", "tzec":
-		//	addr, err := zcashd.DecodeAddress(addr, params)
-		//	if err != nil {
-		//		return nil, fmt.Errorf("decoding %s address: %s", coinType, err.Error())
-		//	}
-		//	script, err := zcashd.PayToAddrScript(addr)
-		//	if err != nil {
-		//		return nil, fmt.Errorf("converting %s address to script: %s", coinType, err.Error())
-		//	}
-		//	return script, nil
 	}
 	return nil, fmt.Errorf("Unable to migrate coinType %s", coinType)
 }
