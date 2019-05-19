@@ -3347,7 +3347,7 @@ func (i *jsonAPIHandler) POSTFetchRatings(w http.ResponseWriter, r *http.Request
 					RatingID string `json:"ratingId"`
 					Error    string `json:"error"`
 				}
-				respondWithError := func(errorMsg string) {
+				respondWithError := func(_ string) {
 					e := ratingError{id, rid, "Not found"}
 					ret, err := json.MarshalIndent(e, "", "    ")
 					if err != nil {
