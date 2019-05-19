@@ -77,65 +77,65 @@ func TestMigration008(t *testing.T) {
 	}
 
 	_, err = db.Exec(dbSetupSql,
-		caseID, // dispute case id
+		caseID,                                     // dispute case id
 		migrations.Migration008_OrderState_PENDING, // order state int
-		0,                      // dispute read bool
-		int(executedAt.Unix()), // dispute timestamp
-		0,                      // dispute buyerOpened bool
-		"claimtext",            // dispute claim text
-		"",                     // dispute buyerPayoutAddres
-		"",                     // dispute vendorPayoutAddres
-		0,                      // lastNotifiedAt unix timestamp
+		0,                                          // dispute read bool
+		int(executedAt.Unix()),                     // dispute timestamp
+		0,                                          // dispute buyerOpened bool
+		"claimtext",                                // dispute claim text
+		"",                                         // dispute buyerPayoutAddres
+		"",                                         // dispute vendorPayoutAddres
+		0,                                          // lastNotifiedAt unix timestamp
 
-		purchaseID, // purchase order id
-		"",         // purchase contract blob
+		purchaseID,                                          // purchase order id
+		"",                                                  // purchase contract blob
 		migrations.Migration008_OrderState_AWAITING_PAYMENT, // order state int
-		0,                      // purchase read bool
-		int(executedAt.Unix()), // purchase timestamp
-		int(0),                 // purchase total int
-		"thumbnailHash",        // purchase thumbnail text
-		"QmVendorPeerID",       // purchase vendorID text
-		"vendor handle",        // purchase vendor handle text
-		"An Item Title",        // purchase item title
-		"shipping name",        // purchase shippingName text
-		"shippingAddress",      // purchase shippingAddress text
-		"paymentAddress",       // purchase paymentAddr text
-		0,                      // purchase funded bool
-		0,                      // lastNotifiedAt unix timestamp
+		0,                                                   // purchase read bool
+		int(executedAt.Unix()),                              // purchase timestamp
+		int(0),                                              // purchase total int
+		"thumbnailHash",                                     // purchase thumbnail text
+		"QmVendorPeerID",                                    // purchase vendorID text
+		"vendor handle",                                     // purchase vendor handle text
+		"An Item Title",                                     // purchase item title
+		"shipping name",                                     // purchase shippingName text
+		"shippingAddress",                                   // purchase shippingAddress text
+		"paymentAddress",                                    // purchase paymentAddr text
+		0,                                                   // purchase funded bool
+		0,                                                   // lastNotifiedAt unix timestamp
 
 		disputedPurchaseID,                          // purchase order id
 		string(disputedPurchaseContractData),        // purchase contract blob
 		migrations.Migration008_OrderState_DISPUTED, // order state int
-		0,                      // purchase read bool
-		int(executedAt.Unix()), // purchase timestamp
-		int(0),                 // purchase total int
-		"thumbnailHash",        // purchase thumbnail text
-		"QmVendorPeerID",       // purchase vendorID text
-		"vendor handle",        // purchase vendor handle text
-		"An Item Title",        // purchase item title
-		"shipping name",        // purchase shippingName text
-		"shippingAddress",      // purchase shippingAddress text
-		"paymentAddress",       // purchase paymentAddr text
-		0,                      // purchase funded bool
-		0,                      // lastNotifiedAt unix timestamp
+		0,                                           // purchase read bool
+		int(executedAt.Unix()),                      // purchase timestamp
+		int(0),                                      // purchase total int
+		"thumbnailHash",                             // purchase thumbnail text
+		"QmVendorPeerID",                            // purchase vendorID text
+		"vendor handle",                             // purchase vendor handle text
+		"An Item Title",                             // purchase item title
+		"shipping name",                             // purchase shippingName text
+		"shippingAddress",                           // purchase shippingAddress text
+		"paymentAddress",                            // purchase paymentAddr text
+		0,                                           // purchase funded bool
+		0,                                           // lastNotifiedAt unix timestamp
 
-		saleID, // sale order id
-		"",     // sale contract blob
+		saleID,                                              // sale order id
+		"",                                                  // sale contract blob
 		migrations.Migration008_OrderState_AWAITING_PAYMENT, // order state int
-		0,                      // purchase read bool
-		0,                      // sale read bool
-		int(executedAt.Unix()), // sale timestamp
-		int(0),                 // sale total int
-		"thumbnailHash",        // sale thumbnail text
-		"QmBuyerPeerID",        // sale buyerID text
-		"buyer handle",         // sale buyer handle text
-		"An Item Title",        // sale item title
-		"shipping name",        // sale shippingName text
-		"shippingAddress",      // sale shippingAddress text
-		"paymentAddress",       // sale paymentAddr text
-		0,                      // sale funded bool
-		0,                      // sale needsSync bool
-		0,                      // lastNotifiedAt unix timestamp
+		0,                                                   // purchase read bool
+		0,                                                   // sale read bool
+		int(executedAt.Unix()),                              // sale timestamp
+		int(0),                                              // sale total int
+		"thumbnailHash",                                     // sale thumbnail text
+		"QmBuyerPeerID",                                     // sale buyerID text
+		"buyer handle",                                      // sale buyer handle text
+		"An Item Title",                                     // sale item title
+		"shipping name",                                     // sale shippingName text
+		"shippingAddress",                                   // sale shippingAddress text
+		"paymentAddress",                                    // sale paymentAddr text
+		0,                                                   // sale funded bool
+		0,                                                   // sale needsSync bool
+		0,                                                   // lastNotifiedAt unix timestamp
 	)
 	if err != nil {
 		t.Fatal(err)

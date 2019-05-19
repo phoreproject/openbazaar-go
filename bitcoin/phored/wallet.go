@@ -467,6 +467,9 @@ func (w *RPCWallet) ChainTip() (uint32, chainhash.Hash) {
 	}
 
 	height, err := w.rpcClient.GetBlockCount()
+	if err != nil {
+		return 0, chainhash.Hash{}
+	}
 	w.rpcLock.Unlock()
 	return uint32(height), *ch
 }
@@ -591,6 +594,9 @@ func (w *RPCWallet) SweepAddress(ins []wallet.TransactionInput, address *btc.Add
 	}
 	pk := privKey.PubKey().SerializeCompressed()
 	addressPub, err := btc.NewAddressPubKey(pk, w.params)
+	if err != nil {
+		return nil, err
+	}
 
 	getKey := txscript.KeyClosure(func(addr btc.Address) (*btcec.PrivateKey, bool, error) {
 		if addressPub.EncodeAddress() == addr.EncodeAddress() {

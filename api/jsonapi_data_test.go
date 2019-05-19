@@ -304,22 +304,22 @@ const walletMneumonicJSONResponse = `{"mnemonic": "pulp open fabric travel possi
 
 const walletAddressJSONResponse = `{"address": "PCNz5VN3ddp4EdfdiZBZhhxFRazuGwT3Wg"}`
 
-const walletBalanceJSONResponse = `{"confirmed": 0, "unconfirmed": 0, "height": 0}`
+//const walletBalanceJSONResponse = `{"confirmed": 0, "unconfirmed": 0, "height": 0}`
 
 //
 // Spending
 //
 
-const spendJSON = `{
-	"address": "PGR63nGwTeB6ZmbbgDMxoYPsxkbXhTmnRn",
-	"amount": 1700000,
-	"feeLevel": "NORMAL"
-}`
-
-const insuffientFundsJSON = `{
-	"success": false,
-	"reason": "ERROR_INSUFFICIENT_FUNDS"
-}`
+//const spendJSON = `{
+//	"address": "PGR63nGwTeB6ZmbbgDMxoYPsxkbXhTmnRn",
+//	"amount": 1700000,
+//	"feeLevel": "NORMAL"
+//}`
+//
+//const insuffientFundsJSON = `{
+//	"success": false,
+//	"reason": "ERROR_INSUFFICIENT_FUNDS"
+//}`
 
 //
 // Posts

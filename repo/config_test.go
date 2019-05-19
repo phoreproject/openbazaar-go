@@ -64,6 +64,9 @@ func TestGetWalletConfig(t *testing.T) {
 		t.Error(err)
 	}
 	config, err := schema.GetWalletConfig(configFile)
+	if err != nil {
+		t.Error(err)
+	}
 	if config.RPCLocation != "rpc.phore.io" {
 		t.Error("RPCLocation does not equal expected value")
 	}
