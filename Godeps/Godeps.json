@@ -5,7 +5,7 @@
 	"Deps": [
 		{
 			"ImportPath": "github.com/OpenBazaar/go-blockstackclient",
-			"Rev": "d805c545cd74f4ae0cca2b64a739771a14dfbaaf"
+			"Rev": "28fae9038857d4a311f2b5e5c45c05b15ff78582"
 		},
 		{
 			"ImportPath": "github.com/OpenBazaar/jsonpb",
@@ -1747,6 +1747,76 @@
 		{
 			"ImportPath": "gx/ipfs/QmfVj3x4D6Jkq9SEoi5n2NmoUomLwoeiwnYz2KQa15wRw6/base32",
 			"Rev": "440a840c48279b8bc64fbc88e2af5b0140756959"
+		},
+		{
+			"ImportPath": "github.com/phoreproject/btcd/addrmgr",
+			"Comment": "BTCD_0_12_0_BETA-846-g68bf1002",
+			"Rev": "68bf100240243edf1435b943a4be93695502b8e2"
+		},
+		{
+			"ImportPath": "github.com/phoreproject/btcd/blockchain",
+			"Comment": "BTCD_0_12_0_BETA-846-g68bf1002",
+			"Rev": "68bf100240243edf1435b943a4be93695502b8e2"
+		},
+		{
+			"ImportPath": "github.com/phoreproject/btcd/connmgr",
+			"Comment": "BTCD_0_12_0_BETA-846-g68bf1002",
+			"Rev": "68bf100240243edf1435b943a4be93695502b8e2"
+		},
+		{
+			"ImportPath": "github.com/phoreproject/btcd/peer",
+			"Comment": "BTCD_0_12_0_BETA-846-g68bf1002",
+			"Rev": "68bf100240243edf1435b943a4be93695502b8e2"
+		},
+		{
+			"ImportPath": "github.com/phoreproject/btcd/txscript",
+			"Comment": "BTCD_0_12_0_BETA-846-g68bf1002",
+			"Rev": "68bf100240243edf1435b943a4be93695502b8e2"
+		},
+		{
+			"ImportPath": "github.com/phoreproject/btcutil/bloom",
+			"Comment": "BTCUTIL_0_5_0-88-g49c0dc7",
+			"Rev": "49c0dc73329bd362941232efdd62065817c5c3f0"
+		},
+		{
+			"ImportPath": "github.com/phoreproject/btcutil/coinset",
+			"Comment": "BTCUTIL_0_5_0-88-g49c0dc7",
+			"Rev": "49c0dc73329bd362941232efdd62065817c5c3f0"
+		},
+		{
+			"ImportPath": "github.com/phoreproject/btcutil/txsort",
+			"Comment": "BTCUTIL_0_5_0-88-g49c0dc7",
+			"Rev": "49c0dc73329bd362941232efdd62065817c5c3f0"
+		},
+		{
+			"ImportPath": "github.com/phoreproject/btcwallet/wallet/txauthor",
+			"Comment": "BTCWALLET_0_7_0_ALPHA-365-g75aad0a",
+			"Rev": "75aad0a74ceb01f4bc1df92d0ee2594f877aeaf6"
+		},
+		{
+			"ImportPath": "github.com/phoreproject/btcwallet/wallet/txrules",
+			"Comment": "BTCWALLET_0_7_0_ALPHA-365-g75aad0a",
+			"Rev": "75aad0a74ceb01f4bc1df92d0ee2594f877aeaf6"
+		},
+		{
+			"ImportPath": "github.com/phoreproject/btcd/database",
+			"Comment": "BTCD_0_12_0_BETA-846-g68bf1002",
+			"Rev": "68bf100240243edf1435b943a4be93695502b8e2"
+		},
+		{
+			"ImportPath": "github.com/phoreproject/btcwallet/internal/helpers",
+			"Comment": "BTCWALLET_0_7_0_ALPHA-365-g75aad0a",
+			"Rev": "75aad0a74ceb01f4bc1df92d0ee2594f877aeaf6"
+		},
+		{
+			"ImportPath": "github.com/phoreproject/btcwallet/wallet/internal/txsizes",
+			"Comment": "BTCWALLET_0_7_0_ALPHA-365-g75aad0a",
+			"Rev": "75aad0a74ceb01f4bc1df92d0ee2594f877aeaf6"
+		},
+		{
+			"ImportPath": "github.com/phoreproject/btcd/zerocoin",
+			"Comment": "BTCD_0_12_0_BETA-846-g68bf1002",
+			"Rev": "68bf100240243edf1435b943a4be93695502b8e2"
 		}
 	]
 }
