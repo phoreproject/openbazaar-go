@@ -52,16 +52,6 @@ type Coupon struct {
 	Hash string
 }
 
-type ChatMessage struct {
-	MessageId string    `json:"messageId"`
-	PeerId    string    `json:"peerId"`
-	Subject   string    `json:"subject"`
-	Message   string    `json:"message"`
-	Read      bool      `json:"read"`
-	Outgoing  bool      `json:"outgoing"`
-	Timestamp time.Time `json:"timestamp"`
-}
-
 type GroupChatMessage struct {
 	PeerIds []string `json:"peerIds"`
 	Subject string   `json:"subject"`
@@ -96,6 +86,8 @@ type Purchase struct {
 	VendorHandle       string    `json:"vendorHandle"`
 	ShippingName       string    `json:"shippingName"`
 	ShippingAddress    string    `json:"shippingAddress"`
+	CoinType           string    `json:"coinType"`
+	PaymentCoin        string    `json:"paymentCoin"`
 	State              string    `json:"state"`
 	Read               bool      `json:"read"`
 	Moderated          bool      `json:"moderated"`
@@ -113,6 +105,8 @@ type Sale struct {
 	BuyerHandle        string    `json:"buyerHandle"`
 	ShippingName       string    `json:"shippingName"`
 	ShippingAddress    string    `json:"shippingAddress"`
+	CoinType           string    `json:"coinType"`
+	PaymentCoin        string    `json:"paymentCoin"`
 	State              string    `json:"state"`
 	Read               bool      `json:"read"`
 	Moderated          bool      `json:"moderated"`
@@ -130,6 +124,8 @@ type Case struct {
 	BuyerHandle        string    `json:"buyerHandle"`
 	VendorId           string    `json:"vendorId"`
 	VendorHandle       string    `json:"vendorHandle"`
+	CoinType           string    `json:"coinType"`
+	PaymentCoin        string    `json:"paymentCoin"`
 	BuyerOpened        bool      `json:"buyerOpened"`
 	State              string    `json:"state"`
 	Read               bool      `json:"read"`

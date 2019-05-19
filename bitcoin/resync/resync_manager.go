@@ -13,22 +13,22 @@ var log = logging.MustGetLogger("ResyncManager")
 var ResyncInterval = time.Hour
 
 type ResyncManager struct {
-	sales repo.Sales
+	sales repo.SaleStore
 	w     wallet.Wallet
 }
 
-func NewResyncManager(salesDB repo.Sales, w wallet.Wallet) *ResyncManager {
+func NewResyncManager(salesDB repo.SaleStore, w wallet.Wallet) *ResyncManager {
 	return &ResyncManager{salesDB, w}
 }
 
 func (r *ResyncManager) Start() {
 	t := time.NewTicker(ResyncInterval)
 	for ; true; <-t.C {
-		r.checkUnfunded()
+		r.CheckUnfunded()
 	}
 }
 
-func (r *ResyncManager) checkUnfunded() {
+func (r *ResyncManager) CheckUnfunded() {
 	unfunded, err := r.sales.GetNeedsResync()
 	if err != nil {
 		log.Error(err)
@@ -45,7 +45,7 @@ func (r *ResyncManager) checkUnfunded() {
 		r.sales.SetNeedsResync(uf.OrderId, false)
 	}
 	if r.w != nil {
-		log.Infof("Rolling back blockchain %s looking for payments for %d orders\n", time.Now().Sub(rollbackTime), len(unfunded))
+		log.Infof("Rolling back blockchain %s looking for payments for %d orders\n", time.Since(rollbackTime), len(unfunded))
 		r.w.ReSyncBlockchain(rollbackTime)
 	}
 }

@@ -5,8 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	cid "gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
-	mh "gx/ipfs/QmU9a9NV9RdPNwZQDYd5uKsm6N6LJLSvLbywDDYFbaaC6P/go-multihash"
 	"io/ioutil"
 	"net/url"
 	"os"
@@ -19,59 +17,96 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/kennygrant/sanitize"
 	"github.com/microcosm-cc/bluemonday"
-	"github.com/phoreproject/btcd/chaincfg"
+
+	mh "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
+	"gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
+
 	"github.com/phoreproject/openbazaar-go/ipfs"
 	"github.com/phoreproject/openbazaar-go/pb"
 	"github.com/phoreproject/openbazaar-go/repo"
 )
 
 const (
-	ListingVersion           = 2
-	TitleMaxCharacters       = 140
-	ShortDescriptionLength   = 160
+	// ListingVersion - current listing version
+	ListingVersion = 4
+	// TitleMaxCharacters - max size for title
+	TitleMaxCharacters = 140
+	// ShortDescriptionLength - min length for description
+	ShortDescriptionLength = 160
+	// DescriptionMaxCharacters - max length for description
 	DescriptionMaxCharacters = 50000
-	MaxTags                  = 10
-	MaxCategories            = 10
-	MaxListItems             = 30
-	FilenameMaxCharacters    = 255
-	CodeMaxCharacters        = 20
-	WordMaxCharacters        = 40
-	SentenceMaxCharacters    = 70
+	// MaxTags - max permitted tags
+	MaxTags = 10
+	// MaxCategories - max permitted categories
+	MaxCategories = 10
+	// MaxListItems - max items in a listing
+	MaxListItems = 30
+	// FilenameMaxCharacters - max filename size
+	FilenameMaxCharacters = 255
+	// CodeMaxCharacters - max chars for a code
+	CodeMaxCharacters = 20
+	// WordMaxCharacters - max chars for word
+	WordMaxCharacters = 40
+	// SentenceMaxCharacters - max chars for sentence
+	SentenceMaxCharacters = 70
+	// CouponTitleMaxCharacters - max length of a coupon title
 	CouponTitleMaxCharacters = 70
-	PolicyMaxCharacters      = 10000
-	AboutMaxCharacters       = 10000
-	URLMaxCharacters         = 2000
-	MaxCountryCodes          = 255
-	EscrowTimeout            = 1080
-	SlugBuffer               = 5
+	// PolicyMaxCharacters - max length for policy
+	PolicyMaxCharacters = 10000
+	// AboutMaxCharacters - max length for about
+	AboutMaxCharacters = 10000
+	// URLMaxCharacters - max length for URL
+	URLMaxCharacters = 2000
+	// MaxCountryCodes - max country codes
+	MaxCountryCodes = 255
+	// EscrowTimeout - escrow timeout in hours
+	EscrowTimeout = 1080
+	// SlugBuffer - buffer size for slug
+	SlugBuffer = 5
+	// PriceModifierMin - min price modifier
+	PriceModifierMin = -99.99
+	// PriceModifierMax = max price modifier
+	PriceModifierMax = 1000.00
+
+	// DefaultCoinDivisibility - decimals for price
+	DefaultCoinDivisibility uint32 = 1e8
 )
 
 type price struct {
-	CurrencyCode string `json:"currencyCode"`
-	Amount       uint64 `json:"amount"`
+	CurrencyCode string  `json:"currencyCode"`
+	Amount       uint64  `json:"amount"`
+	Modifier     float32 `json:"modifier"`
 }
 type thumbnail struct {
 	Tiny   string `json:"tiny"`
 	Small  string `json:"small"`
 	Medium string `json:"medium"`
 }
-type listingData struct {
-	Hash          string    `json:"hash"`
-	Slug          string    `json:"slug"`
-	Title         string    `json:"title"`
-	Categories    []string  `json:"categories"`
-	NSFW          bool      `json:"nsfw"`
-	ContractType  string    `json:"contractType"`
-	Description   string    `json:"description"`
-	Thumbnail     thumbnail `json:"thumbnail"`
-	Price         price     `json:"price"`
-	ShipsTo       []string  `json:"shipsTo"`
-	FreeShipping  []string  `json:"freeShipping"`
-	Language      string    `json:"language"`
-	AverageRating float32   `json:"averageRating"`
-	RatingCount   uint32    `json:"ratingCount"`
+
+// ListingData - represent a listing
+type ListingData struct {
+	Hash               string    `json:"hash"`
+	Slug               string    `json:"slug"`
+	Title              string    `json:"title"`
+	Tags               []string  `json:"tags"`
+	Categories         []string  `json:"categories"`
+	NSFW               bool      `json:"nsfw"`
+	ContractType       string    `json:"contractType"`
+	Description        string    `json:"description"`
+	Thumbnail          thumbnail `json:"thumbnail"`
+	Price              price     `json:"price"`
+	ShipsTo            []string  `json:"shipsTo"`
+	FreeShipping       []string  `json:"freeShipping"`
+	Language           string    `json:"language"`
+	AverageRating      float32   `json:"averageRating"`
+	RatingCount        uint32    `json:"ratingCount"`
+	ModeratorIDs       []string  `json:"moderators"`
+	AcceptedCurrencies []string  `json:"acceptedCurrencies"`
+	CoinType           string    `json:"coinType"`
+	CoinDivisibility   uint32    `json:"coinDivisibility"`
 }
 
+// GenerateSlug - slugify the title of the listing
 func (n *OpenBazaarNode) GenerateSlug(title string) (string, error) {
 	title = strings.Replace(title, "/", "", -1)
 	slugFromTitle := func(title string) string {
@@ -96,7 +131,7 @@ func (n *OpenBazaarNode) GenerateSlug(title string) (string, error) {
 	}
 }
 
-// Add our identity to the listing and sign it
+// SignListing Add our identity to the listing and sign it
 func (n *OpenBazaarNode) SignListing(listing *pb.Listing) (*pb.SignedListing, error) {
 	// Set inventory to the default as it's not part of the contract
 	for _, s := range listing.Item.Skus {
@@ -105,19 +140,17 @@ func (n *OpenBazaarNode) SignListing(listing *pb.Listing) (*pb.SignedListing, er
 
 	sl := new(pb.SignedListing)
 
-	// Set hardcode escrow timeout. This may change in the future
-	var testnet bool
-	if n.Wallet.Params().Name == chaincfg.MainNetParams.Name {
-		listing.Metadata.EscrowTimeoutHours = EscrowTimeout
-	} else {
-		testnet = true
+	// Temporary hack to work around test env shortcomings
+	if n.TestNetworkEnabled() || n.RegressionNetworkEnabled() {
 		if listing.Metadata.EscrowTimeoutHours == 0 {
 			listing.Metadata.EscrowTimeoutHours = 1
 		}
+	} else {
+		listing.Metadata.EscrowTimeoutHours = EscrowTimeout
 	}
 
 	// Set crypto currency
-	listing.Metadata.AcceptedCurrencies = []string{strings.ToUpper(n.Wallet.CurrencyCode())}
+	listing.Metadata.AcceptedCurrencies = []string{NormalizeCurrencyCode(n.Wallet.CurrencyCode())}
 
 	// Sanitize a few critical fields
 	if listing.Item == nil {
@@ -138,7 +171,8 @@ func (n *OpenBazaarNode) SignListing(listing *pb.Listing) (*pb.SignedListing, er
 	}
 
 	// Check the listing data is correct for continuing
-	if err := validateListing(listing, testnet); err != nil {
+	testingEnabled := n.TestNetworkEnabled() || n.RegressionNetworkEnabled()
+	if err := validateListing(listing, testingEnabled); err != nil {
 		return sl, err
 	}
 
@@ -172,6 +206,9 @@ func (n *OpenBazaarNode) SignListing(listing *pb.Listing) (*pb.SignedListing, er
 		return sl, err
 	}
 	sig, err := ecPrivKey.Sign([]byte(id.PeerID))
+	if err != nil {
+		return sl, err
+	}
 	id.BitcoinSig = sig.Serialize()
 
 	// Update coupon db
@@ -187,10 +224,10 @@ func (n *OpenBazaarNode) SignListing(listing *pb.Listing) (*pb.SignedListing, er
 				return sl, err
 			}
 
-			listing.Coupons[i].Code = &pb.Listing_Coupon_Hash{couponMH.B58String()}
+			listing.Coupons[i].Code = &pb.Listing_Coupon_Hash{Hash: couponMH.B58String()}
 			hash = couponMH.B58String()
 		}
-		c := repo.Coupon{listing.Slug, code, hash}
+		c := repo.Coupon{Slug: listing.Slug, Code: code, Hash: hash}
 		couponsToStore = append(couponsToStore, c)
 	}
 	err = n.Datastore.Coupons().Put(couponsToStore)
@@ -212,9 +249,14 @@ func (n *OpenBazaarNode) SignListing(listing *pb.Listing) (*pb.SignedListing, er
 	return sl, nil
 }
 
-/* Sets the inventory for the listing in the database. Does some basic validation
-   to make sure the inventory uses the correct variants. */
+/*SetListingInventory Sets the inventory for the listing in the database. Does some basic validation
+  to make sure the inventory uses the correct variants. */
 func (n *OpenBazaarNode) SetListingInventory(listing *pb.Listing) error {
+	err := validateListingSkus(listing)
+	if err != nil {
+		return err
+	}
+
 	// Grab current inventory
 	currentInv, err := n.Datastore.Inventory().Get(listing.Slug)
 	if err != nil {
@@ -222,7 +264,7 @@ func (n *OpenBazaarNode) SetListingInventory(listing *pb.Listing) error {
 	}
 	// Update inventory
 	for i, s := range listing.Item.Skus {
-		err = n.Datastore.Inventory().Put(listing.Slug, i, int(s.Quantity))
+		err = n.Datastore.Inventory().Put(listing.Slug, i, int64(s.Quantity))
 		if err != nil {
 			return err
 		}
@@ -249,10 +291,133 @@ func (n *OpenBazaarNode) SetListingInventory(listing *pb.Listing) error {
 			return err
 		}
 	}
+
+	err = n.PublishInventory()
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
-func (n *OpenBazaarNode) UpdateListingIndex(listing *pb.SignedListing) error {
+// CreateListing - add a listing
+func (n *OpenBazaarNode) CreateListing(listing *pb.Listing) error {
+	exists, err := n.listingExists(listing.Slug)
+	if err != nil {
+		return err
+	}
+
+	if exists {
+		return ErrListingAlreadyExists
+	}
+
+	if listing.Slug == "" {
+		listing.Slug, err = n.GenerateSlug(listing.Item.Title)
+		if err != nil {
+			return err
+		}
+	}
+
+	return n.saveListing(listing)
+}
+
+// UpdateListing - update the listing
+func (n *OpenBazaarNode) UpdateListing(listing *pb.Listing) error {
+	exists, err := n.listingExists(listing.Slug)
+	if err != nil {
+		return err
+	}
+
+	if !exists {
+		return ErrListingDoesNotExist
+	}
+
+	return n.saveListing(listing)
+}
+
+func (n *OpenBazaarNode) saveListing(listing *pb.Listing) error {
+	if len(listing.Moderators) == 0 {
+		sd, err := n.Datastore.Settings().Get()
+		if err == nil && sd.StoreModerators != nil {
+			listing.Moderators = *sd.StoreModerators
+		}
+	}
+
+	if listing.Metadata.ContractType == pb.Listing_Metadata_CRYPTOCURRENCY {
+		err := validateCryptocurrencyListing(listing)
+		if err != nil {
+			return err
+		}
+
+		setCryptocurrencyListingDefaults(listing)
+	}
+
+	err := n.SetListingInventory(listing)
+	if err != nil {
+		return err
+	}
+
+	signedListing, err := n.SignListing(listing)
+	if err != nil {
+		return err
+	}
+
+	f, err := os.Create(n.getPathForListingSlug(signedListing.Listing.Slug))
+	if err != nil {
+		return err
+	}
+	m := jsonpb.Marshaler{
+		EnumsAsInts:  false,
+		EmitDefaults: false,
+		Indent:       "    ",
+		OrigName:     false,
+	}
+	out, err := m.MarshalToString(signedListing)
+	if err != nil {
+		return err
+	}
+
+	if _, err := f.WriteString(out); err != nil {
+		return err
+	}
+	err = n.updateListingIndex(signedListing)
+	if err != nil {
+		return err
+	}
+	// Update followers/following
+	err = n.UpdateFollow()
+	if err != nil {
+		return err
+	}
+	if err = n.SeedNode(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (n *OpenBazaarNode) listingExists(slug string) (bool, error) {
+	if slug == "" {
+		return false, nil
+	}
+	_, ferr := os.Stat(n.getPathForListingSlug(slug))
+	if slug == "" {
+		return false, nil
+	}
+	if os.IsNotExist(ferr) {
+		return false, nil
+	}
+	if ferr != nil {
+		return false, ferr
+	}
+	return true, nil
+}
+
+func (n *OpenBazaarNode) getPathForListingSlug(slug string) string {
+	return path.Join(n.RepoPath, "root", "listings", slug+".json")
+}
+
+func (n *OpenBazaarNode) updateListingIndex(listing *pb.SignedListing) error {
 	ld, err := n.extractListingData(listing)
 	if err != nil {
 		return err
@@ -264,12 +429,23 @@ func (n *OpenBazaarNode) UpdateListingIndex(listing *pb.SignedListing) error {
 	return n.updateListingOnDisk(index, ld, false)
 }
 
-func (n *OpenBazaarNode) extractListingData(listing *pb.SignedListing) (listingData, error) {
+func setCryptocurrencyListingDefaults(listing *pb.Listing) {
+	listing.Coupons = []*pb.Listing_Coupon{}
+	listing.Item.Options = []*pb.Listing_Item_Option{}
+	listing.ShippingOptions = []*pb.Listing_ShippingOption{}
+	listing.Metadata.Format = pb.Listing_Metadata_MARKET_PRICE
+}
+
+func coinDivisibilityForType(coinType string) uint32 {
+	return DefaultCoinDivisibility
+}
+
+func (n *OpenBazaarNode) extractListingData(listing *pb.SignedListing) (ListingData, error) {
 	listingPath := path.Join(n.RepoPath, "root", "listings", listing.Listing.Slug+".json")
 
-	listingHash, err := ipfs.GetHashOfFile(n.Context, listingPath)
+	listingHash, err := ipfs.GetHashOfFile(n.IpfsNode, listingPath)
 	if err != nil {
-		return listingData{}, err
+		return ListingData{}, err
 	}
 
 	descriptionLength := len(listing.Listing.Item.Description)
@@ -301,27 +477,36 @@ func (n *OpenBazaarNode) extractListingData(listing *pb.SignedListing) (listingD
 		}
 	}
 
-	ld := listingData{
-		Hash:         listingHash,
-		Slug:         listing.Listing.Slug,
-		Title:        listing.Listing.Item.Title,
-		Categories:   listing.Listing.Item.Categories,
-		NSFW:         listing.Listing.Item.Nsfw,
-		ContractType: listing.Listing.Metadata.ContractType.String(),
-		Description:  listing.Listing.Item.Description[:descriptionLength],
-		Thumbnail:    thumbnail{listing.Listing.Item.Images[0].Tiny, listing.Listing.Item.Images[0].Small, listing.Listing.Item.Images[0].Medium},
-		Price:        price{listing.Listing.Metadata.PricingCurrency, listing.Listing.Item.Price},
-		ShipsTo:      shipsTo,
-		FreeShipping: freeShipping,
-		Language:     listing.Listing.Metadata.Language,
+	ld := ListingData{
+		Hash:             listingHash,
+		Slug:             listing.Listing.Slug,
+		Title:            listing.Listing.Item.Title,
+		Tags:             listing.Listing.Item.Tags,
+		Categories:       listing.Listing.Item.Categories,
+		NSFW:             listing.Listing.Item.Nsfw,
+		CoinType:         listing.Listing.Metadata.CoinType,
+		CoinDivisibility: listing.Listing.Metadata.CoinDivisibility,
+		ContractType:     listing.Listing.Metadata.ContractType.String(),
+		Description:      listing.Listing.Item.Description[:descriptionLength],
+		Thumbnail:        thumbnail{listing.Listing.Item.Images[0].Tiny, listing.Listing.Item.Images[0].Small, listing.Listing.Item.Images[0].Medium},
+		Price: price{
+			CurrencyCode: listing.Listing.Metadata.PricingCurrency,
+			Amount:       listing.Listing.Item.Price,
+			Modifier:     listing.Listing.Metadata.PriceModifier,
+		},
+		ShipsTo:            shipsTo,
+		FreeShipping:       freeShipping,
+		Language:           listing.Listing.Metadata.Language,
+		ModeratorIDs:       listing.Listing.Moderators,
+		AcceptedCurrencies: []string{n.Wallet.CurrencyCode()},
 	}
 	return ld, nil
 }
 
-func (n *OpenBazaarNode) getListingIndex() ([]listingData, error) {
+func (n *OpenBazaarNode) getListingIndex() ([]ListingData, error) {
 	indexPath := path.Join(n.RepoPath, "root", "listings.json")
 
-	var index []listingData
+	var index []ListingData
 
 	_, ferr := os.Stat(indexPath)
 	if !os.IsNotExist(ferr) {
@@ -339,23 +524,23 @@ func (n *OpenBazaarNode) getListingIndex() ([]listingData, error) {
 }
 
 // Update the listings.json file in the listings directory
-func (n *OpenBazaarNode) updateListingOnDisk(index []listingData, ld listingData, updateRatings bool) error {
+func (n *OpenBazaarNode) updateListingOnDisk(index []ListingData, ld ListingData, updateRatings bool) error {
 	indexPath := path.Join(n.RepoPath, "root", "listings.json")
 	// Check to see if the listing we are adding already exists in the list. If so delete it.
 	var avgRating float32
 	var ratingCount uint32
 	for i, d := range index {
-		if d.Slug != ld.Slug {
-			continue
-		}
-		avgRating = d.AverageRating
-		ratingCount = d.RatingCount
+		if d.Slug == ld.Slug {
+			avgRating = d.AverageRating
+			ratingCount = d.RatingCount
 
-		if len(index) == 1 {
-			index = []listingData{}
+			if len(index) == 1 {
+				index = []ListingData{}
+				break
+			}
+			index = append(index[:i], index[i+1:]...)
 			break
 		}
-		index = append(index[:i], index[i+1:]...)
 	}
 
 	// Append our listing with the new hash to the list
@@ -388,14 +573,14 @@ func (n *OpenBazaarNode) updateRatingInListingIndex(rating *pb.Rating) error {
 	if err != nil {
 		return err
 	}
-	var ld listingData
+	var ld ListingData
 	exists := false
 	for _, l := range index {
-		if l.Slug != rating.RatingData.VendorSig.Metadata.ListingSlug {
-			continue
+		if l.Slug == rating.RatingData.VendorSig.Metadata.ListingSlug {
+			ld = l
+			exists = true
+			break
 		}
-		ld = l
-		exists = true
 	}
 	if !exists {
 		return errors.New("Listing for rating does not exist in index")
@@ -407,17 +592,18 @@ func (n *OpenBazaarNode) updateRatingInListingIndex(rating *pb.Rating) error {
 	return n.updateListingOnDisk(index, ld, true)
 }
 
-// Update the hashes in the listings.json file
-func (n *OpenBazaarNode) UpdateIndexHashes(hashes map[string]string) error {
+// UpdateEachListingOnIndex will visit each listing in the index and execute the function
+// with a pointer to the listing passed as the argument. The function should return
+// an error to further processing.
+func (n *OpenBazaarNode) UpdateEachListingOnIndex(updateListing func(*ListingData) error) error {
 	indexPath := path.Join(n.RepoPath, "root", "listings.json")
 
-	var index []listingData
+	var index []ListingData
 
 	_, ferr := os.Stat(indexPath)
 	if os.IsNotExist(ferr) {
 		return nil
 	}
-	// Read existing file
 	file, err := ioutil.ReadFile(indexPath)
 	if err != nil {
 		return err
@@ -427,20 +613,18 @@ func (n *OpenBazaarNode) UpdateIndexHashes(hashes map[string]string) error {
 		return err
 	}
 
-	// Update hashes
-	for _, d := range index {
-		hash, ok := hashes[d.Slug]
-		if ok {
-			d.Hash = hash
+	for i, d := range index {
+		if err := updateListing(&d); err != nil {
+			return err
 		}
+		index[i] = d
 	}
 
-	// Write it back to file
 	f, err := os.Create(indexPath)
-	defer f.Close()
 	if err != nil {
 		return err
 	}
+	defer f.Close()
 
 	j, jerr := json.MarshalIndent(index, "", "    ")
 	if jerr != nil {
@@ -453,7 +637,7 @@ func (n *OpenBazaarNode) UpdateIndexHashes(hashes map[string]string) error {
 	return nil
 }
 
-// Return the current number of listings
+// GetListingCount Return the current number of listings
 func (n *OpenBazaarNode) GetListingCount() int {
 	indexPath := path.Join(n.RepoPath, "root", "listings.json")
 
@@ -463,7 +647,7 @@ func (n *OpenBazaarNode) GetListingCount() int {
 		return 0
 	}
 
-	var index []listingData
+	var index []ListingData
 	err = json.Unmarshal(file, &index)
 	if err != nil {
 		return 0
@@ -471,7 +655,7 @@ func (n *OpenBazaarNode) GetListingCount() int {
 	return len(index)
 }
 
-// Check to see we are selling the given listing. Used when validating an order.
+// IsItemForSale Check to see we are selling the given listing. Used when validating an order.
 // FIXME: This wont scale well. We will need to store the hash of active listings in a db to do an indexed search.
 func (n *OpenBazaarNode) IsItemForSale(listing *pb.Listing) bool {
 	serializedListing, err := proto.Marshal(listing)
@@ -488,14 +672,14 @@ func (n *OpenBazaarNode) IsItemForSale(listing *pb.Listing) bool {
 		return false
 	}
 
-	var index []listingData
+	var index []ListingData
 	err = json.Unmarshal(file, &index)
 	if err != nil {
 		log.Error(err)
 		return false
 	}
 	for _, l := range index {
-		b, err := ipfs.Cat(n.Context, l.Hash)
+		b, err := ipfs.Cat(n.IpfsNode, l.Hash, time.Minute)
 		if err != nil {
 			log.Error(err)
 			return false
@@ -518,14 +702,14 @@ func (n *OpenBazaarNode) IsItemForSale(listing *pb.Listing) bool {
 	return false
 }
 
-// Deletes the listing directory, removes the listing from the index, and deletes the inventory
+// DeleteListing Deletes the listing directory, removes the listing from the index, and deletes the inventory
 func (n *OpenBazaarNode) DeleteListing(slug string) error {
 	toDelete := path.Join(n.RepoPath, "root", "listings", slug+".json")
 	err := os.Remove(toDelete)
 	if err != nil {
 		return err
 	}
-	var index []listingData
+	var index []ListingData
 	indexPath := path.Join(n.RepoPath, "root", "listings.json")
 	_, ferr := os.Stat(indexPath)
 	if !os.IsNotExist(ferr) {
@@ -547,7 +731,7 @@ func (n *OpenBazaarNode) DeleteListing(slug string) error {
 		}
 
 		if len(index) == 1 {
-			index = []listingData{}
+			index = []ListingData{}
 			break
 		}
 		index = append(index[:i], index[i+1:]...)
@@ -555,10 +739,10 @@ func (n *OpenBazaarNode) DeleteListing(slug string) error {
 
 	// Write the index back to file
 	f, err := os.Create(indexPath)
-	defer f.Close()
 	if err != nil {
 		return err
 	}
+	defer f.Close()
 
 	j, jerr := json.MarshalIndent(index, "", "    ")
 	if jerr != nil {
@@ -574,10 +758,15 @@ func (n *OpenBazaarNode) DeleteListing(slug string) error {
 	if err != nil {
 		return err
 	}
+	err = n.PublishInventory()
+	if err != nil {
+		return err
+	}
 
 	return n.updateProfileCounts()
 }
 
+// GetListings - fetch all listings
 func (n *OpenBazaarNode) GetListings() ([]byte, error) {
 	indexPath := path.Join(n.RepoPath, "root", "listings.json")
 	file, err := ioutil.ReadFile(indexPath)
@@ -588,7 +777,7 @@ func (n *OpenBazaarNode) GetListings() ([]byte, error) {
 	}
 
 	// Unmarshal the index to check if file contains valid json
-	var index []listingData
+	var index []ListingData
 	err = json.Unmarshal(file, &index)
 	if err != nil {
 		return nil, err
@@ -598,6 +787,7 @@ func (n *OpenBazaarNode) GetListings() ([]byte, error) {
 	return file, nil
 }
 
+// GetListingFromHash - fetch listing for the specified hash
 func (n *OpenBazaarNode) GetListingFromHash(hash string) (*pb.SignedListing, error) {
 	// Read listings.json
 	indexPath := path.Join(n.RepoPath, "root", "listings.json")
@@ -607,7 +797,7 @@ func (n *OpenBazaarNode) GetListingFromHash(hash string) (*pb.SignedListing, err
 	}
 
 	// Unmarshal the index
-	var index []listingData
+	var index []ListingData
 	err = json.Unmarshal(file, &index)
 	if err != nil {
 		return nil, err
@@ -628,6 +818,7 @@ func (n *OpenBazaarNode) GetListingFromHash(hash string) (*pb.SignedListing, err
 	return n.GetListingFromSlug(slug)
 }
 
+// GetListingFromSlug - fetch listing for the specified slug
 func (n *OpenBazaarNode) GetListingFromSlug(slug string) (*pb.SignedListing, error) {
 	// Read listing file
 	listingPath := path.Join(n.RepoPath, "root", "listings", slug+".json")
@@ -696,10 +887,10 @@ func validateListing(listing *pb.Listing, testnet bool) (err error) {
 	if listing.Metadata == nil {
 		return errors.New("Missing required field: Metadata")
 	}
-	if listing.Metadata.ContractType > pb.Listing_Metadata_SERVICE {
+	if listing.Metadata.ContractType > pb.Listing_Metadata_CRYPTOCURRENCY {
 		return errors.New("Invalid contract type")
 	}
-	if listing.Metadata.Format > pb.Listing_Metadata_AUCTION {
+	if listing.Metadata.Format > pb.Listing_Metadata_MARKET_PRICE {
 		return errors.New("Invalid listing format")
 	}
 	if listing.Metadata.Expiry == nil {
@@ -707,12 +898,6 @@ func validateListing(listing *pb.Listing, testnet bool) (err error) {
 	}
 	if time.Unix(listing.Metadata.Expiry.Seconds, 0).Before(time.Now()) {
 		return errors.New("Listing expiration must be in the future")
-	}
-	if listing.Metadata.PricingCurrency == "" {
-		return errors.New("Listing pricing currency code must not be empty")
-	}
-	if len(listing.Metadata.PricingCurrency) > WordMaxCharacters {
-		return fmt.Errorf("PricingCurrency is longer than the max of %d characters", WordMaxCharacters)
 	}
 	if len(listing.Metadata.Language) > WordMaxCharacters {
 		return fmt.Errorf("Language is longer than the max of %d characters", WordMaxCharacters)
@@ -737,7 +922,7 @@ func validateListing(listing *pb.Listing, testnet bool) (err error) {
 	if listing.Item.Title == "" {
 		return errors.New("Listing must have a title")
 	}
-	if listing.Item.Price == 0 {
+	if listing.Metadata.ContractType != pb.Listing_Metadata_CRYPTOCURRENCY && listing.Item.Price == 0 {
 		return errors.New("Zero price listings are not allowed")
 	}
 	if len(listing.Item.Title) > TitleMaxCharacters {
@@ -805,12 +990,7 @@ func validateListing(listing *pb.Listing, testnet bool) (err error) {
 			return fmt.Errorf("Category length must be less than the max of %d", WordMaxCharacters)
 		}
 	}
-	if len(listing.Item.Condition) > SentenceMaxCharacters {
-		return fmt.Errorf("Condition length must be less than the max of %d", SentenceMaxCharacters)
-	}
-	if len(listing.Item.Options) > MaxListItems {
-		return fmt.Errorf("Number of options is greater than the max of %d", MaxListItems)
-	}
+
 	maxCombos := 1
 	variantSizeMap := make(map[int]int)
 	optionMap := make(map[string]struct{})
@@ -910,73 +1090,6 @@ func validateListing(listing *pb.Listing, testnet bool) (err error) {
 
 	}
 
-	// ShippingOptions
-	if listing.Metadata.ContractType == pb.Listing_Metadata_PHYSICAL_GOOD && len(listing.ShippingOptions) == 0 {
-		return errors.New("Must be at least one shipping option for a physical good")
-	}
-	if len(listing.ShippingOptions) > MaxListItems {
-		return fmt.Errorf("Number of shipping options is greater than the max of %d", MaxListItems)
-	}
-	var shippingTitles []string
-	for _, shippingOption := range listing.ShippingOptions {
-		if shippingOption.Name == "" {
-			return errors.New("Shipping option title name must not be empty")
-		}
-		if len(shippingOption.Name) > WordMaxCharacters {
-			return fmt.Errorf("Shipping option service length must be less than the max of %d", WordMaxCharacters)
-		}
-		for _, t := range shippingTitles {
-			if t == shippingOption.Name {
-				return errors.New("Shipping option titles must be unique")
-			}
-		}
-		shippingTitles = append(shippingTitles, shippingOption.Name)
-		if shippingOption.Type > pb.Listing_ShippingOption_FIXED_PRICE {
-			return errors.New("Unknown shipping option type")
-		}
-		if len(shippingOption.Regions) == 0 {
-			return errors.New("Shipping options must specify at least one region")
-		}
-		for _, region := range shippingOption.Regions {
-			if int(region) == 0 {
-				return errors.New("Shipping region cannot be NA")
-			} else if int(region) > 246 && int(region) != 500 {
-				return errors.New("Invalid shipping region")
-			}
-
-		}
-		if len(shippingOption.Regions) > MaxCountryCodes {
-			return fmt.Errorf("Number of shipping regions is greater than the max of %d", MaxCountryCodes)
-		}
-		if len(shippingOption.Services) == 0 && shippingOption.Type != pb.Listing_ShippingOption_LOCAL_PICKUP {
-			return errors.New("At least one service must be specified for a shipping option when not local pickup")
-		}
-		if len(shippingOption.Services) > MaxListItems {
-			return fmt.Errorf("Number of shipping services is greater than the max of %d", MaxListItems)
-		}
-		var serviceTitles []string
-		for _, option := range shippingOption.Services {
-			if option.Name == "" {
-				return errors.New("Shipping option service name must not be empty")
-			}
-			if len(option.Name) > WordMaxCharacters {
-				return fmt.Errorf("Shipping option service length must be less than the max of %d", WordMaxCharacters)
-			}
-			for _, t := range serviceTitles {
-				if t == option.Name {
-					return errors.New("Shipping option services names must be unique")
-				}
-			}
-			serviceTitles = append(serviceTitles, option.Name)
-			if option.EstimatedDelivery == "" {
-				return errors.New("Shipping option estimated delivery must not be empty")
-			}
-			if len(option.EstimatedDelivery) > SentenceMaxCharacters {
-				return fmt.Errorf("Shipping option estimated delivery length must be less than the max of %d", SentenceMaxCharacters)
-			}
-		}
-	}
-
 	// Taxes
 	if len(listing.Taxes) > MaxListItems {
 		return fmt.Errorf("Number of taxes is greater than the max of %d", MaxListItems)
@@ -1042,6 +1155,165 @@ func validateListing(listing *pb.Listing, testnet bool) (err error) {
 		return fmt.Errorf("Refun policy length must be less than the max of %d", PolicyMaxCharacters)
 	}
 
+	// Type-specific validations
+	if listing.Metadata.ContractType == pb.Listing_Metadata_PHYSICAL_GOOD {
+		err := validatePhysicalListing(listing)
+		if err != nil {
+			return err
+		}
+	} else if listing.Metadata.ContractType == pb.Listing_Metadata_CRYPTOCURRENCY {
+		err := validateCryptocurrencyListing(listing)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Format-specific validations
+	if listing.Metadata.Format == pb.Listing_Metadata_MARKET_PRICE {
+		err := validateMarketPriceListing(listing)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func validatePhysicalListing(listing *pb.Listing) error {
+	if listing.Metadata.PricingCurrency == "" {
+		return errors.New("Listing pricing currency code must not be empty")
+	}
+	if len(listing.Metadata.PricingCurrency) > WordMaxCharacters {
+		return fmt.Errorf("PricingCurrency is longer than the max of %d characters", WordMaxCharacters)
+	}
+	if len(listing.Item.Condition) > SentenceMaxCharacters {
+		return fmt.Errorf("Condition length must be less than the max of %d", SentenceMaxCharacters)
+	}
+	if len(listing.Item.Options) > MaxListItems {
+		return fmt.Errorf("Number of options is greater than the max of %d", MaxListItems)
+	}
+
+	// ShippingOptions
+	if len(listing.ShippingOptions) == 0 {
+		return errors.New("Must be at least one shipping option for a physical good")
+	}
+	if len(listing.ShippingOptions) > MaxListItems {
+		return fmt.Errorf("Number of shipping options is greater than the max of %d", MaxListItems)
+	}
+	var shippingTitles []string
+	for _, shippingOption := range listing.ShippingOptions {
+		if shippingOption.Name == "" {
+			return errors.New("Shipping option title name must not be empty")
+		}
+		if len(shippingOption.Name) > WordMaxCharacters {
+			return fmt.Errorf("Shipping option service length must be less than the max of %d", WordMaxCharacters)
+		}
+		for _, t := range shippingTitles {
+			if t == shippingOption.Name {
+				return errors.New("Shipping option titles must be unique")
+			}
+		}
+		shippingTitles = append(shippingTitles, shippingOption.Name)
+		if shippingOption.Type > pb.Listing_ShippingOption_FIXED_PRICE {
+			return errors.New("Unknown shipping option type")
+		}
+		if len(shippingOption.Regions) == 0 {
+			return errors.New("Shipping options must specify at least one region")
+		}
+		for _, region := range shippingOption.Regions {
+			if int(region) == 0 {
+				return errors.New("Shipping region cannot be NA")
+			} else if int(region) > 246 && int(region) != 500 {
+				return errors.New("Invalid shipping region")
+			}
+
+		}
+		if len(shippingOption.Regions) > MaxCountryCodes {
+			return fmt.Errorf("Number of shipping regions is greater than the max of %d", MaxCountryCodes)
+		}
+		if len(shippingOption.Services) == 0 && shippingOption.Type != pb.Listing_ShippingOption_LOCAL_PICKUP {
+			return errors.New("At least one service must be specified for a shipping option when not local pickup")
+		}
+		if len(shippingOption.Services) > MaxListItems {
+			return fmt.Errorf("Number of shipping services is greater than the max of %d", MaxListItems)
+		}
+		var serviceTitles []string
+		for _, option := range shippingOption.Services {
+			if option.Name == "" {
+				return errors.New("Shipping option service name must not be empty")
+			}
+			if len(option.Name) > WordMaxCharacters {
+				return fmt.Errorf("Shipping option service length must be less than the max of %d", WordMaxCharacters)
+			}
+			for _, t := range serviceTitles {
+				if t == option.Name {
+					return errors.New("Shipping option services names must be unique")
+				}
+			}
+			serviceTitles = append(serviceTitles, option.Name)
+			if option.EstimatedDelivery == "" {
+				return errors.New("Shipping option estimated delivery must not be empty")
+			}
+			if len(option.EstimatedDelivery) > SentenceMaxCharacters {
+				return fmt.Errorf("Shipping option estimated delivery length must be less than the max of %d", SentenceMaxCharacters)
+			}
+		}
+	}
+
+	return nil
+}
+
+func validateCryptocurrencyListing(listing *pb.Listing) error {
+	switch {
+	case len(listing.Coupons) > 0:
+		return ErrCryptocurrencyListingIllegalField("coupons")
+	case len(listing.Item.Options) > 0:
+		return ErrCryptocurrencyListingIllegalField("item.options")
+	case len(listing.ShippingOptions) > 0:
+		return ErrCryptocurrencyListingIllegalField("shippingOptions")
+	case len(listing.Item.Condition) > 0:
+		return ErrCryptocurrencyListingIllegalField("item.condition")
+	case len(listing.Metadata.PricingCurrency) > 0:
+		return ErrCryptocurrencyListingIllegalField("metadata.pricingCurrency")
+	case listing.Metadata.CoinType == "":
+		return ErrCryptocurrencyListingCoinTypeRequired
+	}
+
+	if listing.Metadata.CoinDivisibility != coinDivisibilityForType(listing.Metadata.CoinType) {
+		return ErrListingCoinDivisibilityIncorrect
+	}
+
+	return nil
+}
+
+func validateMarketPriceListing(listing *pb.Listing) error {
+	if listing.Item.Price > 0 {
+		return ErrMarketPriceListingIllegalField("item.price")
+	}
+
+	if listing.Metadata.PriceModifier != 0 {
+		listing.Metadata.PriceModifier = float32(int(listing.Metadata.PriceModifier*100.0)) / 100.0
+	}
+
+	if listing.Metadata.PriceModifier < PriceModifierMin ||
+		listing.Metadata.PriceModifier > PriceModifierMax {
+		return ErrPriceModifierOutOfRange{
+			Min: PriceModifierMin,
+			Max: PriceModifierMax,
+		}
+	}
+
+	return nil
+}
+
+func validateListingSkus(listing *pb.Listing) error {
+	if listing.Metadata.ContractType == pb.Listing_Metadata_CRYPTOCURRENCY {
+		for _, sku := range listing.Item.Skus {
+			if sku.Quantity < 1 {
+				return ErrCryptocurrencySkuQuantityInvalid
+			}
+		}
+	}
 	return nil
 }
 
@@ -1054,8 +1326,6 @@ func verifySignaturesOnListing(sl *pb.SignedListing) error {
 		sl.Listing.VendorID.PeerID,
 	); err != nil {
 		switch err.(type) {
-		case noSigError:
-			return errors.New("Contract does not contain listing signature")
 		case invalidSigError:
 			return errors.New("Vendor's identity signature on contact failed to verify")
 		case matchKeyError:

@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-var testConfig2 = `{
+var testConfig2 string = `{
     "Crosspost-gateways": [
 	    "https://gateway.ob1.io/",
 	    "https://gateway.duosear.ch/"
@@ -21,7 +21,7 @@ func TestMigration002(t *testing.T) {
 	}
 	f.Write([]byte(testConfig2))
 	f.Close()
-	var m migration002
+	var m Migration002
 
 	// Up
 	err = m.Up("./", "", false)
@@ -42,7 +42,7 @@ func TestMigration002(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if string(repoVer) != "2" {
+	if string(repoVer) != "3" {
 		t.Error("Failed to write new repo version")
 	}
 
@@ -65,7 +65,7 @@ func TestMigration002(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if string(repoVer) != "1" {
+	if string(repoVer) != "2" {
 		t.Error("Failed to write new repo version")
 	}
 

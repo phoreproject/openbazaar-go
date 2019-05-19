@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"github.com/phoreproject/btcd/chaincfg/chainhash"
 	"github.com/phoreproject/btcd/wire"
+	"github.com/phoreproject/openbazaar-go/repo"
 	"github.com/phoreproject/wallet-interface"
 	"strconv"
 	"strings"
@@ -12,15 +13,19 @@ import (
 )
 
 type UtxoDB struct {
-	db   *sql.DB
-	lock sync.RWMutex
+	modelStore
+	coinType wallet.CoinType
+}
+
+func NewUnspentTransactionStore(db *sql.DB, lock *sync.Mutex, coinType wallet.CoinType) repo.UnspentTransactionOutputStore {
+	return &UtxoDB{modelStore{db, lock}, coinType}
 }
 
 func (u *UtxoDB) Put(utxo wallet.Utxo) error {
 	u.lock.Lock()
 	defer u.lock.Unlock()
 	tx, _ := u.db.Begin()
-	stmt, err := tx.Prepare("insert or replace into utxos(outpoint, value, height, scriptPubKey, watchOnly) values(?,?,?,?,?)")
+	stmt, err := tx.Prepare("insert or replace into utxos(coin, outpoint, value, height, scriptPubKey, watchOnly) values(?,?,?,?,?,?)")
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -31,7 +36,7 @@ func (u *UtxoDB) Put(utxo wallet.Utxo) error {
 		watchOnlyInt = 1
 	}
 	outpoint := utxo.Op.Hash.String() + ":" + strconv.Itoa(int(utxo.Op.Index))
-	_, err = stmt.Exec(outpoint, int(utxo.Value), int(utxo.AtHeight), hex.EncodeToString(utxo.ScriptPubkey), watchOnlyInt)
+	_, err = stmt.Exec(u.coinType.CurrencyCode(), outpoint, int(utxo.Value), int(utxo.AtHeight), hex.EncodeToString(utxo.ScriptPubkey), watchOnlyInt)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -41,11 +46,11 @@ func (u *UtxoDB) Put(utxo wallet.Utxo) error {
 }
 
 func (u *UtxoDB) GetAll() ([]wallet.Utxo, error) {
-	u.lock.RLock()
-	defer u.lock.RUnlock()
+	u.lock.Lock()
+	defer u.lock.Unlock()
 	var ret []wallet.Utxo
-	stm := "select outpoint, value, height, scriptPubKey, watchOnly from utxos"
-	rows, err := u.db.Query(stm)
+	stm := "select outpoint, value, height, scriptPubKey, watchOnly from utxos where coin=?"
+	rows, err := u.db.Query(stm, u.coinType.CurrencyCode())
 	if err != nil {
 		return ret, err
 	}
@@ -91,7 +96,7 @@ func (u *UtxoDB) SetWatchOnly(utxo wallet.Utxo) error {
 	u.lock.Lock()
 	defer u.lock.Unlock()
 	outpoint := utxo.Op.Hash.String() + ":" + strconv.Itoa(int(utxo.Op.Index))
-	_, err := u.db.Exec("update utxos set watchOnly=? where outpoint=?", 1, outpoint)
+	_, err := u.db.Exec("update utxos set watchOnly=? where outpoint=? and coin=?", 1, outpoint, u.coinType.CurrencyCode())
 	if err != nil {
 		return err
 	}
@@ -102,7 +107,7 @@ func (u *UtxoDB) Delete(utxo wallet.Utxo) error {
 	u.lock.Lock()
 	defer u.lock.Unlock()
 	outpoint := utxo.Op.Hash.String() + ":" + strconv.Itoa(int(utxo.Op.Index))
-	_, err := u.db.Exec("delete from utxos where outpoint=?", outpoint)
+	_, err := u.db.Exec("delete from utxos where outpoint=? and coin=?", outpoint, u.coinType.CurrencyCode())
 	if err != nil {
 		return err
 	}

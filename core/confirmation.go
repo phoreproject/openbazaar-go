@@ -4,21 +4,19 @@ import (
 	"bytes"
 	"encoding/hex"
 	"errors"
-	crypto "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
-
+	"fmt"
 	"time"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
-	"github.com/phoreproject/btcd/chaincfg/chainhash"
-	"github.com/phoreproject/btcd/wire"
-	hd "github.com/phoreproject/btcutil/hdkeychain"
-	"github.com/phoreproject/openbazaar-go/pb"
 	"github.com/phoreproject/wallet-interface"
+
+	crypto "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
+
+	"github.com/phoreproject/openbazaar-go/pb"
 )
 
-// NewOrderConfirmation method creates order confirmation for a new order with order ID, payment address, timestamp, rating signatures,
-// and new total if necessary, and signs order confirmation for the contract.
+// NewOrderConfirmation - add order confirmation to the contract
 func (n *OpenBazaarNode) NewOrderConfirmation(contract *pb.RicardianContract, addressRequest, calculateNewTotal bool) (*pb.RicardianContract, error) {
 	oc := new(pb.OrderConfirmation)
 	// Calculate order ID
@@ -44,6 +42,19 @@ func (n *OpenBazaarNode) NewOrderConfirmation(contract *pb.RicardianContract, ad
 			metadata := new(pb.RatingSignature_TransactionMetadata)
 			metadata.ListingSlug = listing.Slug
 			metadata.ModeratorKey = contract.BuyerOrder.Payment.ModeratorKey
+
+			if contract.BuyerOrder.Version > 0 {
+				metadata.ListingTitle = listing.Item.Title
+				if len(listing.Item.Images) > 0 {
+					metadata.Thumbnail = &pb.RatingSignature_TransactionMetadata_Image{
+						Tiny:     listing.Item.Images[0].Tiny,
+						Small:    listing.Item.Images[0].Small,
+						Medium:   listing.Item.Images[0].Medium,
+						Large:    listing.Item.Images[0].Large,
+						Original: listing.Item.Images[0].Original,
+					}
+				}
+			}
 
 			ser, err := proto.Marshal(metadata)
 			if err != nil {
@@ -79,8 +90,7 @@ func (n *OpenBazaarNode) NewOrderConfirmation(contract *pb.RicardianContract, ad
 	return contract, nil
 }
 
-// ConfirmOfflineOrder method creates order confirmation, handles unmoderated payment methods,
-// sends the order confirmation, adds the sale to the contract, and changes the status of the order to awaiting fulfillment.
+// ConfirmOfflineOrder - confirm offline order
 func (n *OpenBazaarNode) ConfirmOfflineOrder(contract *pb.RicardianContract, records []*wallet.TransactionRecord) error {
 	contract, err := n.NewOrderConfirmation(contract, false, false)
 	if err != nil {
@@ -88,31 +98,35 @@ func (n *OpenBazaarNode) ConfirmOfflineOrder(contract *pb.RicardianContract, rec
 	}
 	if contract.BuyerOrder.Payment.Method != pb.Order_Payment_MODERATED {
 		// Sweep the temp address into our wallet
-		var utxos []wallet.Utxo
+		var txInputs []wallet.TransactionInput
 		for _, r := range records {
 			if !r.Spent && r.Value > 0 {
-				u := wallet.Utxo{}
-				scriptBytes, err := hex.DecodeString(r.ScriptPubKey)
+				addr, err := n.Wallet.DecodeAddress(r.Address)
 				if err != nil {
 					return err
 				}
-				u.ScriptPubkey = scriptBytes
-				hash, err := chainhash.NewHashFromStr(r.Txid)
+				outpointHash, err := hex.DecodeString(r.Txid)
 				if err != nil {
-					return err
+					return fmt.Errorf("decoding transaction hash: %s", err.Error())
 				}
-				outpoint := wire.NewOutPoint(hash, r.Index)
-				u.Op = *outpoint
-				u.Value = r.Value
-				utxos = append(utxos, u)
+				txInput := wallet.TransactionInput{
+					LinkedAddress: addr,
+					OutpointIndex: r.Index,
+					OutpointHash:  outpointHash,
+					Value:         r.Value,
+				}
+				txInputs = append(txInputs, txInput)
 			}
+		}
+
+		if len(txInputs) == 0 {
+			return errors.New("No unspent transactions found to fund order")
 		}
 
 		chaincode, err := hex.DecodeString(contract.BuyerOrder.Payment.Chaincode)
 		if err != nil {
 			return err
 		}
-		parentFP := []byte{0x00, 0x00, 0x00, 0x00}
 		mPrivKey := n.Wallet.MasterPrivateKey()
 		if err != nil {
 			return err
@@ -121,16 +135,7 @@ func (n *OpenBazaarNode) ConfirmOfflineOrder(contract *pb.RicardianContract, rec
 		if err != nil {
 			return err
 		}
-		hdKey := hd.NewExtendedKey(
-			n.Wallet.Params().HDPrivateKeyID[:],
-			mECKey.Serialize(),
-			chaincode,
-			parentFP,
-			0,
-			0,
-			true)
-
-		vendorKey, err := hdKey.Child(0)
+		vendorKey, err := n.Wallet.ChildKey(mECKey.Serialize(), chaincode, true)
 		if err != nil {
 			return err
 		}
@@ -138,7 +143,7 @@ func (n *OpenBazaarNode) ConfirmOfflineOrder(contract *pb.RicardianContract, rec
 		if err != nil {
 			return err
 		}
-		_, err = n.Wallet.SweepAddress(utxos, nil, vendorKey, &redeemScript, wallet.NORMAL)
+		_, err = n.Wallet.SweepAddress(txInputs, nil, vendorKey, &redeemScript, wallet.NORMAL)
 		if err != nil {
 			return err
 		}
@@ -151,18 +156,17 @@ func (n *OpenBazaarNode) ConfirmOfflineOrder(contract *pb.RicardianContract, rec
 	return nil
 }
 
-// RejectOfflineOrder method rejects an order, sending a refund for moderated payment types, sending
-// a reject message, and updating the state of the order to declined.
+// RejectOfflineOrder - reject offline order
 func (n *OpenBazaarNode) RejectOfflineOrder(contract *pb.RicardianContract, records []*wallet.TransactionRecord) error {
-	orderId, err := n.CalcOrderID(contract.BuyerOrder)
+	orderID, err := n.CalcOrderID(contract.BuyerOrder)
 	if err != nil {
-		return err
+		return fmt.Errorf("generate order id: %s", err.Error())
 	}
 	rejectMsg := new(pb.OrderReject)
-	rejectMsg.OrderID = orderId
+	rejectMsg.OrderID = orderID
 	ts, err := ptypes.TimestampProto(time.Now())
 	if err != nil {
-		return err
+		return fmt.Errorf("marshal timestamp: %s", err.Error())
 	}
 	rejectMsg.Timestamp = ts
 	if contract.BuyerOrder.Payment.Method == pb.Order_Payment_MODERATED {
@@ -170,62 +174,57 @@ func (n *OpenBazaarNode) RejectOfflineOrder(contract *pb.RicardianContract, reco
 		var outValue int64
 		for _, r := range records {
 			if !r.Spent && r.Value > 0 {
+				addr, err := n.Wallet.DecodeAddress(r.Address)
+				if err != nil {
+					return fmt.Errorf("decode prior transactions address: %s", err.Error())
+				}
 				outpointHash, err := hex.DecodeString(r.Txid)
 				if err != nil {
-					return err
+					return fmt.Errorf("decoding transaction hash: %s", err.Error())
 				}
-				outValue += r.Value
-				in := wallet.TransactionInput{OutpointIndex: r.Index, OutpointHash: outpointHash, Value: r.Value}
+				in := wallet.TransactionInput{
+					LinkedAddress: addr,
+					OutpointIndex: r.Index,
+					OutpointHash:  outpointHash,
+					Value:         r.Value,
+				}
 				ins = append(ins, in)
+				outValue += r.Value
 			}
 		}
 
 		refundAddress, err := n.Wallet.DecodeAddress(contract.BuyerOrder.RefundAddress)
 		if err != nil {
-			return err
+			return fmt.Errorf("decode refund address: %s", err.Error())
 		}
-		var output wallet.TransactionOutput
-
-		outputScript, err := n.Wallet.AddressToScript(refundAddress)
-		if err != nil {
-			return err
+		var output = wallet.TransactionOutput{
+			Address: refundAddress,
+			Value:   outValue,
 		}
-		output.ScriptPubKey = outputScript
-		output.Value = outValue
 
 		chaincode, err := hex.DecodeString(contract.BuyerOrder.Payment.Chaincode)
 		if err != nil {
-			return err
+			return fmt.Errorf("decode buyer chaincode: %s", err.Error())
 		}
-		parentFP := []byte{0x00, 0x00, 0x00, 0x00}
 		mPrivKey := n.Wallet.MasterPrivateKey()
 		if err != nil {
-			return err
+			return fmt.Errorf("acquire wallet private key: %s", err.Error())
 		}
 		mECKey, err := mPrivKey.ECPrivKey()
 		if err != nil {
-			return err
+			return fmt.Errorf("generate ec private key: %s", err.Error())
 		}
-		hdKey := hd.NewExtendedKey(
-			n.Wallet.Params().HDPrivateKeyID[:],
-			mECKey.Serialize(),
-			chaincode,
-			parentFP,
-			0,
-			0,
-			true)
-
-		vendorKey, err := hdKey.Child(0)
+		vendorKey, err := n.Wallet.ChildKey(mECKey.Serialize(), chaincode, true)
 		if err != nil {
-			return err
+			return fmt.Errorf("generate child key: %s", err.Error())
 		}
 		redeemScript, err := hex.DecodeString(contract.BuyerOrder.Payment.RedeemScript)
 		if err != nil {
-			return err
+			return fmt.Errorf("generate child key: %s", err.Error())
 		}
 		signatures, err := n.Wallet.CreateMultisigSignature(ins, []wallet.TransactionOutput{output}, vendorKey, redeemScript, contract.BuyerOrder.RefundFee)
 		if err != nil {
-			return err
+			return fmt.Errorf("generate multisig: %s", err.Error())
 		}
 		var sigs []*pb.BitcoinSignature
 		for _, s := range signatures {
@@ -236,14 +235,15 @@ func (n *OpenBazaarNode) RejectOfflineOrder(contract *pb.RicardianContract, reco
 	}
 	err = n.SendReject(contract.BuyerOrder.BuyerID.PeerID, rejectMsg)
 	if err != nil {
-		return err
+		return fmt.Errorf("sending rejection: %s", err.Error())
 	}
-	n.Datastore.Sales().Put(orderId, *contract, pb.OrderState_DECLINED, true)
+	if err := n.Datastore.Sales().Put(orderID, *contract, pb.OrderState_DECLINED, true); err != nil {
+		return fmt.Errorf("updating sale state: %s", err.Error())
+	}
 	return nil
 }
 
-// ValidateOrderConfirmation method confirms the order ID, requested payment amount, rating signatures
-// for moderated payments, wallet address, and signatures on order confirmation.
+// ValidateOrderConfirmation - validate address and signatures for order confirmation
 func (n *OpenBazaarNode) ValidateOrderConfirmation(contract *pb.RicardianContract, validateAddress bool) error {
 	orderID, err := n.CalcOrderID(contract.BuyerOrder)
 	if err != nil {
@@ -298,7 +298,7 @@ func (n *OpenBazaarNode) ValidateOrderConfirmation(contract *pb.RicardianContrac
 	return nil
 }
 
-// SignOrderConfirmation method appends signatures to the order confirmation of the contract.
+// SignOrderConfirmation - sign the added order confirmation
 func (n *OpenBazaarNode) SignOrderConfirmation(contract *pb.RicardianContract) (*pb.RicardianContract, error) {
 	serializedOrderConf, err := proto.Marshal(contract.VendorOrderConfirmation)
 	if err != nil {

@@ -2,15 +2,19 @@ package db
 
 import (
 	"database/sql"
-	"github.com/phoreproject/openbazaar-go/repo"
 	"strconv"
 	"sync"
 	"time"
+
+	"github.com/phoreproject/openbazaar-go/repo"
 )
 
 type ChatDB struct {
-	db   *sql.DB
-	lock sync.RWMutex
+	modelStore
+}
+
+func NewChatStore(db *sql.DB, lock *sync.Mutex) repo.ChatStore {
+	return &ChatDB{modelStore{db, lock}}
 }
 
 func (c *ChatDB) Put(messageId string, peerID string, subject string, message string, timestamp time.Time, read bool, outgoing bool) error {
@@ -55,8 +59,8 @@ func (c *ChatDB) Put(messageId string, peerID string, subject string, message st
 }
 
 func (c *ChatDB) GetConversations() []repo.ChatConversation {
-	c.lock.RLock()
-	defer c.lock.RUnlock()
+	c.lock.Lock()
+	defer c.lock.Unlock()
 	var ret []repo.ChatConversation
 
 	stm := "select distinct peerID from chat where subject='' order by timestamp desc;"
@@ -103,8 +107,8 @@ func (c *ChatDB) GetConversations() []repo.ChatConversation {
 }
 
 func (c *ChatDB) GetMessages(peerID string, subject string, offsetID string, limit int) []repo.ChatMessage {
-	c.lock.RLock()
-	defer c.lock.RUnlock()
+	c.lock.Lock()
+	defer c.lock.Unlock()
 	var ret []repo.ChatMessage
 
 	var peerStm string
@@ -181,7 +185,10 @@ func (c *ChatDB) MarkAsRead(peerID string, subject string, outgoing bool, messag
 		if err != nil {
 			return "", updated, err
 		}
-		stmt, _ = tx.Prepare("update chat set read=1 where peerID=? and subject=? and outgoing=? and timestamp<=(select timestamp from chat where messageID=?)")
+		stmt, err = tx.Prepare("update chat set read=1 where peerID=? and subject=? and outgoing=? and timestamp<=(select timestamp from chat where messageID=?)")
+		if err != nil {
+			return "", updated, err
+		}
 		_, err = stmt.Exec(peerID, subject, outgoingInt, messageId)
 		if err != nil {
 			return "", updated, err
@@ -211,7 +218,10 @@ func (c *ChatDB) MarkAsRead(peerID string, subject string, outgoing bool, messag
 		if err != nil {
 			return "", updated, err
 		}
-		stmt, _ = tx.Prepare("update chat set read=1 where subject=?" + peerStm + " and outgoing=?")
+		stmt, err = tx.Prepare("update chat set read=1 where subject=?" + peerStm + " and outgoing=?")
+		if err != nil {
+			return "", updated, err
+		}
 		if peerID != "" {
 			_, err = stmt.Exec(subject, peerID, outgoingInt)
 		} else {
@@ -229,6 +239,7 @@ func (c *ChatDB) MarkAsRead(peerID string, subject string, outgoing bool, messag
 	tx.Commit()
 
 	var peerStm string
+
 	if peerID != "" {
 		peerStm = " and peerID=?"
 	}
@@ -237,17 +248,19 @@ func (c *ChatDB) MarkAsRead(peerID string, subject string, outgoing bool, messag
 		return "", updated, err
 	}
 	defer stmt2.Close()
-	var ts int
-	var msgId string
+	var (
+		timestamp sql.NullInt64
+		msgId     sql.NullString
+	)
 	if peerID != "" {
-		err = stmt2.QueryRow(subject, peerID, outgoingInt).Scan(&ts, &msgId)
+		err = stmt2.QueryRow(subject, peerID, outgoingInt).Scan(&timestamp, &msgId)
 	} else {
-		err = stmt2.QueryRow(subject, outgoingInt).Scan(&ts, &msgId)
+		err = stmt2.QueryRow(subject, outgoingInt).Scan(&timestamp, &msgId)
 	}
 	if err != nil {
 		return "", updated, err
 	}
-	return msgId, updated, nil
+	return msgId.String, updated, nil
 }
 
 func (c *ChatDB) GetUnreadCount(subject string) (int, error) {

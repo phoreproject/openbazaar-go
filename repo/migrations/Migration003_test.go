@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-var testConfig3 = `{
+var testConfig3 string = `{
     "RepublishInterval": "24h"
 }`
 
@@ -18,7 +18,7 @@ func TestMigration003(t *testing.T) {
 	}
 	f.Write([]byte(testConfig3))
 	f.Close()
-	var m migration003
+	var m Migration003
 
 	// Up
 	err = m.Up("./", "", false)
@@ -36,7 +36,7 @@ func TestMigration003(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if string(repoVer) != "3" {
+	if string(repoVer) != "4" {
 		t.Error("Failed to write new repo version")
 	}
 
@@ -56,7 +56,7 @@ func TestMigration003(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if string(repoVer) != "2" {
+	if string(repoVer) != "3" {
 		t.Error("Failed to write new repo version")
 	}
 

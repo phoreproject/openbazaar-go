@@ -1,12 +1,12 @@
 package repo
 
 import (
+	"github.com/phoreproject/openbazaar-go/repo/migrations"
 	"io/ioutil"
 	"os"
 	"path"
 	"strconv"
-
-	"github.com/phoreproject/openbazaar-go/repo/migrations"
+	"strings"
 )
 
 type Migration interface {
@@ -15,11 +15,21 @@ type Migration interface {
 }
 
 var Migrations = []Migration{
-	migrations.Migration001,
-	migrations.Migration002,
-	migrations.Migration003,
-	migrations.Migration004,
-	migrations.Migration005,
+	migrations.Migration000{},
+	migrations.Migration001{},
+	migrations.Migration002{},
+	migrations.Migration003{},
+	migrations.Migration004{},
+	migrations.Migration005{},
+	migrations.Migration006{},
+	migrations.Migration007{},
+	migrations.Migration008{},
+	migrations.Migration009{},
+	migrations.Migration010{},
+	migrations.Migration011{},
+	migrations.Migration012{},
+	migrations.Migration013{},
+	migrations.Migration014{},
 }
 
 // MigrateUp looks at the currently active migration version
@@ -31,7 +41,8 @@ func MigrateUp(repoPath, dbPassword string, testnet bool) error {
 	} else if err != nil && os.IsNotExist(err) {
 		version = []byte("0")
 	}
-	v, err := strconv.Atoi(string(version[0]))
+
+	v, err := strconv.Atoi(strings.Trim(string(version), "\n"))
 	if err != nil {
 		return err
 	}

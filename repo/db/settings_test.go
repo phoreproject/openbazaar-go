@@ -1,34 +1,53 @@
-package db
+package db_test
 
 import (
-	"database/sql"
 	"encoding/json"
-	"github.com/phoreproject/openbazaar-go/repo"
+	"sync"
 	"testing"
+
+	"github.com/phoreproject/openbazaar-go/repo"
+	"github.com/phoreproject/openbazaar-go/repo/db"
+	"github.com/phoreproject/openbazaar-go/schema"
 )
 
-var sdb SettingsDB
-var settings repo.SettingsData
-
-func init() {
-	conn, _ := sql.Open("sqlite3", ":memory:")
-	initDatabaseTables(conn, "")
-	sdb = SettingsDB{
-		db: conn,
+func buildConfigurationStore() (repo.ConfigurationStore, func(), error) {
+	appSchema := schema.MustNewCustomSchemaManager(schema.SchemaContext{
+		DataPath:        schema.GenerateTempPath(),
+		TestModeEnabled: true,
+	})
+	if err := appSchema.BuildSchemaDirectories(); err != nil {
+		return nil, nil, err
 	}
-	c := "UNITED_STATES"
-	settings = repo.SettingsData{
-		Country: &c,
+	if err := appSchema.InitializeDatabase(); err != nil {
+		return nil, nil, err
 	}
+	database, err := appSchema.OpenDatabase()
+	if err != nil {
+		return nil, nil, err
+	}
+	return db.NewConfigurationStore(database, new(sync.Mutex)), appSchema.DestroySchemaDirectories, nil
 }
 
 func TestSettingsPut(t *testing.T) {
-	err := sdb.Put(settings)
+	sdb, teardown, err := buildConfigurationStore()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer teardown()
+
+	country := "UNITED_STATES"
+	settings := repo.SettingsData{
+		Country: &country,
+	}
+	err = sdb.Put(settings)
 	if err != nil {
 		t.Error(err)
 	}
 	set := repo.SettingsData{}
-	stmt, err := sdb.db.Prepare("select value from config where key=?")
+	stmt, err := sdb.PrepareQuery("select value from config where key=?")
+	if err != nil {
+		t.Error(err)
+	}
 	defer stmt.Close()
 	var settingsBytes []byte
 	err = stmt.QueryRow("settings").Scan(&settingsBytes)
@@ -45,7 +64,13 @@ func TestSettingsPut(t *testing.T) {
 }
 
 func TestInvalidSettingsGet(t *testing.T) {
-	tx, err := sdb.db.Begin()
+	sdb, teardown, err := buildConfigurationStore()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer teardown()
+
+	tx, err := sdb.BeginTransaction()
 	if err != nil {
 		t.Error(err)
 	}
@@ -65,7 +90,17 @@ func TestInvalidSettingsGet(t *testing.T) {
 }
 
 func TestSettingsGet(t *testing.T) {
-	err := sdb.Put(settings)
+	sdb, teardown, err := buildConfigurationStore()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer teardown()
+
+	country := "UNITED_STATES"
+	settings := repo.SettingsData{
+		Country: &country,
+	}
+	err = sdb.Put(settings)
 	if err != nil {
 		t.Error(err)
 	}
@@ -79,7 +114,17 @@ func TestSettingsGet(t *testing.T) {
 }
 
 func TestSettingsUpdate(t *testing.T) {
-	err := sdb.Put(settings)
+	sdb, teardown, err := buildConfigurationStore()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer teardown()
+
+	country := "UNITED_STATES"
+	settings := repo.SettingsData{
+		Country: &country,
+	}
+	err = sdb.Put(settings)
 	if err != nil {
 		t.Error(err)
 	}

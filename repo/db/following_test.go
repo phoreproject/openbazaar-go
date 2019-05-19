@@ -1,27 +1,48 @@
-package db
+package db_test
 
 import (
-	"database/sql"
 	"strconv"
+	"sync"
 	"testing"
+
+	"github.com/phoreproject/openbazaar-go/repo"
+	"github.com/phoreproject/openbazaar-go/repo/db"
+	"github.com/phoreproject/openbazaar-go/schema"
 )
 
-var fldb FollowingDB
-
-func init() {
-	conn, _ := sql.Open("sqlite3", ":memory:")
-	initDatabaseTables(conn, "")
-	fldb = FollowingDB{
-		db: conn,
+func buildNewFollowingStore() (repo.FollowingStore, func(), error) {
+	appSchema := schema.MustNewCustomSchemaManager(schema.SchemaContext{
+		DataPath:        schema.GenerateTempPath(),
+		TestModeEnabled: true,
+	})
+	if err := appSchema.BuildSchemaDirectories(); err != nil {
+		return nil, nil, err
 	}
+	if err := appSchema.InitializeDatabase(); err != nil {
+		return nil, nil, err
+	}
+	database, err := appSchema.OpenDatabase()
+	if err != nil {
+		return nil, nil, err
+	}
+	return db.NewFollowingStore(database, new(sync.Mutex)), appSchema.DestroySchemaDirectories, nil
 }
 
 func TestPutFollowing(t *testing.T) {
-	err := fldb.Put("abc")
+	fldb, teardown, err := buildNewFollowingStore()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer teardown()
+
+	err = fldb.Put("abc")
 	if err != nil {
 		t.Error(err)
 	}
-	stmt, err := fldb.db.Prepare("select peerID from following where peerID=?")
+	stmt, err := fldb.PrepareQuery("select peerID from following where peerID=?")
+	if err != nil {
+		t.Error(err)
+	}
 	defer stmt.Close()
 	var following string
 	err = stmt.QueryRow("abc").Scan(&following)
@@ -34,14 +55,26 @@ func TestPutFollowing(t *testing.T) {
 }
 
 func TestPutDuplicateFollowing(t *testing.T) {
+	fldb, teardown, err := buildNewFollowingStore()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer teardown()
+
 	fldb.Put("abc")
-	err := fldb.Put("abc")
+	err = fldb.Put("abc")
 	if err == nil {
 		t.Error("Expected unquire constriant error to be thrown")
 	}
 }
 
 func TestCountFollowing(t *testing.T) {
+	fldb, teardown, err := buildNewFollowingStore()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer teardown()
+
 	fldb.Put("abc")
 	fldb.Put("123")
 	fldb.Put("xyz")
@@ -55,12 +88,18 @@ func TestCountFollowing(t *testing.T) {
 }
 
 func TestDeleteFollowing(t *testing.T) {
+	fldb, teardown, err := buildNewFollowingStore()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer teardown()
+
 	fldb.Put("abc")
-	err := fldb.Delete("abc")
+	err = fldb.Delete("abc")
 	if err != nil {
 		t.Error(err)
 	}
-	stmt, _ := fldb.db.Prepare("select peerID from followers where peerID=?")
+	stmt, _ := fldb.PrepareQuery("select peerID from followers where peerID=?")
 	defer stmt.Close()
 	var follower string
 	stmt.QueryRow("abc").Scan(&follower)
@@ -70,6 +109,12 @@ func TestDeleteFollowing(t *testing.T) {
 }
 
 func TestGetFollowing(t *testing.T) {
+	fldb, teardown, err := buildNewFollowingStore()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer teardown()
+
 	for i := 0; i < 100; i++ {
 		fldb.Put(strconv.Itoa(i))
 	}
@@ -114,6 +159,12 @@ func TestGetFollowing(t *testing.T) {
 }
 
 func TestIFollow(t *testing.T) {
+	fldb, teardown, err := buildNewFollowingStore()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer teardown()
+
 	fldb.Put("abc")
 	if !fldb.IsFollowing("abc") {
 		t.Error("I follow failed to return correctly")

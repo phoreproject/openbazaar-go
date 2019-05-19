@@ -1,65 +1,53 @@
-package db
+package db_test
 
 import (
 	"bytes"
 	"database/sql"
-	"gx/ipfs/QmT6n4mspWYEya864BhCUJEgyxiRfmiSY9ruQwTUNpRKaM/protobuf/proto"
+	"reflect"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
+	"gx/ipfs/QmT6n4mspWYEya864BhCUJEgyxiRfmiSY9ruQwTUNpRKaM/protobuf/proto"
+
+	"github.com/OpenBazaar/jsonpb"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/phoreproject/openbazaar-go/pb"
+	"github.com/phoreproject/openbazaar-go/repo"
+	"github.com/phoreproject/openbazaar-go/repo/db"
+	"github.com/phoreproject/openbazaar-go/schema"
+	"github.com/phoreproject/openbazaar-go/test/factory"
 )
 
-var casesdb CasesDB
-
-var buyerTestOutpoints []*pb.Outpoint = []*pb.Outpoint{{"hash1", 0, 5}}
-var vendorTestOutpoints []*pb.Outpoint = []*pb.Outpoint{{"hash2", 1, 11}}
-
-func init() {
-	conn, _ := sql.Open("sqlite3", ":memory:")
-	initDatabaseTables(conn, "")
-	casesdb = CasesDB{
-		db: conn,
+func buildNewCaseStore() (repo.CaseStore, func(), error) {
+	appSchema := schema.MustNewCustomSchemaManager(schema.SchemaContext{
+		DataPath:        schema.GenerateTempPath(),
+		TestModeEnabled: true,
+	})
+	if err := appSchema.BuildSchemaDirectories(); err != nil {
+		return nil, nil, err
 	}
-	contract = new(pb.RicardianContract)
-	listing := new(pb.Listing)
-	item := new(pb.Listing_Item)
-	item.Title = "Test listing"
-	listing.Item = item
-	vendorID := new(pb.ID)
-	vendorID.PeerID = "vendor id"
-	vendorID.Handle = "@testvendor"
-	listing.VendorID = vendorID
-	image := new(pb.Listing_Item_Image)
-	image.Tiny = "test image hash"
-	listing.Item.Images = []*pb.Listing_Item_Image{image}
-	contract.VendorListings = []*pb.Listing{listing}
-	order := new(pb.Order)
-	buyerID := new(pb.ID)
-	buyerID.PeerID = "buyer id"
-	buyerID.Handle = "@testbuyer"
-	order.BuyerID = buyerID
-	shipping := new(pb.Order_Shipping)
-	shipping.Address = "1234 test ave."
-	shipping.ShipTo = "buyer name"
-	order.Shipping = shipping
-	ts, err := ptypes.TimestampProto(time.Now())
+	if err := appSchema.InitializeDatabase(); err != nil {
+		return nil, nil, err
+	}
+	database, err := appSchema.OpenDatabase()
 	if err != nil {
-		return
+		return nil, nil, err
 	}
-	order.Timestamp = ts
-	payment := new(pb.Order_Payment)
-	payment.Amount = 10
-	payment.Method = pb.Order_Payment_DIRECT
-	payment.Address = "PK5fSKzv5nGqzFT1mbEK21U8wf2Sj8QqQd"
-	order.Payment = payment
-	contract.BuyerOrder = order
+	return db.NewCaseStore(database, new(sync.Mutex)), appSchema.DestroySchemaDirectories, nil
 }
 
 func TestCasesDB_Count(t *testing.T) {
-	err := casesdb.Put("caseID", 5, true, "blah")
+	var (
+		casesdb, teardown, err = buildNewCaseStore()
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer teardown()
+
+	err = casesdb.Put("caseID", 5, true, "blah", "", "btc")
 	if err != nil {
 		t.Error(err)
 	}
@@ -70,18 +58,30 @@ func TestCasesDB_Count(t *testing.T) {
 }
 
 func TestPutCase(t *testing.T) {
-	err := casesdb.Put("caseID", 0, true, "blah")
+	var (
+		casesdb, teardown, err = buildNewCaseStore()
+
+		caseID      string
+		state       int
+		read        int
+		buyerOpened int
+		claim       string
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer teardown()
+
+	err = casesdb.Put("caseID", 0, true, "blah", "", "btc")
 	if err != nil {
 		t.Error(err)
 	}
-	stmt, err := casesdb.db.Prepare("select caseID, state, read, buyerOpened, claim from cases where caseID=?")
+	stmt, err := casesdb.PrepareQuery("select caseID, state, read, buyerOpened, claim from cases where caseID=?")
+	if err != nil {
+		t.Error(err)
+	}
 	defer stmt.Close()
 
-	var caseID string
-	var state int
-	var read int
-	var buyerOpened int
-	var claim string
 	err = stmt.QueryRow("caseID").Scan(&caseID, &state, &read, &buyerOpened, &claim)
 	if err != nil {
 		t.Error(err)
@@ -104,7 +104,15 @@ func TestPutCase(t *testing.T) {
 }
 
 func TestUpdateWithNil(t *testing.T) {
-	err := casesdb.Put("caseID", 0, true, "blah")
+	var (
+		casesdb, teardown, err = buildNewCaseStore()
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer teardown()
+
+	err = casesdb.Put("caseID", 0, true, "blah", "", "btc")
 	if err != nil {
 		t.Error(err)
 	}
@@ -112,7 +120,7 @@ func TestUpdateWithNil(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	_, _, _, _, buyerOutpoints, _, _, err := casesdb.GetPayoutDetails("caseID")
+	dispute, err := casesdb.GetByCaseID("caseID")
 	if err != nil {
 		t.Error(err)
 	}
@@ -123,13 +131,21 @@ func TestUpdateWithNil(t *testing.T) {
 	if buyerContract != nil {
 		t.Error("Vendor contract was not nil")
 	}
-	if buyerOutpoints != nil {
+	if dispute.BuyerOutpoints != nil {
 		t.Error("Vendor outpoints was not nil")
 	}
 }
 
 func TestDeleteCase(t *testing.T) {
-	err := casesdb.Put("caseID", 0, true, "blah")
+	var (
+		casesdb, teardown, err = buildNewCaseStore()
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer teardown()
+
+	err = casesdb.Put("caseID", 0, true, "blah", "", "btc")
 	if err != nil {
 		t.Error(err)
 	}
@@ -138,7 +154,7 @@ func TestDeleteCase(t *testing.T) {
 		t.Error("Case delete failed")
 	}
 
-	stmt, _ := casesdb.db.Prepare("select caseID from cases where caseID=?")
+	stmt, _ := casesdb.PrepareQuery("select caseID from cases where caseID=?")
 	defer stmt.Close()
 
 	var caseID string
@@ -149,7 +165,15 @@ func TestDeleteCase(t *testing.T) {
 }
 
 func TestMarkCaseAsRead(t *testing.T) {
-	err := casesdb.Put("caseID", 0, true, "blah")
+	var (
+		casesdb, teardown, err = buildNewCaseStore()
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer teardown()
+
+	err = casesdb.Put("caseID", 0, true, "blah", "", "btc")
 	if err != nil {
 		t.Error(err)
 	}
@@ -157,7 +181,7 @@ func TestMarkCaseAsRead(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	stmt, _ := casesdb.db.Prepare("select read from cases where caseID=?")
+	stmt, _ := casesdb.PrepareQuery("select read from cases where caseID=?")
 	defer stmt.Close()
 
 	var read int
@@ -171,7 +195,15 @@ func TestMarkCaseAsRead(t *testing.T) {
 }
 
 func TestMarkCaseAsUnread(t *testing.T) {
-	err := casesdb.Put("caseID", 0, true, "blah")
+	var (
+		casesdb, teardown, err = buildNewCaseStore()
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer teardown()
+
+	err = casesdb.Put("caseID", 0, true, "blah", "", "btc")
 	if err != nil {
 		t.Error(err)
 	}
@@ -183,7 +215,7 @@ func TestMarkCaseAsUnread(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	stmt, _ := casesdb.db.Prepare("select read from cases where caseID=?")
+	stmt, _ := casesdb.PrepareQuery("select read from cases where caseID=?")
 	defer stmt.Close()
 
 	var read int
@@ -197,7 +229,17 @@ func TestMarkCaseAsUnread(t *testing.T) {
 }
 
 func TestUpdateBuyerInfo(t *testing.T) {
-	err := casesdb.Put("caseID", 0, true, "blah")
+	var (
+		casesdb, teardown, err = buildNewCaseStore()
+		buyerTestOutpoints     = []*pb.Outpoint{{Hash: "hash1", Index: 0, Value: 5}}
+		contract               = factory.NewContract()
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer teardown()
+
+	err = casesdb.Put("caseID", 0, true, "blah", "", "btc")
 	if err != nil {
 		t.Error(err)
 	}
@@ -206,7 +248,10 @@ func TestUpdateBuyerInfo(t *testing.T) {
 		t.Error(err)
 	}
 
-	stmt, err := casesdb.db.Prepare("select caseID, buyerContract, buyerValidationErrors, buyerPayoutAddress, buyerOutpoints from cases where caseID=?")
+	stmt, err := casesdb.PrepareQuery("select caseID, buyerContract, buyerValidationErrors, buyerPayoutAddress, buyerOutpoints from cases where caseID=?")
+	if err != nil {
+		t.Error(err)
+	}
 	defer stmt.Close()
 
 	var caseID string
@@ -236,7 +281,17 @@ func TestUpdateBuyerInfo(t *testing.T) {
 }
 
 func TestUpdateVendorInfo(t *testing.T) {
-	err := casesdb.Put("caseID", 0, true, "blah")
+	var (
+		casesdb, teardown, err = buildNewCaseStore()
+		contract               = factory.NewContract()
+		vendorTestOutpoints    = []*pb.Outpoint{{Hash: "hash2", Index: 1, Value: 11}}
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer teardown()
+
+	err = casesdb.Put("caseID", 0, true, "blah", "", "btc")
 	if err != nil {
 		t.Error(err)
 	}
@@ -245,7 +300,10 @@ func TestUpdateVendorInfo(t *testing.T) {
 		t.Error(err)
 	}
 
-	stmt, err := casesdb.db.Prepare("select caseID, vendorContract, vendorValidationErrors, vendorPayoutAddress, vendorOutpoints from cases where caseID=?")
+	stmt, err := casesdb.PrepareQuery("select caseID, vendorContract, vendorValidationErrors, vendorPayoutAddress, vendorOutpoints from cases where caseID=?")
+	if err != nil {
+		t.Error(err)
+	}
 	defer stmt.Close()
 
 	var caseID string
@@ -275,7 +333,18 @@ func TestUpdateVendorInfo(t *testing.T) {
 }
 
 func TestCasesGetCaseMetaData(t *testing.T) {
-	err := casesdb.Put("caseID", pb.OrderState_DISPUTED, true, "blah")
+	var (
+		casesdb, teardown, err = buildNewCaseStore()
+		contract               = factory.NewContract()
+		buyerTestOutpoints     = []*pb.Outpoint{{Hash: "hash1", Index: 0, Value: 5}}
+		vendorTestOutpoints    = []*pb.Outpoint{{Hash: "hash2", Index: 1, Value: 11}}
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer teardown()
+
+	err = casesdb.Put("caseID", pb.OrderState_DISPUTED, true, "blah", "", "btc")
 	if err != nil {
 		t.Error(err)
 	}
@@ -288,9 +357,21 @@ func TestCasesGetCaseMetaData(t *testing.T) {
 		t.Error(err)
 	}
 	buyerContract, vendorContract, buyerValidationErrors, vendorValidationErrors, state, read, date, buyerOpened, claim, resolution, err := casesdb.GetCaseMetadata("caseID")
-	ser, _ := proto.Marshal(contract)
-	buyerSer, _ := proto.Marshal(buyerContract)
-	vendorSer, _ := proto.Marshal(vendorContract)
+	if err != nil {
+		t.Error(err)
+	}
+	ser, err := proto.Marshal(contract)
+	if err != nil {
+		t.Error(err)
+	}
+	buyerSer, err := proto.Marshal(buyerContract)
+	if err != nil {
+		t.Error(err)
+	}
+	vendorSer, err := proto.Marshal(vendorContract)
+	if err != nil {
+		t.Error(err)
+	}
 
 	if !bytes.Equal(ser, buyerSer) || !bytes.Equal(ser, vendorSer) {
 		t.Error("Failed to fetch case contract from db")
@@ -305,13 +386,13 @@ func TestCasesGetCaseMetaData(t *testing.T) {
 		t.Errorf("Expected state %s got %s", pb.OrderState_DISPUTED, state)
 	}
 	if read != false {
-		t.Errorf("Expected read=%t got %t", false, read)
+		t.Errorf("Expected read=%v got %v", false, read)
 	}
 	if date.After(time.Now()) || date.Equal(time.Time{}) {
 		t.Error("Case timestamp invalid")
 	}
 	if !buyerOpened {
-		t.Errorf("Expected buyerOpened=%t got %t", true, buyerOpened)
+		t.Errorf("Expected buyerOpened=%v got %v", true, buyerOpened)
 	}
 	if claim != "blah" {
 		t.Errorf("Expected claim=%s got %s", "blah", claim)
@@ -325,72 +406,94 @@ func TestCasesGetCaseMetaData(t *testing.T) {
 	}
 }
 
-func TestGetPayoutDetails(t *testing.T) {
-	err := casesdb.Put("caseID", pb.OrderState_DISPUTED, true, "blah")
+func TestGetByCaseID(t *testing.T) {
+	var (
+		casesdb, teardown, err  = buildNewCaseStore()
+		contract                = factory.NewContract()
+		expectedBuyerOutpoints  = []*pb.Outpoint{{Hash: "hash1", Index: 0, Value: 5}}
+		expectedVendorOutpoints = []*pb.Outpoint{{Hash: "hash2", Index: 1, Value: 11}}
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer teardown()
+
+	err = casesdb.Put("caseID", pb.OrderState_DISPUTED, true, "blah", "", "btc")
 	if err != nil {
 		t.Error(err)
 	}
-	err = casesdb.UpdateBuyerInfo("caseID", contract, []string{"someError", "anotherError"}, "addr1", buyerTestOutpoints)
+	err = casesdb.UpdateBuyerInfo("caseID", contract, []string{"someError", "anotherError"}, "addr1", expectedBuyerOutpoints)
 	if err != nil {
 		t.Error(err)
 	}
-	err = casesdb.UpdateVendorInfo("caseID", contract, []string{"someError", "anotherError"}, "addr2", vendorTestOutpoints)
+	err = casesdb.UpdateVendorInfo("caseID", contract, []string{"someError", "anotherError"}, "addr2", expectedVendorOutpoints)
 	if err != nil {
 		t.Error(err)
 	}
 
-	buyerContract, vendorContract, buyerAddr, vendorAddr, buyerOutpoints, vendorOutpoints, state, err := casesdb.GetPayoutDetails("caseID")
+	dispute, err := casesdb.GetByCaseID("caseID")
 	if err != nil {
 		t.Error(err)
 	}
 	ser, _ := proto.Marshal(contract)
-	buyerSer, _ := proto.Marshal(buyerContract)
-	vendorSer, _ := proto.Marshal(vendorContract)
+	buyerSer, _ := proto.Marshal(dispute.BuyerContract)
+	vendorSer, _ := proto.Marshal(dispute.VendorContract)
 
 	if !bytes.Equal(ser, buyerSer) || !bytes.Equal(ser, vendorSer) {
 		t.Error("Failed to fetch case contract from db")
 	}
-	if buyerAddr != "addr1" {
-		t.Errorf("Expected address %s got %s", "addr1", buyerAddr)
+	if dispute.BuyerPayoutAddress != "addr1" {
+		t.Errorf("Expected address %s got %s", "addr1", dispute.BuyerPayoutAddress)
 	}
-	if vendorAddr != "addr2" {
-		t.Errorf("Expected address %s got %s", "addr2", vendorAddr)
+	if dispute.VendorPayoutAddress != "addr2" {
+		t.Errorf("Expected address %s got %s", "addr2", dispute.VendorPayoutAddress)
 	}
-	if len(buyerOutpoints) != len(buyerTestOutpoints) {
+	if len(dispute.BuyerOutpoints) != len(expectedBuyerOutpoints) {
 		t.Error("Incorrect number of buyer outpoints returned")
 	}
-	for i, o := range buyerTestOutpoints {
-		if o.Hash != buyerTestOutpoints[i].Hash {
-			t.Errorf("Expected outpoint hash %s got %s", o.Hash, buyerTestOutpoints[i].Hash)
+	for i, o := range dispute.BuyerOutpoints {
+		if o.Hash != expectedBuyerOutpoints[i].Hash {
+			t.Errorf("Expected outpoint hash %s got %s", o.Hash, expectedBuyerOutpoints[i].Hash)
 		}
-		if o.Index != buyerTestOutpoints[i].Index {
-			t.Errorf("Expected outpoint index %d got %d", o.Index, buyerTestOutpoints[i].Index)
+		if o.Index != expectedBuyerOutpoints[i].Index {
+			t.Errorf("Expected outpoint index %v got %v", o.Index, expectedBuyerOutpoints[i].Index)
 		}
-		if o.Value != buyerTestOutpoints[i].Value {
-			t.Errorf("Expected outpoint value %d got %d", o.Value, buyerTestOutpoints[i].Value)
+		if o.Value != expectedBuyerOutpoints[i].Value {
+			t.Errorf("Expected outpoint value %v got %v", o.Value, expectedBuyerOutpoints[i].Value)
 		}
 	}
-	if len(vendorOutpoints) != len(vendorTestOutpoints) {
+	if len(dispute.VendorOutpoints) != len(expectedVendorOutpoints) {
 		t.Error("Incorrect number of buyer outpoints returned")
 	}
-	for i, o := range vendorTestOutpoints {
-		if o.Hash != vendorTestOutpoints[i].Hash {
-			t.Errorf("Expected outpoint hash %s got %s", o.Hash, vendorTestOutpoints[i].Hash)
+	for i, o := range expectedVendorOutpoints {
+		if o.Hash != expectedVendorOutpoints[i].Hash {
+			t.Errorf("Expected outpoint hash %s got %s", o.Hash, expectedVendorOutpoints[i].Hash)
 		}
-		if o.Index != vendorTestOutpoints[i].Index {
-			t.Errorf("Expected outpoint index %d got %d", o.Index, vendorTestOutpoints[i].Index)
+		if o.Index != expectedVendorOutpoints[i].Index {
+			t.Errorf("Expected outpoint index %v got %v", o.Index, expectedVendorOutpoints[i].Index)
 		}
-		if o.Value != vendorTestOutpoints[i].Value {
-			t.Errorf("Expected outpoint value %d got %d", o.Value, vendorTestOutpoints[i].Value)
+		if o.Value != expectedVendorOutpoints[i].Value {
+			t.Errorf("Expected outpoint value %v got %v", o.Value, expectedVendorOutpoints[i].Value)
 		}
 	}
-	if state != pb.OrderState_DISPUTED {
-		t.Errorf("Expected state %s got %s", pb.OrderState_DISPUTED, state)
+	if dispute.OrderState != pb.OrderState_DISPUTED {
+		t.Errorf("Expected state %s got %s", pb.OrderState_DISPUTED, dispute.OrderState)
 	}
 }
 
 func TestMarkAsClosed(t *testing.T) {
-	err := casesdb.Put("caseID", pb.OrderState_DISPUTED, true, "blah")
+	var (
+		casesdb, teardown, err = buildNewCaseStore()
+		contract               = factory.NewContract()
+		buyerTestOutpoints     = []*pb.Outpoint{{Hash: "hash1", Index: 0, Value: 5}}
+		vendorTestOutpoints    = []*pb.Outpoint{{Hash: "hash2", Index: 1, Value: 11}}
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer teardown()
+
+	err = casesdb.Put("caseID", pb.OrderState_DISPUTED, true, "blah", "", "btc")
 	if err != nil {
 		t.Error(err)
 	}
@@ -421,7 +524,18 @@ func TestMarkAsClosed(t *testing.T) {
 }
 
 func TestCasesDB_GetAll(t *testing.T) {
-	err := casesdb.Put("caseID", 10, true, "blah")
+	var (
+		casesdb, teardown, err = buildNewCaseStore()
+		contract               = factory.NewContract()
+		buyerTestOutpoints     = []*pb.Outpoint{{Hash: "hash1", Index: 0, Value: 5}}
+		vendorTestOutpoints    = []*pb.Outpoint{{Hash: "hash2", Index: 1, Value: 11}}
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer teardown()
+
+	err = casesdb.Put("caseID", 10, true, "blah", "", "btc")
 	if err != nil {
 		t.Error(err)
 	}
@@ -434,7 +548,7 @@ func TestCasesDB_GetAll(t *testing.T) {
 		t.Error(err)
 	}
 	time.Sleep(time.Second)
-	err = casesdb.Put("caseID2", 11, true, "asdf")
+	err = casesdb.Put("caseID2", 11, true, "asdf", "", "btc")
 	if err != nil {
 		t.Error(err)
 	}
@@ -515,5 +629,425 @@ func TestCasesDB_GetAll(t *testing.T) {
 	}
 	if ct != 1 {
 		t.Error("Returned incorrect number of query cases")
+	}
+}
+
+func TestGetDisputesForDisputeExpiryReturnsRelevantRecords(t *testing.T) {
+	database, _ := sql.Open("sqlite3", ":memory:")
+	setupSQL := []string{
+		schema.PragmaKey(""),
+		schema.CreateTableDisputedCasesSQL,
+	}
+	_, err := database.Exec(strings.Join(setupSQL, " "))
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Artificially start disputes 50 days ago
+	var (
+		now        = time.Unix(time.Now().Unix(), 0)
+		timeStart  = now.Add(time.Duration(-50*24) * time.Hour)
+		nowData, _ = ptypes.TimestampProto(now)
+		order      = &pb.Order{
+			BuyerID: &pb.ID{
+				PeerID: "buyerID",
+				Handle: "@buyerID",
+			},
+			Shipping: &pb.Order_Shipping{
+				Address: "1234 Test Ave",
+				ShipTo:  "Buyer Name",
+			},
+			Payment: &pb.Order_Payment{
+				Amount:  10,
+				Method:  pb.Order_Payment_DIRECT,
+				Address: "3BDbGsH5h5ctDiFtWMmZawcf3E7iWirVms",
+			},
+			Timestamp: nowData,
+		}
+		expectedImagesOne = []*pb.Listing_Item_Image{{Tiny: "tinyimagehashOne", Small: "smallimagehashOne"}}
+		contract          = &pb.RicardianContract{
+			VendorListings: []*pb.Listing{
+				{Item: &pb.Listing_Item{Images: expectedImagesOne}},
+			},
+			BuyerOrder: order,
+		}
+		neverNotified = &repo.DisputeCaseRecord{
+			CaseID:                      "neverNotified",
+			Timestamp:                   timeStart,
+			LastDisputeExpiryNotifiedAt: time.Unix(0, 0),
+			OrderState:                  pb.OrderState_DISPUTED,
+			BuyerContract:               contract,
+			VendorContract:              contract,
+			IsBuyerInitiated:            true,
+		}
+		initialNotified = &repo.DisputeCaseRecord{
+			CaseID:                      "initialNotificationSent",
+			Timestamp:                   timeStart,
+			LastDisputeExpiryNotifiedAt: timeStart,
+			OrderState:                  pb.OrderState_DISPUTED,
+			BuyerContract:               contract,
+			VendorContract:              contract,
+			IsBuyerInitiated:            true,
+		}
+		finallyNotified = &repo.DisputeCaseRecord{
+			CaseID:                      "finalNotificationSent",
+			Timestamp:                   timeStart,
+			LastDisputeExpiryNotifiedAt: time.Now(),
+			OrderState:                  pb.OrderState_DISPUTED,
+			BuyerContract:               contract,
+			VendorContract:              contract,
+			IsBuyerInitiated:            true,
+		}
+		resolved = &repo.DisputeCaseRecord{
+			CaseID:                      "resolved",
+			Timestamp:                   timeStart,
+			LastDisputeExpiryNotifiedAt: timeStart,
+			OrderState:                  pb.OrderState_RESOLVED,
+			BuyerContract:               contract,
+			VendorContract:              contract,
+		}
+		existingRecords = []*repo.DisputeCaseRecord{
+			neverNotified,
+			initialNotified,
+			finallyNotified,
+			resolved,
+		}
+	)
+
+	m := jsonpb.Marshaler{
+		EnumsAsInts:  false,
+		EmitDefaults: true,
+		Indent:       "    ",
+		OrigName:     false,
+	}
+	for _, r := range existingRecords {
+		var isBuyerInitiated int = 0
+		if r.IsBuyerInitiated {
+			isBuyerInitiated = 1
+		}
+		buyerContract, err := m.MarshalToString(r.BuyerContract)
+		if err != nil {
+			t.Fatal(err)
+		}
+		vendorContract, err := m.MarshalToString(r.VendorContract)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, err = database.Exec("insert into cases (caseID, state, buyerContract, vendorContract, timestamp, buyerOpened, lastDisputeExpiryNotifiedAt) values (?, ?, ?, ?, ?, ?, ?);", r.CaseID, int(r.OrderState), buyerContract, vendorContract, int(r.Timestamp.Unix()), isBuyerInitiated, int(r.LastDisputeExpiryNotifiedAt.Unix()))
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	casesdb := db.NewCaseStore(database, new(sync.Mutex))
+	cases, err := casesdb.GetDisputesForDisputeExpiryNotification()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var (
+		sawNeverNotifiedCase   bool
+		sawInitialNotifiedCase bool
+		sawFinallyNotifiedCase bool
+		sawResolvedCase        bool
+	)
+	for _, c := range cases {
+		switch c.CaseID {
+		case neverNotified.CaseID:
+			sawNeverNotifiedCase = true
+			if reflect.DeepEqual(c, neverNotified) != true {
+				t.Error("Expected neverNotified to match, but did not")
+				t.Error("Expected:", neverNotified)
+				t.Error("Actual:", c)
+			}
+		case initialNotified.CaseID:
+			sawInitialNotifiedCase = true
+			if reflect.DeepEqual(c, initialNotified) != true {
+				t.Error("Expected initialNotified to match, but did not")
+				t.Error("Expected:", initialNotified)
+				t.Error("Actual:", c)
+			}
+		case finallyNotified.CaseID:
+			sawFinallyNotifiedCase = true
+		case resolved.CaseID:
+			sawResolvedCase = true
+		default:
+			t.Errorf("Found unexpected dispute case: %+v", c)
+		}
+	}
+
+	if sawNeverNotifiedCase == false {
+		t.Error("Expected to see case which was never notified")
+	}
+	if sawInitialNotifiedCase == false {
+		t.Error("Expected to see case which was initially notified")
+	}
+	if sawFinallyNotifiedCase == true {
+		t.Error("Expected NOT to see case which recieved it's final notification")
+	}
+	if sawResolvedCase == true {
+		t.Error("Expected NOT to see case which is resolved")
+	}
+}
+
+func TestGetDisputesForDisputeExpiryAllowsMissingContracts(t *testing.T) {
+	database, _ := sql.Open("sqlite3", ":memory:")
+	setupSQL := []string{
+		schema.PragmaKey(""),
+		schema.CreateTableDisputedCasesSQL,
+	}
+	_, err := database.Exec(strings.Join(setupSQL, " "))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var (
+		now        = time.Unix(time.Now().Unix(), 0)
+		timeStart  = now.Add(time.Duration(-50*24) * time.Hour)
+		nowData, _ = ptypes.TimestampProto(now)
+		order      = &pb.Order{
+			BuyerID: &pb.ID{
+				PeerID: "buyerID",
+				Handle: "@buyerID",
+			},
+			Shipping: &pb.Order_Shipping{
+				Address: "1234 Test Ave",
+				ShipTo:  "Buyer Name",
+			},
+			Payment: &pb.Order_Payment{
+				Amount:  10,
+				Method:  pb.Order_Payment_DIRECT,
+				Address: "3BDbGsH5h5ctDiFtWMmZawcf3E7iWirVms",
+			},
+			Timestamp: nowData,
+		}
+		expectedImagesOne = []*pb.Listing_Item_Image{{Tiny: "tinyimagehashOne", Small: "smallimagehashOne"}}
+		contract          = &pb.RicardianContract{
+			VendorListings: []*pb.Listing{
+				{Item: &pb.Listing_Item{Images: expectedImagesOne}},
+			},
+			BuyerOrder: order,
+		}
+		missingVendorContract = &repo.DisputeCaseRecord{
+			CaseID:                      "neverNotified",
+			Timestamp:                   timeStart,
+			LastDisputeExpiryNotifiedAt: time.Unix(0, 0),
+			BuyerContract:               contract,
+			IsBuyerInitiated:            true,
+		}
+		missingBuyerContract = &repo.DisputeCaseRecord{
+			CaseID:                      "initialNotificationSent",
+			Timestamp:                   timeStart,
+			LastDisputeExpiryNotifiedAt: timeStart,
+			VendorContract:              contract,
+			IsBuyerInitiated:            true,
+		}
+		existingRecords = []*repo.DisputeCaseRecord{
+			missingVendorContract,
+			missingBuyerContract,
+		}
+	)
+
+	m := jsonpb.Marshaler{
+		EnumsAsInts:  false,
+		EmitDefaults: true,
+		Indent:       "    ",
+		OrigName:     false,
+	}
+	for _, r := range existingRecords {
+		var (
+			isBuyerInitiated int
+			buyerContract    = sql.NullString{}
+			vendorContract   = sql.NullString{}
+			err              error
+		)
+
+		if r.IsBuyerInitiated {
+			isBuyerInitiated = 1
+		}
+		if r.BuyerContract != nil {
+			buyerContract.String, err = m.MarshalToString(r.BuyerContract)
+			if err != nil {
+				t.Fatal(err)
+			}
+			buyerContract.Valid = true
+		}
+		if r.VendorContract != nil {
+			vendorContract.String, err = m.MarshalToString(r.VendorContract)
+			if err != nil {
+				t.Fatal(err)
+			}
+			vendorContract.Valid = true
+		}
+		_, err = database.Exec("insert into cases (caseID, buyerContract, vendorContract, timestamp, buyerOpened, lastDisputeExpiryNotifiedAt) values (?, ?, ?, ?, ?, ?);", r.CaseID, buyerContract, vendorContract, int(r.Timestamp.Unix()), isBuyerInitiated, int(r.LastDisputeExpiryNotifiedAt.Unix()))
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	casesdb := db.NewCaseStore(database, new(sync.Mutex))
+	_, err = casesdb.GetDisputesForDisputeExpiryNotification()
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestUpdateDisputeLastDisputeExpiryNotifiedAt(t *testing.T) {
+	database, _ := sql.Open("sqlite3", ":memory:")
+	setupSQL := []string{
+		schema.PragmaKey(""),
+		schema.CreateTableDisputedCasesSQL,
+	}
+	_, err := database.Exec(strings.Join(setupSQL, " "))
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Artificially start disputes 50 days ago
+	timeStart := time.Now().Add(time.Duration(-50*24) * time.Hour)
+	disputeOne := &repo.DisputeCaseRecord{
+		CaseID:                      "case1",
+		Timestamp:                   timeStart,
+		LastDisputeExpiryNotifiedAt: time.Unix(123, 0),
+	}
+	disputeTwo := &repo.DisputeCaseRecord{
+		CaseID:                      "case2",
+		Timestamp:                   timeStart,
+		LastDisputeExpiryNotifiedAt: time.Unix(456, 0),
+	}
+	_, err = database.Exec("insert into cases (caseID, timestamp, lastDisputeExpiryNotifiedAt) values (?, ?, ?);", disputeOne.CaseID, disputeOne.Timestamp, disputeOne.LastDisputeExpiryNotifiedAt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = database.Exec("insert into cases (caseID, timestamp, lastDisputeExpiryNotifiedAt) values (?, ?, ?);", disputeTwo.CaseID, int(disputeTwo.Timestamp.Unix()), int(disputeTwo.LastDisputeExpiryNotifiedAt.Unix()))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	disputeOne.LastDisputeExpiryNotifiedAt = time.Unix(987, 0)
+	disputeTwo.LastDisputeExpiryNotifiedAt = time.Unix(765, 0)
+	casesdb := db.NewCaseStore(database, new(sync.Mutex))
+	err = casesdb.UpdateDisputesLastDisputeExpiryNotifiedAt([]*repo.DisputeCaseRecord{disputeOne, disputeTwo})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rows, err := database.Query("select caseID, lastDisputeExpiryNotifiedAt from cases")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for rows.Next() {
+		var (
+			caseID                      string
+			lastDisputeExpiryNotifiedAt int64
+		)
+		if err = rows.Scan(&caseID, &lastDisputeExpiryNotifiedAt); err != nil {
+			t.Fatal(err)
+		}
+		switch caseID {
+		case disputeOne.CaseID:
+			if time.Unix(lastDisputeExpiryNotifiedAt, 0).Equal(disputeOne.LastDisputeExpiryNotifiedAt) != true {
+				t.Error("Expected disputeOne.LastDisputeExpiryNotifiedAt to be updated")
+			}
+		case disputeTwo.CaseID:
+			if time.Unix(lastDisputeExpiryNotifiedAt, 0).Equal(disputeTwo.LastDisputeExpiryNotifiedAt) != true {
+				t.Error("Expected disputeTwo.LastDisputeExpiryNotifiedAt to be updated")
+			}
+		default:
+			t.Error("Unexpected dispute case encounted")
+			t.Error(caseID, lastDisputeExpiryNotifiedAt)
+		}
+
+	}
+}
+
+func TestCasesDB_Put_PaymentCoin(t *testing.T) {
+
+	var (
+		tests = []struct {
+			acceptedCurrencies []string
+			paymentCoin        string
+			expected           string
+		}{
+			{[]string{"TBTC"}, "TBTC", "TBTC"},
+			{[]string{"TBTC", "TBCH"}, "TBTC", "TBTC"},
+			{[]string{"TBCH", "TBTC"}, "TBTC", "TBTC"},
+			{[]string{"TBTC", "TBCH"}, "TBCH", "TBCH"},
+			{[]string{}, "", ""},
+		}
+		contract = factory.NewContract()
+	)
+
+	for _, test := range tests {
+		var casesdb, teardown, err = buildNewCaseStore()
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		contract.VendorListings[0].Metadata.AcceptedCurrencies = test.acceptedCurrencies
+		contract.BuyerOrder.Payment.Coin = test.paymentCoin
+
+		err = casesdb.PutRecord(&repo.DisputeCaseRecord{
+			CaseID:           "paymentCoinTest",
+			BuyerContract:    contract,
+			VendorContract:   contract,
+			IsBuyerInitiated: true,
+			PaymentCoin:      test.paymentCoin,
+		})
+		if err != nil {
+			t.Error(err)
+		}
+
+		cases, count, err := casesdb.GetAll(nil, "", false, false, 1, nil)
+		if err != nil {
+			t.Error(err)
+		}
+		if count != 1 {
+			t.Errorf(`Expected %d record got %d`, 1, count)
+		}
+		if cases[0].PaymentCoin != test.expected {
+			t.Errorf(`Expected %s got %s`, test.expected, cases[0].PaymentCoin)
+		}
+		teardown()
+	}
+}
+
+func TestCasesDB_Put_CoinType(t *testing.T) {
+	var (
+		testsCoins = []string{"", "TBTC", "TETH"}
+		contract   = factory.NewContract()
+	)
+
+	for _, testCoin := range testsCoins {
+		var casesdb, teardown, err = buildNewCaseStore()
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		contract.VendorListings[0].Metadata.CoinType = testCoin
+
+		err = casesdb.PutRecord(&repo.DisputeCaseRecord{
+			CaseID:           "paymentCoinTest",
+			BuyerContract:    contract,
+			VendorContract:   contract,
+			IsBuyerInitiated: true,
+			CoinType:         testCoin,
+		})
+		if err != nil {
+			t.Error(err)
+		}
+
+		cases, count, err := casesdb.GetAll(nil, "", false, false, 1, nil)
+		if err != nil {
+			t.Error(err)
+		}
+		if count != 1 {
+			t.Errorf(`Expected %d record got %d`, 1, count)
+		}
+		if cases[0].CoinType != testCoin {
+			t.Errorf(`Expected %s got %s`, testCoin, cases[0].CoinType)
+		}
+		err = casesdb.Delete(cases[0].CaseId)
+		if err != nil {
+			t.Error("Sale delete failed")
+		}
+		teardown()
 	}
 }

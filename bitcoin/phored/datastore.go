@@ -6,9 +6,6 @@ package phored
 import (
 	"bytes"
 	"errors"
-	"sync"
-	"time"
-
 	"github.com/phoreproject/btcd/blockchain"
 	"github.com/phoreproject/btcd/chaincfg"
 	"github.com/phoreproject/btcd/chaincfg/chainhash"
@@ -17,7 +14,9 @@ import (
 	"github.com/phoreproject/btcutil"
 	"github.com/phoreproject/btcutil/bloom"
 	"github.com/phoreproject/spvwallet"
-	wallet "github.com/phoreproject/wallet-interface"
+	"github.com/phoreproject/wallet-interface"
+	"sync"
+	"time"
 )
 
 // TxStore handles transactions we've sent and our addresses
@@ -25,6 +24,7 @@ type TxStore struct {
 	adrs           []btcutil.Address
 	watchedScripts [][]byte
 	txids          map[string]int32
+	txidsMutex     *sync.RWMutex
 	addrMutex      *sync.Mutex
 	cbMutex        *sync.Mutex
 
@@ -44,6 +44,7 @@ func NewTxStore(p *chaincfg.Params, db wallet.Datastore, keyManager *spvwallet.K
 		keyManager: keyManager,
 		addrMutex:  new(sync.Mutex),
 		cbMutex:    new(sync.Mutex),
+		txidsMutex: new(sync.RWMutex),
 		txids:      make(map[string]int32),
 		Datastore:  db,
 	}
@@ -76,6 +77,7 @@ func (ts *TxStore) GimmeFilter() (*bloom.Filter, error) {
 	// for the 20 byte PKH without the opcodes.
 	for _, a := range ts.adrs { // add 20-byte pubkeyhash
 		f.Add(a.ScriptAddress())
+		log.Debugf("bloom filter - watching for addr %s\n", a.String())
 	}
 	ts.addrMutex.Unlock()
 	for _, u := range allUtxos {
@@ -86,10 +88,12 @@ func (ts *TxStore) GimmeFilter() (*bloom.Filter, error) {
 		f.AddOutPoint(&s.Utxo.Op)
 	}
 	for _, w := range ts.watchedScripts {
-		_, addrs, _, err := txscript.ExtractPkScriptAddrs(w, ts.params)
+		scriptClass, addrs, _, err := txscript.ExtractPkScriptAddrs(w, ts.params)
 		if err != nil {
+			log.Debugf("bloom filter - watching for addrs %s from script (class - %s) error %s", addrs, err, scriptClass.String())
 			continue
 		}
+		log.Debugf("bloom filter - watching for addrs %s from script (class - %s)", addrs, scriptClass.String())
 		f.Add(addrs[0].ScriptAddress())
 	}
 
@@ -182,18 +186,20 @@ func (ts *TxStore) PopulateAdrs() error {
 		}
 		ts.adrs = append(ts.adrs, addr)
 	}
+	ts.addrMutex.Unlock()
 	ts.watchedScripts, _ = ts.WatchedScripts().GetAll()
 	txns, _ := ts.Txns().GetAll(true)
+	ts.txidsMutex.Lock()
 	for _, t := range txns {
 		ts.txids[t.Txid] = t.Height
 	}
-	ts.addrMutex.Unlock()
+	ts.txidsMutex.Unlock()
 	return nil
 }
 
 // Ingest puts a tx into the DB atomically.  This can result in a
 // gain, a loss, or no result.  Gain or loss in satoshis is returned.
-func (ts *TxStore) Ingest(tx *wire.MsgTx, height int32) (uint32, error) {
+func (ts *TxStore) Ingest(tx *wire.MsgTx, height int32, timestamp time.Time) (uint32, error) {
 	var hits uint32
 	var err error
 	// Tx has been OK'd by SPV; check tx sanity
@@ -205,7 +211,9 @@ func (ts *TxStore) Ingest(tx *wire.MsgTx, height int32) (uint32, error) {
 	}
 
 	// Check to see if we've already processed this tx. If so, return.
+	ts.txidsMutex.RLock()
 	sh, ok := ts.txids[tx.TxHash().String()]
+	ts.txidsMutex.RUnlock()
 	if ok && (sh > 0 || (sh == 0 && height == 0)) {
 		return 1, nil
 	}
@@ -234,6 +242,7 @@ func (ts *TxStore) Ingest(tx *wire.MsgTx, height int32) (uint32, error) {
 		// TODO: This will need to test both segwit and legacy once segwit activates
 		PKscripts[i], err = txscript.PayToAddrScript(ts.adrs[i])
 		if err != nil {
+			log.Debug(err)
 			return hits, err
 		}
 	}
@@ -241,11 +250,14 @@ func (ts *TxStore) Ingest(tx *wire.MsgTx, height int32) (uint32, error) {
 
 	// Iterate through all outputs of this tx, see if we gain
 	cachedSha := tx.TxHash()
-	cb := wallet.TransactionCallback{Txid: cachedSha.CloneBytes(), Height: height}
+	cb := wallet.TransactionCallback{Txid: cachedSha.String(), Height: height}
 	value := int64(0)
 	matchesWatchOnly := false
 	for i, txout := range tx.TxOut {
-		out := wallet.TransactionOutput{ScriptPubKey: txout.PkScript, Value: txout.Value, Index: uint32(i)}
+		// Ignore the error here because the sender could have used and exotic script
+		// for his change and we don't want to fail in that case.
+		addr, _ := scriptToAddress(txout.PkScript, ts.params)
+		out := wallet.TransactionOutput{Address: addr, Value: txout.Value, Index: uint32(i)}
 		for _, script := range PKscripts {
 			if bytes.Equal(txout.PkScript, script) { // new utxo found
 				scriptAddress, _ := ts.extractScriptAddress(txout.PkScript)
@@ -309,11 +321,15 @@ func (ts *TxStore) Ingest(tx *wire.MsgTx, height int32) (uint32, error) {
 					matchesWatchOnly = true
 				}
 
+				// Ignore the error here because the sender could have used and exotic script
+				// for his input and we don't want to fail in that case.
+				addr, _ := scriptToAddress(u.ScriptPubkey, ts.params)
+
 				in := wallet.TransactionInput{
-					OutpointHash:       u.Op.Hash.CloneBytes(),
-					OutpointIndex:      u.Op.Index,
-					LinkedScriptPubKey: u.ScriptPubkey,
-					Value:              u.Value,
+					OutpointHash:  u.Op.Hash.CloneBytes(),
+					OutpointIndex: u.Op.Index,
+					LinkedAddress: addr,
+					Value:         u.Value,
 				}
 				cb.Inputs = append(cb.Inputs, in)
 				break
@@ -344,25 +360,30 @@ func (ts *TxStore) Ingest(tx *wire.MsgTx, height int32) (uint32, error) {
 	// If hits is nonzero it's a relevant tx and we should store it
 	if hits > 0 || matchesWatchOnly {
 		ts.cbMutex.Lock()
-		_, txn, err := ts.Txns().Get(tx.TxHash())
+		ts.txidsMutex.Lock()
+		txn, err := ts.Txns().Get(tx.TxHash())
 		shouldCallback := false
 		if err != nil {
 			cb.Value = value
-			txn.Timestamp = time.Now()
+			txn.Timestamp = timestamp
 			shouldCallback = true
-			ts.Txns().Put(tx, int(value), int(height), txn.Timestamp, hits == 0)
+			var buf bytes.Buffer
+			tx.BtcEncode(&buf, wire.ProtocolVersion, wire.WitnessEncoding)
+			ts.Txns().Put(buf.Bytes(), tx.TxHash().String(), int(value), int(height), txn.Timestamp, hits == 0)
 			ts.txids[tx.TxHash().String()] = height
 		}
 		// Let's check the height before committing so we don't allow rogue peers to send us a lose
 		// tx that resets our height to zero.
-		if txn.Height <= 0 {
-			ts.Txns().UpdateHeight(tx.TxHash(), int(height))
+		if err == nil && txn.Height <= 0 {
+			ts.Txns().UpdateHeight(tx.TxHash(), int(height), txn.Timestamp)
 			ts.txids[tx.TxHash().String()] = height
 			if height > 0 {
 				cb.Value = txn.Value
 				shouldCallback = true
 			}
 		}
+		cb.BlockTime = timestamp
+		ts.txidsMutex.Unlock()
 		if shouldCallback {
 			// Callback on listeners
 			for _, listener := range ts.listeners {
@@ -386,7 +407,7 @@ func (ts *TxStore) markAsDead(txid chainhash.Hash) error {
 		if err != nil {
 			return err
 		}
-		err = ts.Txns().UpdateHeight(s.SpendTxid, -1)
+		err = ts.Txns().UpdateHeight(s.SpendTxid, -1, time.Now())
 		if err != nil {
 			return err
 		}
@@ -425,7 +446,7 @@ func (ts *TxStore) markAsDead(txid chainhash.Hash) error {
 			}
 		}
 	}
-	ts.Txns().UpdateHeight(txid, -1)
+	ts.Txns().UpdateHeight(txid, -1, time.Now())
 	return nil
 }
 

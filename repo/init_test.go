@@ -3,10 +3,11 @@ package repo
 import (
 	"errors"
 	"os"
-	"path"
 	"path/filepath"
 	"testing"
 	"time"
+
+	"github.com/phoreproject/openbazaar-go/schema"
 )
 
 const repoRootFolder = "testdata/repo-root"
@@ -35,59 +36,39 @@ func MockNewMnemonicFail([]byte) (string, error) {
 }
 
 func TestDoInit(t *testing.T) {
-	password := "password"
-	mnemonic := ""
-	testnet := true
+	var (
+		password      = "password"
+		mnemonic      = ""
+		testnet       = true
+		testDirectory = schema.GenerateTempPath()
+	)
+	paths, err := schema.NewCustomSchemaManager(schema.SchemaContext{DataPath: testDirectory})
+	if err != nil {
+		t.Fatal(err)
+	}
 	// Running DoInit on a folder that already contains a config file
-	err := DoInit(testConfigFolder, 4096, testnet, password, mnemonic, time.Now(), MockDbInit)
+	err = DoInit(paths.DataPath(), 4096, testnet, password, mnemonic, time.Now(), MockDbInit)
+	if err != nil {
+		t.Error("First DoInit should not have failed:", err.Error())
+	}
+	err = DoInit(paths.DataPath(), 4096, testnet, password, mnemonic, time.Now(), MockDbInit)
 	if err != ErrRepoExists {
-		t.Error("DoInit didn't throw expected error")
+		t.Error("Expected DoInit to fail with ErrRepoExists but did not")
 	}
-	// Running DoInit on an empty, not-writable folder
-	os.Chmod(repoRootFolder, 0444)
-	err = DoInit(repoRootFolder, 4096, testnet, password, mnemonic, time.Now(), MockDbInit)
-	if err == nil {
-		t.Error("DoInit didn't throw an error")
+	paths.DestroySchemaDirectories()
+	if err = paths.BuildSchemaDirectories(); err != nil {
+		t.Fatal(err)
 	}
+
 	// Running DoInit on an empty, writable folder
-	os.Chmod(repoRootFolder, 0755)
-	err = DoInit(repoRootFolder, 4096, testnet, password, mnemonic, time.Now(), MockDbInit)
+	if err = os.Chmod(paths.DataPath(), 0755); err != nil {
+		t.Fatal(err)
+	}
+	err = DoInit(paths.DataPath(), 4096, testnet, password, mnemonic, time.Now(), MockDbInit)
 	if err != nil {
 		t.Errorf("DoInit threw an unexpected error: %s", err.Error())
 	}
-
-	TearDown()
-}
-
-func TestMaybeCreateOBDirectories(t *testing.T) {
-	maybeCreateOBDirectories(repoRootFolder)
-	checkDirectoryCreation(t, path.Join(repoRootFolder, "root"))
-	checkDirectoryCreation(t, path.Join(repoRootFolder, "root", "listings"))
-	checkDirectoryCreation(t, path.Join(repoRootFolder, "root", "feed"))
-	checkDirectoryCreation(t, path.Join(repoRootFolder, "root", "channel"))
-	checkDirectoryCreation(t, path.Join(repoRootFolder, "root", "files"))
-	checkDirectoryCreation(t, path.Join(repoRootFolder, "root", "images"))
-	checkDirectoryCreation(t, path.Join(repoRootFolder, "root", "images", "tiny"))
-	checkDirectoryCreation(t, path.Join(repoRootFolder, "root", "images", "small"))
-	checkDirectoryCreation(t, path.Join(repoRootFolder, "root", "images", "medium"))
-	checkDirectoryCreation(t, path.Join(repoRootFolder, "root", "images", "large"))
-	checkDirectoryCreation(t, path.Join(repoRootFolder, "root", "images", "original"))
-	checkDirectoryCreation(t, path.Join(repoRootFolder, "outbox"))
-	TearDown()
-}
-
-func checkDirectoryCreation(t *testing.T, directory string) {
-	f, err := os.Open(directory)
-	if err != nil {
-		t.Errorf("created directory %s could not be opened", directory)
-	}
-	fi, _ := f.Stat()
-	if fi.IsDir() == false {
-		t.Errorf("maybeCreateOBDirectories did not create the directory %s", directory)
-	}
-	if fi.Mode().String()[1:3] != "rw" {
-		t.Errorf("the created directory %s is not readable and writable for the owner", directory)
-	}
+	paths.DestroySchemaDirectories()
 }
 
 func TestCreateMnemonic(t *testing.T) {
@@ -115,10 +96,10 @@ func checkCreateMnemonicError(t *testing.T, mnemonic string, err error) {
 
 // Removes files that are created when tests are executed
 func TearDown() {
-	os.RemoveAll(filepath.Join(testConfigFolder, "outbox"))
-	os.RemoveAll(filepath.Join(testConfigFolder, "root"))
-	os.RemoveAll(filepath.Join(testConfigFolder, "datastore"))
-	os.Remove(filepath.Join(testConfigFolder, "repo.lock"))
+	os.RemoveAll(filepath.Join("testdata", "outbox"))
+	os.RemoveAll(filepath.Join("testdata", "root"))
+	os.RemoveAll(filepath.Join("testdata", "datastore"))
+	os.Remove(filepath.Join("testdata", "repo.lock"))
 
 	os.RemoveAll(filepath.Join(repoRootFolder, "blocks"))
 	os.RemoveAll(filepath.Join(repoRootFolder, "outbox"))

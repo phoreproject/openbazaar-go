@@ -4,16 +4,20 @@ import (
 	"crypto/sha256"
 	"database/sql"
 	"encoding/hex"
+	"github.com/phoreproject/openbazaar-go/repo"
 	"strconv"
 	"sync"
 )
 
 type InventoryDB struct {
-	db   *sql.DB
-	lock sync.RWMutex
+	modelStore
 }
 
-func (i *InventoryDB) Put(slug string, variantIndex int, count int) error {
+func NewInventoryStore(db *sql.DB, lock *sync.Mutex) repo.InventoryStore {
+	return &InventoryDB{modelStore{db, lock}}
+}
+
+func (i *InventoryDB) Put(slug string, variantIndex int, count int64) error {
 	i.lock.Lock()
 	defer i.lock.Unlock()
 
@@ -34,15 +38,15 @@ func (i *InventoryDB) Put(slug string, variantIndex int, count int) error {
 	return nil
 }
 
-func (i *InventoryDB) GetSpecific(slug string, variantIndex int) (int, error) {
-	i.lock.RLock()
-	defer i.lock.RUnlock()
+func (i *InventoryDB) GetSpecific(slug string, variantIndex int) (int64, error) {
+	i.lock.Lock()
+	defer i.lock.Unlock()
 	stmt, err := i.db.Prepare("select count from inventory where slug=? and variantIndex=?")
 	if err != nil {
 		return 0, err
 	}
 	defer stmt.Close()
-	var count int
+	var count int64
 	err = stmt.QueryRow(slug, variantIndex).Scan(&count)
 	if err != nil {
 		return 0, err
@@ -50,10 +54,10 @@ func (i *InventoryDB) GetSpecific(slug string, variantIndex int) (int, error) {
 	return count, nil
 }
 
-func (i *InventoryDB) Get(slug string) (map[int]int, error) {
-	i.lock.RLock()
-	defer i.lock.RUnlock()
-	ret := make(map[int]int)
+func (i *InventoryDB) Get(slug string) (map[int]int64, error) {
+	i.lock.Lock()
+	defer i.lock.Unlock()
+	ret := make(map[int]int64)
 	stmt, err := i.db.Prepare("select slug, variantIndex, count from inventory where slug=?")
 	if err != nil {
 		return ret, err
@@ -66,7 +70,7 @@ func (i *InventoryDB) Get(slug string) (map[int]int, error) {
 	defer rows.Close()
 	for rows.Next() {
 		var slug string
-		var count int
+		var count int64
 		var variantIndex int
 		rows.Scan(&slug, &variantIndex, &count)
 		ret[variantIndex] = count
@@ -74,11 +78,11 @@ func (i *InventoryDB) Get(slug string) (map[int]int, error) {
 	return ret, nil
 }
 
-func (i *InventoryDB) GetAll() (map[string]map[int]int, error) {
-	i.lock.RLock()
-	defer i.lock.RUnlock()
+func (i *InventoryDB) GetAll() (map[string]map[int]int64, error) {
+	i.lock.Lock()
+	defer i.lock.Unlock()
 
-	ret := make(map[string]map[int]int)
+	ret := make(map[string]map[int]int64)
 	stm := "select slug, variantIndex, count from inventory"
 	rows, err := i.db.Query(stm)
 	if err != nil {
@@ -87,12 +91,12 @@ func (i *InventoryDB) GetAll() (map[string]map[int]int, error) {
 	defer rows.Close()
 	for rows.Next() {
 		var slug string
-		var count int
+		var count int64
 		var variantIndex int
 		rows.Scan(&slug, &variantIndex, &count)
 		m, ok := ret[slug]
 		if !ok {
-			r := make(map[int]int)
+			r := make(map[int]int64)
 			r[variantIndex] = count
 			ret[slug] = r
 		} else {

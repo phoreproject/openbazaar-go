@@ -2,13 +2,17 @@ package db
 
 import (
 	"database/sql"
+	"github.com/phoreproject/openbazaar-go/repo"
 	"sync"
 	"time"
 )
 
 type OfflineMessagesDB struct {
-	db   *sql.DB
-	lock sync.RWMutex
+	modelStore
+}
+
+func NewOfflineMessageStore(db *sql.DB, lock *sync.Mutex) repo.OfflineMessageStore {
+	return &OfflineMessagesDB{modelStore{db, lock}}
 }
 
 func (o *OfflineMessagesDB) Put(url string) error {
@@ -33,8 +37,8 @@ func (o *OfflineMessagesDB) Put(url string) error {
 }
 
 func (o *OfflineMessagesDB) Has(url string) bool {
-	o.lock.RLock()
-	defer o.lock.RUnlock()
+	o.lock.Lock()
+	defer o.lock.Unlock()
 	stmt, err := o.db.Prepare("select url from offlinemessages where url=?")
 	if err != nil {
 		return false
@@ -59,8 +63,8 @@ func (o *OfflineMessagesDB) SetMessage(url string, message []byte) error {
 }
 
 func (o *OfflineMessagesDB) GetMessages() (map[string][]byte, error) {
-	o.lock.RLock()
-	defer o.lock.RUnlock()
+	o.lock.Lock()
+	defer o.lock.Unlock()
 	stm := "select url, message from offlinemessages where message is not null"
 
 	ret := make(map[string][]byte)

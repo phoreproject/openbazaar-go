@@ -5,18 +5,17 @@ import (
 	"os"
 	"path"
 
+	"github.com/phoreproject/openbazaar-go/schema"
 	"io/ioutil"
-
-	"github.com/phoreproject/openbazaar-go/repo"
 )
 
 // NewAPIConfig returns a new config object for the API tests
-func NewAPIConfig() (*repo.APIConfig, error) {
+func NewAPIConfig() (*schema.APIConfig, error) {
 	configFile, err := ioutil.ReadFile(path.Join(GetRepoPath(), "config"))
 	if err != nil {
 		return nil, err
 	}
-	apiConfig, err := repo.GetAPIConfig(configFile)
+	apiConfig, err := schema.GetAPIConfig(configFile)
 	if err != nil {
 		return nil, err
 	}
@@ -37,7 +36,7 @@ func GetRepoPath() string {
 
 // GetPassword returns a static mneumonic to use
 func GetPassword() string {
-	return getEnvString("OPENBAZAAR_TEST_PASSWORD", "correct horse battery staple")
+	return getEnvString("OPENBAZAAR_TEST_PASSWORD", "pulp open fabric travel possible slogan sense piano fog knock weird merge")
 }
 
 // GetAuthCookie returns a pointer to a test authentication cookie

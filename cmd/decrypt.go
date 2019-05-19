@@ -9,13 +9,16 @@ import (
 	"strings"
 	"syscall"
 
-	lockfile "github.com/ipfs/go-ipfs/repo/fsrepo/lock"
+	"github.com/ipfs/go-ipfs/repo/fsrepo"
 	"github.com/phoreproject/openbazaar-go/repo"
 	"github.com/phoreproject/openbazaar-go/repo/db"
+	"github.com/phoreproject/wallet-interface"
 	"golang.org/x/crypto/ssh/terminal"
 )
 
-type DecryptDatabase struct{}
+type DecryptDatabase struct {
+	DataDir string `short:"d" long:"datadir" description:"specify the data directory to be used"`
+}
 
 func (x *DecryptDatabase) Execute(args []string) error {
 	reader := bufio.NewReader(os.Stdin)
@@ -25,18 +28,22 @@ func (x *DecryptDatabase) Execute(args []string) error {
 	var filename string
 	var testnet bool
 	var err error
+	if x.DataDir == "" {
+		repoPath, err = repo.GetRepoPath(false)
+		if err != nil {
+			log.Error(err)
+			return nil
+		}
+	} else {
+		repoPath = x.DataDir
+	}
 	for {
 		fmt.Print("Decrypt the mainnet or testnet db?: ")
 		resp, _ := reader.ReadString('\n')
 		if strings.Contains(strings.ToLower(resp), "mainnet") {
-			repoPath, err = repo.GetRepoPath(false)
-			if err != nil {
-				fmt.Println(err)
-				return nil
-			}
 			filename = "mainnet.db"
 			dbPath = path.Join(repoPath, "datastore", filename)
-			repoLockFile := filepath.Join(repoPath, lockfile.LockFile)
+			repoLockFile := filepath.Join(repoPath, fsrepo.LockFile)
 			if _, err := os.Stat(repoLockFile); !os.IsNotExist(err) {
 				fmt.Println("Cannot decrypt while the daemon is running.")
 				return nil
@@ -47,15 +54,10 @@ func (x *DecryptDatabase) Execute(args []string) error {
 			}
 			break
 		} else if strings.Contains(strings.ToLower(resp), "testnet") {
-			repoPath, err = repo.GetRepoPath(true)
-			if err != nil {
-				fmt.Println(err)
-				return nil
-			}
 			testnet = true
 			filename = "testnet.db"
 			dbPath = path.Join(repoPath, "datastore", filename)
-			repoLockFile := filepath.Join(repoPath, lockfile.LockFile)
+			repoLockFile := filepath.Join(repoPath, fsrepo.LockFile)
 			if _, err := os.Stat(repoLockFile); !os.IsNotExist(err) {
 				fmt.Println("Cannot decrypt while the daemon is running.")
 				return nil
@@ -74,7 +76,7 @@ func (x *DecryptDatabase) Execute(args []string) error {
 	fmt.Println("")
 	pw := string(bytePassword)
 	pw = strings.Replace(pw, "'", "''", -1)
-	sqlliteDB, err := db.Create(repoPath, pw, testnet)
+	sqlliteDB, err := db.Create(repoPath, pw, testnet, wallet.Bitcoin)
 	if err != nil || sqlliteDB.Config().IsEncrypted() {
 		fmt.Println("Invalid password")
 		return err
@@ -82,18 +84,21 @@ func (x *DecryptDatabase) Execute(args []string) error {
 	if err := os.MkdirAll(path.Join(repoPath, "tmp", "datastore"), os.ModePerm); err != nil {
 		return err
 	}
-	tmpDB, err := db.Create(path.Join(repoPath, "tmp"), "", testnet)
+	tmpDB, err := db.Create(path.Join(repoPath, "tmp"), "", testnet, wallet.Bitcoin)
 	if err != nil {
+		log.Error(err)
 		fmt.Println(err)
 		return err
 	}
 	tmpDB.InitTables("")
 	if err := sqlliteDB.Copy(path.Join(repoPath, "tmp", "datastore", filename), ""); err != nil {
+		log.Error(err)
 		fmt.Println(err)
 		return err
 	}
 	err = os.Rename(path.Join(repoPath, "tmp", "datastore", filename), path.Join(repoPath, "datastore", filename))
 	if err != nil {
+		log.Error(err)
 		fmt.Println(err)
 		return err
 	}

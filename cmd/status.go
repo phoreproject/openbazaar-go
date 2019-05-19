@@ -6,6 +6,7 @@ import (
 	obnet "github.com/phoreproject/openbazaar-go/net"
 	"github.com/phoreproject/openbazaar-go/repo"
 	"github.com/phoreproject/openbazaar-go/repo/db"
+	"github.com/phoreproject/wallet-interface"
 	"os"
 )
 
@@ -29,9 +30,9 @@ func (x *Status) Execute(args []string) error {
 		torAvailable = true
 	}
 	if fsrepo.IsInitialized(repoPath) {
-		sqliteDB, err := db.Create(repoPath, "", x.Testnet)
+		sqliteDB, err := db.Create(repoPath, "", x.Testnet, wallet.Bitcoin)
 		if err != nil {
-			return err
+			os.Exit(1)
 		}
 		defer sqliteDB.Close()
 		if sqliteDB.Config().IsEncrypted() {

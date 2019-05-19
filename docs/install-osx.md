@@ -32,7 +32,7 @@ source ~/.profile
 
 Go should now be ready.
 
-### Install openbazaar-go
+### Install openbazaar-go from master
 
 ```
 go get github.com/phoreproject/openbazaar-go
@@ -40,11 +40,18 @@ go get github.com/phoreproject/openbazaar-go
 
 It will put the source code in $GOPATH/src/github.com/phoreproject/openbazaar-go
 
-To compile and run the source:
+### Install openbazaar-go from other branch
+```
+cd $GOPATH/src/github.com/phoreproject
+git clone --recursive -b BRANCH_NAME git@github.com:phoreproject/openbazaar-go
+```
+
+### To compile and run the source:
 ```
 cd $GOPATH/src/github.com/phoreproject/openbazaar-go
 go run openbazaard.go start
 ```
+
 NOTE: If you have Xcode installed you may get the response `signal: killed`. If you do try running the following instead.
 
 ```

@@ -8,8 +8,11 @@ import (
 )
 
 type TxMetadataDB struct {
-	db   *sql.DB
-	lock sync.RWMutex
+	modelStore
+}
+
+func NewTransactionMetadataStore(db *sql.DB, lock *sync.Mutex) repo.TransactionMetadataStore {
+	return &TxMetadataDB{modelStore{db, lock}}
 }
 
 func (t *TxMetadataDB) Put(m repo.Metadata) error {
@@ -40,6 +43,9 @@ func (t *TxMetadataDB) Get(txid string) (repo.Metadata, error) {
 	defer t.lock.Unlock()
 	var m repo.Metadata
 	stmt, err := t.db.Prepare("select txid, address, memo, orderID, thumbnail, canBumpFee from txmetadata where txid=?")
+	if err != nil {
+		return m, err
+	}
 	defer stmt.Close()
 	var id, address, memo, orderId, thumbnail string
 	var canBumpFee int
@@ -56,8 +62,8 @@ func (t *TxMetadataDB) Get(txid string) (repo.Metadata, error) {
 }
 
 func (t *TxMetadataDB) GetAll() (map[string]repo.Metadata, error) {
-	t.lock.RLock()
-	defer t.lock.RUnlock()
+	t.lock.Lock()
+	defer t.lock.Unlock()
 	ret := make(map[string]repo.Metadata)
 	stm := "select txid, address, memo, orderID, thumbnail, canBumpFee from txmetadata"
 	rows, err := t.db.Query(stm)

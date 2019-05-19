@@ -6,10 +6,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
-	u "gx/ipfs/QmSU6eubNdhXjFBJBSksTp8kv8YRub8mGAPv8tVJHmL2EU/go-ipfs-util"
-	ds "gx/ipfs/QmVSase1JP7cq9QkPT46oNwdp9pT6kBkG3oqS14y3QcZjG/go-datastore"
-	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
+	ipnspath "github.com/ipfs/go-ipfs/path"
+	"gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 	"io/ioutil"
 	"os"
 	"path"
@@ -19,19 +17,15 @@ import (
 	"github.com/OpenBazaar/jsonpb"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/imdario/mergo"
-	ipnspb "github.com/ipfs/go-ipfs/namesys/pb"
-	ipnspath "github.com/ipfs/go-ipfs/path"
-	"github.com/phoreproject/openbazaar-go/ipfs"
+
 	"github.com/phoreproject/openbazaar-go/pb"
 )
 
-const (
-	cachePrefix       = "IPNSPERSISENTCACHE_"
-	CachedProfileTime = time.Hour * 24 * 7
-)
+const KeyCachePrefix = "/pubkey/"
 
 var ErrorProfileNotFound error = errors.New("Profile not found")
 
+// GetProfile - fetch user profile
 func (n *OpenBazaarNode) GetProfile() (pb.Profile, error) {
 	var profile pb.Profile
 	f, err := os.Open(path.Join(n.RepoPath, "root", "profile.json"))
@@ -46,109 +40,21 @@ func (n *OpenBazaarNode) GetProfile() (pb.Profile, error) {
 	return profile, nil
 }
 
+// FetchProfile - fetch peer's profile
 func (n *OpenBazaarNode) FetchProfile(peerID string, useCache bool) (pb.Profile, error) {
-	fetch := func(rootHash string) (pb.Profile, error) {
-		var pro pb.Profile
-		var profile []byte
-		var err error
-		if rootHash == "" {
-			profile, err = ipfs.ResolveThenCat(n.Context, ipnspath.FromString(path.Join(peerID, "profile.json")))
-			if err != nil || len(profile) == 0 {
-				return pro, err
-			}
-		} else {
-			profile, err = ipfs.Cat(n.Context, path.Join(rootHash, "profile.json"))
-			if err != nil || len(profile) == 0 {
-				return pro, err
-			}
-		}
-		err = jsonpb.UnmarshalString(string(profile), &pro)
-		if err != nil {
-			return pro, err
-		}
-		return pro, nil
-	}
-
 	var pro pb.Profile
-	var err error
-	var recordAvailable bool
-	var val interface{}
-	if useCache {
-		val, err = n.IpfsNode.Repo.Datastore().Get(ds.NewKey(cachePrefix + peerID))
-		if err != nil { // No record in datastore
-			pro, err = fetch("")
-			if err != nil {
-				return pb.Profile{}, err
-			}
-		} else { // Record available, let's see how old it is
-			entry := new(ipnspb.IpnsEntry)
-			err = proto.Unmarshal(val.([]byte), entry)
-			if err != nil {
-				return pb.Profile{}, err
-			}
-			p, err := ipnspath.ParsePath(string(entry.GetValue()))
-			if err != nil {
-				return pb.Profile{}, err
-			}
-			eol, ok := checkEOL(entry)
-			if ok && eol.Before(time.Now()) { // Too old, fetch new profile
-				pro, err = fetch("")
-			} else { // Relatively new, we can do a standard IPFS query (which should be cached)
-				pro, err = fetch(strings.TrimPrefix(p.String(), "/ipfs/"))
-				// Let's now try to get the latest record in a new goroutine so it's available next time
-				go fetch("")
-			}
-			if err != nil {
-				return pb.Profile{}, err
-			}
-			recordAvailable = true
-		}
-	} else {
-		pro, err = fetch("")
-		if err != nil {
-			return pb.Profile{}, err
-		}
-		recordAvailable = false
+	b, err := n.IPNSResolveThenCat(ipnspath.FromString(path.Join(peerID, "profile.json")), time.Minute, useCache)
+	if err != nil || len(b) == 0 {
+		return pro, err
 	}
-
-	if err := ValidateProfile(&pro); err != nil {
-		return pb.Profile{}, err
+	err = jsonpb.UnmarshalString(string(b), &pro)
+	if err != nil {
+		return pro, err
 	}
-
-	// Update the record with a new EOL
-	go func() {
-		if !recordAvailable {
-			val, err = n.IpfsNode.Repo.Datastore().Get(ds.NewKey(cachePrefix + peerID))
-			if err != nil {
-				return
-			}
-		}
-		entry := new(ipnspb.IpnsEntry)
-		err = proto.Unmarshal(val.([]byte), entry)
-		if err != nil {
-			return
-		}
-		entry.Validity = []byte(u.FormatRFC3339(time.Now().Add(CachedProfileTime)))
-		v, err := proto.Marshal(entry)
-		if err != nil {
-			return
-		}
-		n.IpfsNode.Repo.Datastore().Put(ds.NewKey(cachePrefix+peerID), v)
-	}()
 	return pro, nil
 }
 
-func checkEOL(e *ipnspb.IpnsEntry) (time.Time, bool) {
-	if e.GetValidityType() == ipnspb.IpnsEntry_EOL {
-		eol, err := u.ParseRFC3339(string(e.GetValidity()))
-		if err != nil {
-			return time.Time{}, false
-		}
-		return eol, true
-	}
-	return time.Time{}, false
-}
-
+// UpdateProfile - update user profile
 func (n *OpenBazaarNode) UpdateProfile(profile *pb.Profile) error {
 	mPubkey, err := n.Wallet.MasterPublicKey().ECPubKey()
 	if err != nil {
@@ -166,8 +72,13 @@ func (n *OpenBazaarNode) UpdateProfile(profile *pb.Profile) error {
 		Indent:       "    ",
 		OrigName:     false,
 	}
+
+	if profile.Currencies == nil {
+		profile.Currencies = []string{NormalizeCurrencyCode(n.Wallet.CurrencyCode())}
+	}
+
 	if profile.ModeratorInfo != nil {
-		profile.ModeratorInfo.AcceptedCurrencies = []string{strings.ToUpper(n.Wallet.CurrencyCode())}
+		profile.ModeratorInfo.AcceptedCurrencies = []string{NormalizeCurrencyCode(n.Wallet.CurrencyCode())}
 	}
 	profile.PeerID = n.IpfsNode.Identity.Pretty()
 	ts, err := ptypes.TimestampProto(time.Now())
@@ -182,16 +93,17 @@ func (n *OpenBazaarNode) UpdateProfile(profile *pb.Profile) error {
 
 	profilePath := path.Join(n.RepoPath, "root", "profile.json")
 	f, err := os.Create(profilePath)
-	defer f.Close()
 	if err != nil {
 		return err
 	}
+	defer f.Close()
 	if _, err := f.WriteString(out); err != nil {
 		return err
 	}
 	return nil
 }
 
+// PatchProfile - patch user profile
 func (n *OpenBazaarNode) PatchProfile(patch map[string]interface{}) error {
 	profilePath := path.Join(n.RepoPath, "root", "profile.json")
 
@@ -252,7 +164,7 @@ func (n *OpenBazaarNode) PatchProfile(patch map[string]interface{}) error {
 	return n.UpdateProfile(p)
 }
 
-func (n *OpenBazaarNode) appendCountsToProfile(profile *pb.Profile) (*pb.Profile, bool, error) {
+func (n *OpenBazaarNode) appendCountsToProfile(profile *pb.Profile) (*pb.Profile, bool) {
 	if profile.Stats == nil {
 		profile.Stats = new(pb.Profile_Stats)
 	}
@@ -283,7 +195,7 @@ func (n *OpenBazaarNode) appendCountsToProfile(profile *pb.Profile) (*pb.Profile
 		profile.Stats.AverageRating = averageRating
 		changed = true
 	}
-	return profile, changed, nil
+	return profile, changed
 }
 
 func (n *OpenBazaarNode) updateProfileCounts() error {
@@ -293,10 +205,10 @@ func (n *OpenBazaarNode) updateProfileCounts() error {
 	if !os.IsNotExist(ferr) {
 		// Read existing file
 		file, err := os.Open(profilePath)
-		defer file.Close()
 		if err != nil {
 			return err
 		}
+		defer file.Close()
 		err = jsonpb.Unmarshal(file, profile)
 		if err != nil {
 			return err
@@ -304,10 +216,7 @@ func (n *OpenBazaarNode) updateProfileCounts() error {
 	} else {
 		return nil
 	}
-	newPro, changed, err := n.appendCountsToProfile(profile)
-	if err != nil {
-		return err
-	}
+	newPro, changed := n.appendCountsToProfile(profile)
 	if changed {
 		return n.UpdateProfile(newPro)
 	}
@@ -334,17 +243,15 @@ func (n *OpenBazaarNode) updateProfileRatings(newRating *pb.Rating) error {
 	if profile.Stats != nil && newRating.RatingData != nil {
 		total := profile.Stats.AverageRating * float32(profile.Stats.RatingCount)
 		total += float32(newRating.RatingData.Overall)
-		profile.Stats.RatingCount += 1
+		profile.Stats.RatingCount++ // += 1
 		profile.Stats.AverageRating = total / float32(profile.Stats.RatingCount)
 	}
-	newPro, _, err := n.appendCountsToProfile(profile)
-	if err != nil {
-		return err
-	}
+	newPro, _ := n.appendCountsToProfile(profile)
 
 	return n.UpdateProfile(newPro)
 }
 
+// ValidateProfile - validate fetched profile
 func ValidateProfile(profile *pb.Profile) error {
 	if strings.Contains(profile.Handle, "@") {
 		return errors.New("Handle should not contain @")

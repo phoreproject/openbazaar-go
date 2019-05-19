@@ -4,17 +4,18 @@ import (
 	"bytes"
 	"database/sql"
 	"encoding/hex"
+	"github.com/phoreproject/openbazaar-go/repo"
+	"github.com/phoreproject/wallet-interface"
+	"sync"
 	"testing"
 )
 
-var wsdb WatchedScriptsDB
+var wsdb repo.WatchedScriptStore
 
 func init() {
 	conn, _ := sql.Open("sqlite3", ":memory:")
 	initDatabaseTables(conn, "")
-	wsdb = WatchedScriptsDB{
-		db: conn,
-	}
+	wsdb = NewWatchedScriptStore(conn, new(sync.Mutex), wallet.Bitcoin)
 }
 
 func TestWatchedScriptsDB_Put(t *testing.T) {
@@ -22,7 +23,7 @@ func TestWatchedScriptsDB_Put(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	stmt, _ := wsdb.db.Prepare("select * from watchedscripts")
+	stmt, _ := wsdb.PrepareQuery("select scriptPubKey from watchedscripts")
 	defer stmt.Close()
 
 	var out string
