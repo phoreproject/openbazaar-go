@@ -237,10 +237,9 @@ func (view *UtxoViewpoint) connectTransaction(tx *btcutil.Tx, blockHeight int32,
 					txIn.PreviousOutPoint))
 			}
 
-
 			// Only create the stxo details if  requested.
 			if stxos != nil {
-			// Populate the stxo details using the utxo entry.
+				// Populate the stxo details using the utxo entry.
 				var stxo = SpentTxOut{
 
 					Amount:     entry.Amount(),

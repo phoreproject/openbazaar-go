@@ -5,12 +5,12 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"github.com/phoreproject/btcd/chaincfg/chainhash"
-	"github.com/phoreproject/openbazaar-go/repo"
 	"github.com/phoreproject/btcd/wire"
+	"github.com/phoreproject/openbazaar-go/repo"
 	"github.com/phoreproject/wallet-interface"
 	"strconv"
-	"testing"
 	"sync"
+	"testing"
 )
 
 var sxdb repo.SpentTransactionOutputStore

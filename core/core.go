@@ -6,9 +6,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/phoreproject/wallet-interface"
 	"github.com/ipfs/go-ipfs/core"
 	"github.com/op/go-logging"
+	"github.com/phoreproject/wallet-interface"
 	"golang.org/x/net/context"
 	"golang.org/x/net/proxy"
 

@@ -12,11 +12,11 @@ import (
 	"time"
 
 	"github.com/OpenBazaar/jsonpb"
-	"github.com/phoreproject/wallet-interface"
-	hd "github.com/phoreproject/btcutil/hdkeychain"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	ipfspath "github.com/ipfs/go-ipfs/path"
+	hd "github.com/phoreproject/btcutil/hdkeychain"
+	"github.com/phoreproject/wallet-interface"
 
 	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	mh "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"

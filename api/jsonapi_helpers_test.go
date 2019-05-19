@@ -11,8 +11,8 @@ import (
 	"time"
 
 	"github.com/OpenBazaar/jsonpb"
-	"github.com/phoreproject/openbazaar-go/test"
 	"github.com/golang/protobuf/proto"
+	"github.com/phoreproject/openbazaar-go/test"
 
 	manet "gx/ipfs/QmRK2LxanhK2gZq6k6R7vk5ZoYZk8ULSSTB7FzDsMUX6CB/go-multiaddr-net"
 	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"

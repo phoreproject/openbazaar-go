@@ -40,14 +40,14 @@ func (n *NotificationListener) updateFilterAndSend() {
 	toSend := []byte(fmt.Sprintf("subscribeBloom %s %d %d 0", hex.EncodeToString(message.Filter), message.HashFuncs, message.Tweak))
 
 	err = n.conn.WriteMessage(websocket.TextMessage, toSend)
-	if err != nil{
+	if err != nil {
 		log.Errorf("Bloom filter subscription failed %s", err)
 	}
 }
 
-func connectToWebsocket(n *NotificationListener, dialer* websocket.Dialer, url url.URL) error {
+func connectToWebsocket(n *NotificationListener, dialer *websocket.Dialer, url url.URL) error {
 	conn, _, err := dialer.Dial(url.String(), nil)
-	if err != nil{
+	if err != nil {
 		return err
 	}
 
@@ -91,7 +91,8 @@ func startNotificationListener(wallet *RPCWallet) (*NotificationListener, error)
 			if err != nil {
 				log.Errorf("Error when pinging websocket. %s", err)
 				log.Info("Trying to reconnect")
-				err = connectToWebsocket(notificationListener, dialerWithCookies, websocketURL); if err != nil {
+				err = connectToWebsocket(notificationListener, dialerWithCookies, websocketURL)
+				if err != nil {
 					log.Errorf("Reconnection failed. %s", err)
 				}
 			}
@@ -105,7 +106,8 @@ func startNotificationListener(wallet *RPCWallet) (*NotificationListener, error)
 				if websocket.IsCloseError(err) || websocket.IsUnexpectedCloseError(err) {
 					log.Warning(err)
 					log.Infof("Reconnecting to %s", websocketURL.String())
-					err = connectToWebsocket(notificationListener, dialerWithCookies, websocketURL); if err != nil {
+					err = connectToWebsocket(notificationListener, dialerWithCookies, websocketURL)
+					if err != nil {
 						log.Errorf("Reconnection failed. %s", err)
 					}
 
@@ -115,7 +117,7 @@ func startNotificationListener(wallet *RPCWallet) (*NotificationListener, error)
 				}
 			}
 
-			if  string(message) == "success" || len(message) == 0 {
+			if string(message) == "success" || len(message) == 0 {
 				continue
 			}
 

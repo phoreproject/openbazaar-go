@@ -1209,7 +1209,6 @@ func (b *BlockChain) initChainState() error {
 			}
 			b.index.SetStakeModifier(node, sm, generatedStakeModifier)
 
-
 			lastNode = node
 			i++
 		}

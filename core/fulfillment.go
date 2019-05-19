@@ -6,9 +6,9 @@ import (
 	"errors"
 	"time"
 
-	"github.com/phoreproject/wallet-interface"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
+	"github.com/phoreproject/wallet-interface"
 
 	crypto "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 

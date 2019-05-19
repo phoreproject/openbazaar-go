@@ -18,12 +18,12 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/btcsuite/go-socks/socks"
+	"github.com/davecgh/go-spew/spew"
 	"github.com/phoreproject/btcd/blockchain"
 	"github.com/phoreproject/btcd/chaincfg"
 	"github.com/phoreproject/btcd/chaincfg/chainhash"
 	"github.com/phoreproject/btcd/wire"
-	"github.com/btcsuite/go-socks/socks"
-	"github.com/davecgh/go-spew/spew"
 )
 
 const (

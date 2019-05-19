@@ -8,8 +8,8 @@ import (
 	"github.com/phoreproject/btcd/btcec"
 	"github.com/phoreproject/openbazaar-go/repo"
 	"github.com/phoreproject/wallet-interface"
-	"testing"
 	"sync"
+	"testing"
 )
 
 var kdb repo.KeyStore

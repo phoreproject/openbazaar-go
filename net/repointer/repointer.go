@@ -3,10 +3,10 @@ package net
 import (
 	"time"
 
-	"github.com/phoreproject/openbazaar-go/ipfs"
-	"github.com/phoreproject/openbazaar-go/repo"
 	"github.com/ipfs/go-ipfs/core"
 	"github.com/op/go-logging"
+	"github.com/phoreproject/openbazaar-go/ipfs"
+	"github.com/phoreproject/openbazaar-go/repo"
 	"golang.org/x/net/context"
 	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 )

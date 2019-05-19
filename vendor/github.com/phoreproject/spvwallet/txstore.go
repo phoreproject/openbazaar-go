@@ -6,7 +6,6 @@ package spvwallet
 import (
 	"bytes"
 	"errors"
-	"github.com/phoreproject/wallet-interface"
 	"github.com/phoreproject/btcd/blockchain"
 	"github.com/phoreproject/btcd/chaincfg"
 	"github.com/phoreproject/btcd/chaincfg/chainhash"
@@ -14,6 +13,7 @@ import (
 	"github.com/phoreproject/btcd/wire"
 	"github.com/phoreproject/btcutil"
 	"github.com/phoreproject/btcutil/bloom"
+	"github.com/phoreproject/wallet-interface"
 	"sync"
 	"time"
 )

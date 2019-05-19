@@ -34,28 +34,28 @@ const (
 
 // RPCWallet represents a wallet based on JSON-RPC and Bitcoind
 type RPCWallet struct {
-	params           *chaincfg.Params
+	params *chaincfg.Params
 
 	masterPrivateKey *hd.ExtendedKey
 	masterPublicKey  *hd.ExtendedKey
 
-	mnemonic         string
+	mnemonic string
 
 	//feeProvider    *FeeProvider
 
-	repoPath         string
+	repoPath string
 
-	rpcClient        *rpcclient.Client
+	rpcClient *rpcclient.Client
 
-	keyManager       *spvwallet.KeyManager
+	keyManager *spvwallet.KeyManager
 
-	txstore          *TxStore
-	connCfg          *rpcclient.ConnConfig
-	notifications    *NotificationListener
-	rpcBasePath      string
-	rpcLock          *sync.Mutex
+	txstore       *TxStore
+	connCfg       *rpcclient.ConnConfig
+	notifications *NotificationListener
+	rpcBasePath   string
+	rpcLock       *sync.Mutex
 
-	started          bool
+	started bool
 }
 
 // NewRPCWallet creates a new wallet given
@@ -391,9 +391,9 @@ func (w *RPCWallet) Transactions() ([]wallet.Txn, error) {
 		switch {
 		case confs < 0:
 			status = wallet.StatusDead
-		case confs == 0 && time.Since(tx.Timestamp) <= time.Minute * 15:
+		case confs == 0 && time.Since(tx.Timestamp) <= time.Minute*15:
 			status = wallet.StatusUnconfirmed
-		case confs == 0 && time.Since(tx.Timestamp) > time.Minute * 15:
+		case confs == 0 && time.Since(tx.Timestamp) > time.Minute*15:
 			status = wallet.StatusDead
 		case confs > 0 && confs < 6:
 			status = wallet.StatusPending

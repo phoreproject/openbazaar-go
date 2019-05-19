@@ -8,8 +8,8 @@ import (
 	"os"
 	"path"
 
-	"github.com/phoreproject/openbazaar-go/ipfs"
 	"github.com/ipfs/go-ipfs/core"
+	"github.com/phoreproject/openbazaar-go/ipfs"
 	"gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 )
 

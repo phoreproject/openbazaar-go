@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/phoreproject/btcd/wire"
 	"github.com/phoreproject/openbazaar-go/repo"
 	"github.com/phoreproject/wallet-interface"
-	"github.com/phoreproject/btcd/wire"
 )
 
 var txdb repo.TransactionStore

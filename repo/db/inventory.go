@@ -4,9 +4,9 @@ import (
 	"crypto/sha256"
 	"database/sql"
 	"encoding/hex"
+	"github.com/phoreproject/openbazaar-go/repo"
 	"strconv"
 	"sync"
-	"github.com/phoreproject/openbazaar-go/repo"
 )
 
 type InventoryDB struct {

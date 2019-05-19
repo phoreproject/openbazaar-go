@@ -7,15 +7,15 @@ import (
 	"time"
 
 	"github.com/OpenBazaar/jsonpb"
+	"github.com/golang/protobuf/ptypes"
+	"github.com/phoreproject/btcd/chaincfg"
+	"github.com/phoreproject/btcutil"
 	"github.com/phoreproject/openbazaar-go/pb"
 	"github.com/phoreproject/openbazaar-go/repo"
 	"github.com/phoreproject/openbazaar-go/repo/db"
 	"github.com/phoreproject/openbazaar-go/schema"
 	"github.com/phoreproject/openbazaar-go/test/factory"
 	"github.com/phoreproject/wallet-interface"
-	"github.com/phoreproject/btcd/chaincfg"
-	"github.com/phoreproject/btcutil"
-	"github.com/golang/protobuf/ptypes"
 )
 
 func buildNewPurchaseStore() (repo.PurchaseStore, func(), error) {

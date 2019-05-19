@@ -22,12 +22,12 @@ func init() {
 	mainnetCheckpoints = append(mainnetCheckpoints, Checkpoint{
 		Height: 400000,
 		Header: wire.BlockHeader{
-			Version:    4,
-			PrevBlock:  *mainnetPrev,
-			MerkleRoot: *mainnetMerk,
-			Timestamp:  time.Unix(1529796056, 0),
-			Bits:       453089485,
-			Nonce:      0,
+			Version:               4,
+			PrevBlock:             *mainnetPrev,
+			MerkleRoot:            *mainnetMerk,
+			Timestamp:             time.Unix(1529796056, 0),
+			Bits:                  453089485,
+			Nonce:                 0,
 			AccumulatorCheckpoint: *mainnetAccCheckpoint,
 		},
 	})
@@ -35,7 +35,6 @@ func init() {
 		panic("Invalid checkpoint")
 	}
 }
-
 
 func GetCheckpoint(walletCreationDate time.Time, params *chaincfg.Params) Checkpoint {
 	for i := len(mainnetCheckpoints) - 1; i >= 0; i-- {

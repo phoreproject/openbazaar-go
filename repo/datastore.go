@@ -4,10 +4,10 @@ import (
 	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 
 	"database/sql"
+	btc "github.com/phoreproject/btcutil"
 	"github.com/phoreproject/openbazaar-go/ipfs"
 	"github.com/phoreproject/openbazaar-go/pb"
 	"github.com/phoreproject/wallet-interface"
-	btc "github.com/phoreproject/btcutil"
 	"time"
 )
 

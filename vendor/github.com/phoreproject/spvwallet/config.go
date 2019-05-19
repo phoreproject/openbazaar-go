@@ -1,10 +1,10 @@
 package spvwallet
 
 import (
-	"github.com/phoreproject/wallet-interface"
-	"github.com/phoreproject/btcd/chaincfg"
 	"github.com/mitchellh/go-homedir"
 	"github.com/op/go-logging"
+	"github.com/phoreproject/btcd/chaincfg"
+	"github.com/phoreproject/wallet-interface"
 	"golang.org/x/net/proxy"
 	"net"
 	"net/url"

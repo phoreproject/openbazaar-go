@@ -30,7 +30,7 @@ type ExchangeRateDecoder interface {
 
 // empty structs to tag the different ExchangeRateDecoder implementations
 type CMCDecoder struct{}
-type CoinGeckoDecoder struct {}
+type CoinGeckoDecoder struct{}
 type BitcoinAverageDecoder struct{}
 type BitPayDecoder struct{}
 type BlockchainInfoDecoder struct{}
@@ -54,7 +54,7 @@ func NewBitcoinPriceFetcher(dialer proxy.Dialer) *BitcoinPriceFetcher {
 	client := &http.Client{Transport: tbTransport, Timeout: time.Minute}
 
 	b.providers = []*ExchangeRateProvider{
-		{"https://api.coingecko.com/api/v3/coins/phore?tickers=false&community_data=false&developer_data=false&sparkline=false",b.cache, client, CoinGeckoDecoder{}},
+		{"https://api.coingecko.com/api/v3/coins/phore?tickers=false&community_data=false&developer_data=false&sparkline=false", b.cache, client, CoinGeckoDecoder{}},
 		{"https://api.coinmarketcap.com/v2/ticker/2158/?convert=BTC", b.cache, client, CMCDecoder{}},
 	}
 	go b.run()
@@ -204,7 +204,6 @@ func (b CoinGeckoDecoder) decode(dat interface{}, cache map[string]float64) (err
 	}
 	return nil
 }
-
 
 // NormalizeCurrencyCode standardizes the format for the given currency code
 func NormalizeCurrencyCode(currencyCode string) string {

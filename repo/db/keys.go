@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"errors"
-    "github.com/phoreproject/btcd/btcec"
+	"github.com/phoreproject/btcd/btcec"
 	"github.com/phoreproject/openbazaar-go/repo"
 	"github.com/phoreproject/wallet-interface"
 	"strconv"

@@ -4,8 +4,8 @@ import (
 	"encoding/hex"
 	"fmt"
 
-	"github.com/phoreproject/wallet-interface"
 	"github.com/phoreproject/btcutil"
+	"github.com/phoreproject/wallet-interface"
 )
 
 func DisputeResolutionPayoutOutputToAddress(w wallet.Wallet, output *DisputeResolution_Payout_Output) (btcutil.Address, error) {

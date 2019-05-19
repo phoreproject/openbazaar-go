@@ -5,9 +5,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/phoreproject/btcd/chaincfg/chainhash"
 	"github.com/phoreproject/openbazaar-go/repo"
 	"github.com/phoreproject/wallet-interface"
-	"github.com/phoreproject/btcd/chaincfg/chainhash"
 )
 
 type TxnsDB struct {

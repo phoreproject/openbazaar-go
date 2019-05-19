@@ -66,7 +66,6 @@ func isNullOutpoint(outpoint *wire.OutPoint) bool {
 	return false
 }
 
-
 // IsZerocoinSpend returns true if the transaction is a zerocoin spending
 // transaction.
 func IsZerocoinSpend(msg *wire.MsgTx) bool {

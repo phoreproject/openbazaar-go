@@ -4,8 +4,8 @@ import (
 	"database/sql"
 
 	"github.com/OpenBazaar/jsonpb"
-	"github.com/phoreproject/openbazaar-go/pb"
 	_ "github.com/mutecomm/go-sqlcipher"
+	"github.com/phoreproject/openbazaar-go/pb"
 )
 
 type Migration010 struct{}

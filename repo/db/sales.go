@@ -9,10 +9,10 @@ import (
 	"time"
 
 	"github.com/OpenBazaar/jsonpb"
+	btc "github.com/phoreproject/btcutil"
 	"github.com/phoreproject/openbazaar-go/pb"
 	"github.com/phoreproject/openbazaar-go/repo"
 	"github.com/phoreproject/wallet-interface"
-	btc "github.com/phoreproject/btcutil"
 )
 
 type SalesDB struct {

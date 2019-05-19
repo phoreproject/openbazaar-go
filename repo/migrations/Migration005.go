@@ -1,8 +1,8 @@
 package migrations
 
 import (
-	"errors"
 	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"os"
 	"path"

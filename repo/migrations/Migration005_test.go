@@ -18,7 +18,6 @@ var testConfig5 string = `{
     }
 }`
 
-
 func TestMigration005(t *testing.T) {
 	f, err := os.Create("./config")
 	if err != nil {

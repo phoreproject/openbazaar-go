@@ -23,12 +23,12 @@ const (
 	Ethereum             = 60
 	Phore                = 1177
 
-	TestnetBitcoin       = 1000000
-	TestnetLitecoin      = 1000001
-	TestnetZcash         = 1000133
-	TestnetBitcoinCash   = 1000145
-	TestnetEthereum      = 1000060
-	TestnetPhore         = 1001177
+	TestnetBitcoin     = 1000000
+	TestnetLitecoin    = 1000001
+	TestnetZcash       = 1000133
+	TestnetBitcoinCash = 1000145
+	TestnetEthereum    = 1000060
+	TestnetPhore       = 1001177
 )
 
 func (c *CoinType) String() string {

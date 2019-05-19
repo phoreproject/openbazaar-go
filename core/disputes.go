@@ -9,12 +9,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/phoreproject/wallet-interface"
+	"github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/ptypes"
 	"github.com/phoreproject/btcd/chaincfg/chainhash"
 	"github.com/phoreproject/btcutil"
 	hd "github.com/phoreproject/btcutil/hdkeychain"
-	"github.com/golang/protobuf/proto"
-	"github.com/golang/protobuf/ptypes"
+	"github.com/phoreproject/wallet-interface"
 	"golang.org/x/net/context"
 
 	dht "gx/ipfs/QmRaVcGchmC1stHHK7YhcgEuTk5k1JiGS568pfYWMgT91H/go-libp2p-kad-dht"

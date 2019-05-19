@@ -6,7 +6,6 @@ package phored
 import (
 	"bytes"
 	"errors"
-	"github.com/phoreproject/wallet-interface"
 	"github.com/phoreproject/btcd/blockchain"
 	"github.com/phoreproject/btcd/chaincfg"
 	"github.com/phoreproject/btcd/chaincfg/chainhash"
@@ -15,6 +14,7 @@ import (
 	"github.com/phoreproject/btcutil"
 	"github.com/phoreproject/btcutil/bloom"
 	"github.com/phoreproject/spvwallet"
+	"github.com/phoreproject/wallet-interface"
 	"sync"
 	"time"
 )
@@ -326,10 +326,10 @@ func (ts *TxStore) Ingest(tx *wire.MsgTx, height int32, timestamp time.Time) (ui
 				addr, _ := scriptToAddress(u.ScriptPubkey, ts.params)
 
 				in := wallet.TransactionInput{
-					OutpointHash:       u.Op.Hash.CloneBytes(),
-					OutpointIndex:      u.Op.Index,
-					LinkedAddress:      addr,
-					Value:              u.Value,
+					OutpointHash:  u.Op.Hash.CloneBytes(),
+					OutpointIndex: u.Op.Index,
+					LinkedAddress: addr,
+					Value:         u.Value,
 				}
 				cb.Inputs = append(cb.Inputs, in)
 				break

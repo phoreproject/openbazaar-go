@@ -5,8 +5,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/phoreproject/openbazaar-go/repo"
 	"github.com/op/go-logging"
+	"github.com/phoreproject/openbazaar-go/repo"
 )
 
 const (

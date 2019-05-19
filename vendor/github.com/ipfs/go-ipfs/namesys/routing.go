@@ -16,20 +16,21 @@ import (
 	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
 	ci "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 
+	"gx/ipfs/QmTmqJGRQfuH8eKWD1FjThwPRipt1QhqJQNZ8MpzmfAAxo/go-ipfs-ds-help"
 	ds "gx/ipfs/QmXRKBQA4wXP7xWbFiZsR1GP4HV6wMDQ1aWFxZZ4uBcPX9/go-datastore"
 	mh "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
 	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
-	"gx/ipfs/QmTmqJGRQfuH8eKWD1FjThwPRipt1QhqJQNZ8MpzmfAAxo/go-ipfs-ds-help"
 )
 
 var log = logging.Logger("namesys")
+
 const keyCachePrefix = "/pubkey/"
 
 // routingResolver implements NSResolver for the main IPFS SFS-like naming
 type routingResolver struct {
-	routing            routing.ValueStore
-	datastore          ds.Datastore
-	cache              *lru.Cache
+	routing   routing.ValueStore
+	datastore ds.Datastore
+	cache     *lru.Cache
 }
 
 func (r *routingResolver) cacheGet(name string) (path.Path, bool) {
@@ -103,9 +104,9 @@ func NewRoutingResolver(route routing.ValueStore, cachesize int, ds ds.Datastore
 	}
 
 	return &routingResolver{
-		routing:            route,
-		cache:              cache,
-		datastore:          ds,
+		routing:   route,
+		cache:     cache,
+		datastore: ds,
 	}
 }
 

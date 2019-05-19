@@ -1,9 +1,9 @@
 package test
 
 import (
-	"github.com/phoreproject/openbazaar-go/bitcoin/phored"
 	"github.com/ipfs/go-ipfs/core/mock"
 	"github.com/phoreproject/btcd/chaincfg"
+	"github.com/phoreproject/openbazaar-go/bitcoin/phored"
 	// "github.com/ipfs/go-ipfs/thirdparty/testutil"
 	"github.com/phoreproject/openbazaar-go/core"
 	"github.com/phoreproject/openbazaar-go/ipfs"

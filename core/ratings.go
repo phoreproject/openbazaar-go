@@ -9,8 +9,8 @@ import (
 	"os"
 	"path"
 
-	"github.com/phoreproject/btcd/btcec"
 	"github.com/golang/protobuf/proto"
+	"github.com/phoreproject/btcd/btcec"
 
 	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	crypto "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"

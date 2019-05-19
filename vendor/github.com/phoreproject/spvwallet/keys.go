@@ -172,4 +172,3 @@ func (km *KeyManager) lookahead() error {
 	}
 	return nil
 }
-
