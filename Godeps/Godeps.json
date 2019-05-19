@@ -39,12 +39,27 @@
 			"Rev": "68bf100240243edf1435b943a4be93695502b8e2"
 		},
 		{
+			"ImportPath": "github.com/phoreproject/btcd/btcjson",
+			"Comment": "BTCD_0_12_0_BETA-846-g68bf1002",
+			"Rev": "68bf100240243edf1435b943a4be93695502b8e2"
+		},
+		{
+			"ImportPath": "github.com/phoreproject/btcd/chaincfg",
+			"Comment": "BTCD_0_12_0_BETA-846-g68bf1002",
+			"Rev": "68bf100240243edf1435b943a4be93695502b8e2"
+		},
+		{
 			"ImportPath": "github.com/phoreproject/btcd/chaincfg",
 			"Comment": "BTCD_0_12_0_BETA-846-g68bf1002",
 			"Rev": "68bf100240243edf1435b943a4be93695502b8e2"
 		},
 		{
 			"ImportPath": "github.com/phoreproject/btcd/chaincfg/chainhash",
+			"Comment": "BTCD_0_12_0_BETA-846-g68bf1002",
+			"Rev": "68bf100240243edf1435b943a4be93695502b8e2"
+		},
+		{
+			"ImportPath": "github.com/phoreproject/btcd/rpcclient",
 			"Comment": "BTCD_0_12_0_BETA-846-g68bf1002",
 			"Rev": "68bf100240243edf1435b943a4be93695502b8e2"
 		},
