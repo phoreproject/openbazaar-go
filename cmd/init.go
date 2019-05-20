@@ -9,7 +9,8 @@ import (
 	"time"
 
 	"github.com/phoreproject/openbazaar-go/repo"
-	"github.com/OpenBazaar/wallet-interface"
+	"github.com/phoreproject/openbazaar-go/wallet"
+
 	"github.com/op/go-logging"
 )
 
@@ -44,14 +45,14 @@ func (x *Init) Execute(args []string) error {
 		}
 	}
 
-	_, err = InitializeRepo(repoPath, x.Password, x.Mnemonic, x.Testnet, creationDate, wallet.Phore)
+	_, err = InitializeRepo(repoPath, x.Password, x.Mnemonic, x.Testnet, creationDate, wallet.CoinTypePhore)
 	if err == repo.ErrRepoExists && x.Force {
 		reader := bufio.NewReader(os.Stdin)
 		fmt.Print("Force overwriting the db will destroy your existing keys and history. Are you really, really sure you want to continue? (y/n): ")
 		resp, _ := reader.ReadString('\n')
 		if strings.ToLower(resp) == "y\n" || strings.ToLower(resp) == "yes\n" || strings.ToLower(resp)[:1] == "y" {
 			os.RemoveAll(repoPath)
-			_, err = InitializeRepo(repoPath, x.Password, x.Mnemonic, x.Testnet, creationDate, wallet.Phore)
+			_, err = InitializeRepo(repoPath, x.Password, x.Mnemonic, x.Testnet, creationDate, wallet.CoinTypePhore)
 			if err != nil {
 				return err
 			}

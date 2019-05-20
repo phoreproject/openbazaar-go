@@ -19,23 +19,35 @@ import (
 	"time"
 
 	bitswap "gx/ipfs/QmNkxFCmPtr2RQxjZNRCNryLud4L9wMEiBJsLgF14MqTHj/go-bitswap/network"
-	config "gx/ipfs/QmPEpj17FDRpc7K1aArKZp3RsHtzRMKykeK9GVgn4WQGPR/go-ipfs-config"
-	dht "gx/ipfs/QmPpYHPRGVpSJTkQDQDwTYZ1cYUR2NM4HS6M3iAXi8aoUa/go-libp2p-kad-dht"
-	dhtopts "gx/ipfs/QmPpYHPRGVpSJTkQDQDwTYZ1cYUR2NM4HS6M3iAXi8aoUa/go-libp2p-kad-dht/opts"
+	"gx/ipfs/QmPEpj17FDRpc7K1aArKZp3RsHtzRMKykeK9GVgn4WQGPR/go-ipfs-config"
+	"gx/ipfs/QmPpYHPRGVpSJTkQDQDwTYZ1cYUR2NM4HS6M3iAXi8aoUa/go-libp2p-kad-dht"
+	"gx/ipfs/QmPpYHPRGVpSJTkQDQDwTYZ1cYUR2NM4HS6M3iAXi8aoUa/go-libp2p-kad-dht/opts"
 	ma "gx/ipfs/QmT4U94DnD8FRfqr21obWY32HLM5VExccPKMjQHofeYqr9/go-multiaddr"
-	peer "gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
-	libp2p "gx/ipfs/QmUDTcnDp2WssbmiDLC6aYurUeyt7QeRakHUQMxA2mZ5iB/go-libp2p"
+	"gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
+	"gx/ipfs/QmUDTcnDp2WssbmiDLC6aYurUeyt7QeRakHUQMxA2mZ5iB/go-libp2p"
 	oniontp "gx/ipfs/QmVSfWChGxC5AkUhM6ZyZxbcBmZoPrUmrPuW6BnHU3YDA9/go-onion-transport"
-	routinghelpers "gx/ipfs/QmX3syBjwRd12qJGaKbFBWFfrBinKsaTC43ry3PsgiXCLK/go-libp2p-routing-helpers"
+	"gx/ipfs/QmX3syBjwRd12qJGaKbFBWFfrBinKsaTC43ry3PsgiXCLK/go-libp2p-routing-helpers"
 	ipfslogging "gx/ipfs/QmZChCsSt8DctjceaL56Eibc29CVQq4dGKRXC5JRZ6Ppae/go-log/writer"
-	record "gx/ipfs/Qma9Eqp16mNHDX1EL73pcxhFfzbyXVcAYtaDd1xdmDRDtL/go-libp2p-record"
+	"gx/ipfs/Qma9Eqp16mNHDX1EL73pcxhFfzbyXVcAYtaDd1xdmDRDtL/go-libp2p-record"
 	ipnspb "gx/ipfs/QmaRFtZhVAwXBk4Z3zEsvjScH9fjsDZmhXfa1Gm8eMb9cg/go-ipns/pb"
 	ds "gx/ipfs/QmaRb5yNXKonhbkpNxNawoydk4N6es6b4fPj19sjEKsh5D/go-datastore"
-	manet "gx/ipfs/Qmaabb1tJZ2CX5cp6MuuiGgns71NYoxdgQP6Xdid1dVceC/go-multiaddr-net"
-	routing "gx/ipfs/QmcQ81jSyWCp1jpkQ8CMbtpXT3jK7Wg6ZtYmoyWFgBoF9c/go-libp2p-routing"
+	"gx/ipfs/Qmaabb1tJZ2CX5cp6MuuiGgns71NYoxdgQP6Xdid1dVceC/go-multiaddr-net"
+	"gx/ipfs/QmcQ81jSyWCp1jpkQ8CMbtpXT3jK7Wg6ZtYmoyWFgBoF9c/go-libp2p-routing"
 	p2phost "gx/ipfs/QmdJfsSbKSZnMkfZ1kpopiyB9i3Hd6cp8VKWZmtWPa7Moc/go-libp2p-host"
-	proto "gx/ipfs/QmdxUuburamoF6zF9qjeQC4WYcWGbWuRmdLacMEsW8ioD8/gogo-protobuf/proto"
+	"gx/ipfs/QmdxUuburamoF6zF9qjeQC4WYcWGbWuRmdLacMEsW8ioD8/gogo-protobuf/proto"
 
+	wi "github.com/OpenBazaar/wallet-interface"
+	"github.com/btcsuite/btcd/chaincfg"
+	"github.com/btcsuite/btcutil/base58"
+	"github.com/btcsuite/btcutil/hdkeychain"
+	"github.com/fatih/color"
+	"github.com/ipfs/go-ipfs/commands"
+	ipfscore "github.com/ipfs/go-ipfs/core"
+	"github.com/ipfs/go-ipfs/core/corehttp"
+	"github.com/ipfs/go-ipfs/namesys"
+	"github.com/ipfs/go-ipfs/repo/fsrepo"
+	"github.com/natefinch/lumberjack"
+	"github.com/op/go-logging"
 	"github.com/phoreproject/openbazaar-go/api"
 	"github.com/phoreproject/openbazaar-go/core"
 	"github.com/phoreproject/openbazaar-go/ipfs"
@@ -51,18 +63,6 @@ import (
 	"github.com/phoreproject/openbazaar-go/wallet"
 	lis "github.com/phoreproject/openbazaar-go/wallet/listeners"
 	"github.com/phoreproject/openbazaar-go/wallet/resync"
-	wi "github.com/OpenBazaar/wallet-interface"
-	"github.com/btcsuite/btcd/chaincfg"
-	"github.com/btcsuite/btcutil/base58"
-	"github.com/btcsuite/btcutil/hdkeychain"
-	"github.com/fatih/color"
-	"github.com/ipfs/go-ipfs/commands"
-	ipfscore "github.com/ipfs/go-ipfs/core"
-	"github.com/ipfs/go-ipfs/core/corehttp"
-	"github.com/ipfs/go-ipfs/namesys"
-	"github.com/ipfs/go-ipfs/repo/fsrepo"
-	"github.com/natefinch/lumberjack"
-	"github.com/op/go-logging"
 	"github.com/tyler-smith/go-bip39"
 
 	"golang.org/x/crypto/ssh/terminal"
@@ -196,7 +196,7 @@ func (x *Start) Execute(args []string) error {
 		return err
 	}
 
-	ct := wi.Phore
+	ct := wallet.CoinTypePhore
 	if x.BitcoinCash || strings.Contains(repoPath, "-bitcoincash") {
 		ct = wi.BitcoinCash
 	} else if x.ZCash != "" || strings.Contains(repoPath, "-zcash") {
@@ -606,15 +606,15 @@ func (x *Start) Execute(args []string) error {
 		MasterPrivateKey:              mPrivKey,
 		Multiwallet:                   mw,
 		OfflineMessageFailoverTimeout: 30 * time.Second,
-		Pubsub:               ps,
-		PushNodes:            pushNodes,
-		RegressionTestEnable: x.Regtest,
-		RepoPath:             repoPath,
-		RootHash:             string(ourIpnsRecord.Value),
-		TestnetEnable:        x.Testnet,
-		TorDialer:            torDialer,
-		UserAgent:            core.USERAGENT,
-		IPNSQuorumSize:       uint(ipnsExtraConfig.DHTQuorumSize),
+		Pubsub:                        ps,
+		PushNodes:                     pushNodes,
+		RegressionTestEnable:          x.Regtest,
+		RepoPath:                      repoPath,
+		RootHash:                      string(ourIpnsRecord.Value),
+		TestnetEnable:                 x.Testnet,
+		TorDialer:                     torDialer,
+		UserAgent:                     core.USERAGENT,
+		IPNSQuorumSize:                uint(ipnsExtraConfig.DHTQuorumSize),
 	}
 	core.PublishLock.Lock()
 

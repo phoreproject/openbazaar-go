@@ -70,7 +70,7 @@ func (n *OpenBazaarNode) Spend(args *SpendRequest) (*SpendResponse, error) {
 		feeLevel = wallet.NORMAL
 	}
 
-	txid, err := wal.Spend(args.Amount, addr, feeLevel, args.OrderID)
+	txid, err := wal.Spend(args.Amount, addr, feeLevel, args.OrderID, false)
 	if err != nil {
 		switch {
 		case err == wallet.ErrorInsuffientFunds:
@@ -101,7 +101,7 @@ func (n *OpenBazaarNode) Spend(args *SpendRequest) (*SpendResponse, error) {
 		Txid:       txid.String(),
 		Address:    args.Address,
 		Memo:       memo,
-		OrderId:    args.OrderID,
+		OrderID:    args.OrderID,
 		Thumbnail:  thumbnail,
 		CanBumpFee: false,
 	}); err != nil {

@@ -22,7 +22,7 @@ import (
 	hd "github.com/btcsuite/btcutil/hdkeychain"
 	"github.com/btcsuite/btcutil/txsort"
 	"github.com/phoreproject/btcwallet/wallet/txrules"
-	"github.com/Openbazaar/spvwallet"
+	"github.com/OpenBazaar/spvwallet"
 	wallet "github.com/OpenBazaar/wallet-interface"
 	b39 "github.com/tyler-smith/go-bip39"
 )

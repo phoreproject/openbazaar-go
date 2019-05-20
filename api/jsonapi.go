@@ -34,7 +34,7 @@ import (
 	"github.com/phoreproject/openbazaar-go/pb"
 	"github.com/phoreproject/openbazaar-go/repo"
 	"github.com/phoreproject/openbazaar-go/schema"
-	"github.com/Openbazaar/spvwallet"
+	"github.com/OpenBazaar/spvwallet"
 	"github.com/OpenBazaar/wallet-interface"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcutil/base58"
@@ -2901,7 +2901,7 @@ func (i *jsonAPIHandler) GETTransactions(w http.ResponseWriter, r *http.Request)
 		if ok {
 			tx.Address = m.Address
 			tx.Memo = m.Memo
-			tx.OrderID = m.OrderId
+			tx.OrderID = m.OrderID
 			tx.Thumbnail = m.Thumbnail
 			tx.CanBumpFee = m.CanBumpFee
 		}
@@ -3251,7 +3251,7 @@ func (i *jsonAPIHandler) POSTBumpFee(w http.ResponseWriter, r *http.Request) {
 		Txid:       newTxid.String(),
 		Address:    "",
 		Memo:       fmt.Sprintf("Fee bump of %s", txid),
-		OrderId:    "",
+		OrderID:    "",
 		Thumbnail:  "",
 		CanBumpFee: true,
 	}); err != nil {
