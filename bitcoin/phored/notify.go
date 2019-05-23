@@ -95,6 +95,9 @@ func startNotificationListener(wallet *RPCWallet) (*NotificationListener, error)
 				if err != nil {
 					log.Errorf("Reconnection failed. %s", err)
 				}
+				// if disconnected try to download transactions again and subscribe to bloom
+				wallet.RetrieveTransactions()
+				notificationListener.updateFilterAndSend()
 			}
 		}
 	}()
