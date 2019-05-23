@@ -71,12 +71,12 @@ func (ts *TxStore) GimmeFilter() (*bloom.Filter, error) {
 	}
 	ts.addrMutex.Lock()
 	elem := uint32(len(ts.adrs)+len(allUtxos)+len(allStxos)) + uint32(len(ts.watchedScripts))
-	f := bloom.NewFilter(elem, 0, 0.00003, wire.BloomUpdateAll)
+	f := bloom.NewFilter(elem, 0, 0.001, wire.BloomUpdateAll)
 
 	// note there could be false positives since we're just looking
 	// for the 20 byte PKH without the opcodes.
 	for _, a := range ts.adrs { // add 20-byte pubkeyhash
-		f.Add(a.ScriptAddress())
+		f.Add([]byte(a.EncodeAddress()))
 		log.Debugf("bloom filter - watching for addr %s\n", a.String())
 	}
 	ts.addrMutex.Unlock()
@@ -94,7 +94,7 @@ func (ts *TxStore) GimmeFilter() (*bloom.Filter, error) {
 			continue
 		}
 		log.Debugf("bloom filter - watching for addrs %s from script (class - %s)", addrs, scriptClass.String())
-		f.Add(addrs[0].ScriptAddress())
+		f.Add([]byte(addrs[0].EncodeAddress()))
 	}
 
 	return f, nil

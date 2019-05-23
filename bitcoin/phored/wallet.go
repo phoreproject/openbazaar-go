@@ -260,7 +260,7 @@ func (w *RPCWallet) ChildKey(keyBytes []byte, chaincode []byte, isPrivateKey boo
 	return hdKey.Child(0)
 }
 
-// Mnemonic returns the mnemonis used to generate the wallet
+// Mnemonic returns the mnemonic used to generate the wallet
 func (w *RPCWallet) Mnemonic() string {
 	return w.mnemonic
 }
@@ -494,8 +494,11 @@ func (w *RPCWallet) addWatchedScript(addr btc.Address) error {
 
 // ReSyncBlockchain resyncs the addresses used by the SPV wallet
 func (w *RPCWallet) ReSyncBlockchain(fromDate time.Time) {
-	w.txstore.PopulateAdrs()
-	w.RetrieveTransactions()
+	if w.started {
+		w.txstore.PopulateAdrs()
+		w.RetrieveTransactions()
+		w.notifications.updateFilterAndSend()
+	}
 }
 
 // Close closes the rpc wallet connection
