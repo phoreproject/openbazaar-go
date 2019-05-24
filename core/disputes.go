@@ -28,7 +28,7 @@ import (
 )
 
 // ConfirmationsPerHour is temporary until the Wallet interface has Attributes() to provide this value
-const ConfirmationsPerHour = 6
+const ConfirmationsPerHour = 60
 
 // DisputeWg - waitgroup for disputes
 var DisputeWg = new(sync.WaitGroup)
