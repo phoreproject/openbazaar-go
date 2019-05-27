@@ -114,6 +114,7 @@ type Start struct {
 	Storage              string   `long:"storage" description:"set the outgoing message storage option [self-hosted, dropbox] default=self-hosted"`
 	BitcoinCash          bool     `long:"bitcoincash" description:"use a Bitcoin Cash wallet in a dedicated data directory"`
 	ZCash                string   `long:"zcash" description:"use a ZCash wallet in a dedicated data directory. To use this you must pass in the location of the zcashd binary."`
+	Bitcoin              bool     `long:"bitcoin" description:"use a Bitcoin SPV wallet in a dedicated data directory"`
 }
 
 func (x *Start) Execute(args []string) error {
@@ -140,11 +141,15 @@ func (x *Start) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
+
 	if x.BitcoinCash {
 		repoPath += "-bitcoincash"
 	} else if x.ZCash != "" {
 		repoPath += "-zcash"
+	} else if x.Bitcoin {
+		repoPath += "-btc"
 	}
+
 	if x.DataDir != "" {
 		repoPath = x.DataDir
 	}
@@ -225,10 +230,13 @@ func (x *Start) Execute(args []string) error {
 			}
 		}
 	}
+
 	if x.BitcoinCash {
 		ct = wi.BitcoinCash
 	} else if x.ZCash != "" {
 		ct = wi.Zcash
+	} else if x.Bitcoin {
+		ct = wi.Bitcoin
 	}
 
 	migrations.WalletCoinType = ct
@@ -316,6 +324,8 @@ func (x *Start) Execute(args []string) error {
 	} else if x.ZCash != "" {
 		walletCfg.Type = "zcashd"
 		walletCfg.Binary = x.ZCash
+	} else if x.Bitcoin {
+		walletCfg.Type = "spvwallet"
 	}
 
 	// IPFS node setup
@@ -558,7 +568,10 @@ func (x *Start) Execute(args []string) error {
 	} else if x.ZCash != "" {
 		walletCfg.Type = "zcashd"
 		walletCfg.Binary = x.ZCash
+	} else if x.Bitcoin {
+		walletCfg.Type = "spvwallet"
 	}
+
 	var exchangeRates wi.ExchangeRates
 	if !x.DisableExchangeRates {
 		exchangeRates = exchange.NewBitcoinPriceFetcher(torDialer)
