@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/phoreproject/openbazaar-go/phore"
 	"path"
 	"strings"
 	"sync"
@@ -59,7 +60,7 @@ type RPCWallet struct {
 }
 
 // NewRPCWallet creates a new wallet given
-func NewRPCWallet(mnemonic string, params *chaincfg.Params, repoPath string, DB wallet.Datastore, host string) (*RPCWallet, error) {
+func NewRPCWallet(mnemonic string, repoPath string, DB wallet.Datastore, host string) (*RPCWallet, error) {
 	if mnemonic == "" {
 		ent, _ := b39.NewEntropy(128)
 		mnemonic, _ = b39.NewMnemonic(ent)
@@ -78,7 +79,7 @@ func NewRPCWallet(mnemonic string, params *chaincfg.Params, repoPath string, DB 
 		return nil, err
 	}
 
-	mPrivKey, err := hd.NewMaster(seed, params)
+	mPrivKey, err := hd.NewMaster(seed, &phore.PhoreMainNetParams)
 	if err != nil {
 		return nil, err
 	}
@@ -87,18 +88,18 @@ func NewRPCWallet(mnemonic string, params *chaincfg.Params, repoPath string, DB 
 		return nil, err
 	}
 
-	keyManager, err := spvwallet.NewKeyManager(DB.Keys(), params, mPrivKey)
+	keyManager, err := spvwallet.NewKeyManager(DB.Keys(), &phore.PhoreMainNetParams, mPrivKey)
 	if err != nil {
 		return nil, err
 	}
 
-	txstore, err := NewTxStore(params, DB, keyManager)
+	txstore, err := NewTxStore(&phore.PhoreMainNetParams, DB, keyManager)
 	if err != nil {
 		return nil, err
 	}
 
 	w := RPCWallet{
-		params:           params,
+		params:           &phore.PhoreMainNetParams,
 		repoPath:         repoPath,
 		masterPrivateKey: mPrivKey,
 		masterPublicKey:  mPubKey,

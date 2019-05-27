@@ -16,7 +16,7 @@ import (
 	"sort"
 	"strconv"
 
-	"github.com/phoreproject/openbazaar-go/bitcoin/phored"
+	"github.com/phoreproject/openbazaar-go/phore/phored"
 
 	"crypto/rand"
 	"io/ioutil"
@@ -36,9 +36,9 @@ import (
 	"github.com/phoreproject/btcd/chaincfg"
 	"github.com/phoreproject/btcutil/base58"
 	"github.com/phoreproject/openbazaar-go/api"
-	"github.com/phoreproject/openbazaar-go/bitcoin"
-	lis "github.com/phoreproject/openbazaar-go/bitcoin/listeners"
-	"github.com/phoreproject/openbazaar-go/bitcoin/resync"
+	"github.com/phoreproject/openbazaar-go/phore"
+	lis "github.com/phoreproject/openbazaar-go/phore/listeners"
+	"github.com/phoreproject/openbazaar-go/phore/resync"
 	"github.com/phoreproject/openbazaar-go/core"
 	"github.com/phoreproject/openbazaar-go/ipfs"
 	obns "github.com/phoreproject/openbazaar-go/namesys"
@@ -581,7 +581,7 @@ func (x *Start) Execute(args []string) error {
 		w3 = &DummyWriter{}
 	} else {
 		w3 = &lumberjack.Logger{
-			Filename:   path.Join(repoPath, "logs", "bitcoin.log"),
+			Filename:   path.Join(repoPath, "logs", "phore.log"),
 			MaxSize:    10, // Megabytes
 			MaxBackups: 3,
 			MaxAge:     30, // Days
@@ -597,13 +597,13 @@ func (x *Start) Execute(args []string) error {
 	switch strings.ToLower(walletCfg.Type) {
 	case "phored":
 		walletTypeStr = "phored"
-		cryptoWallet, err = phored.NewRPCWallet(mn, &params, repoPath, sqliteDB, walletCfg.RPCLocation)
+		cryptoWallet, err = phored.NewRPCWallet(mn, repoPath, sqliteDB, walletCfg.RPCLocation)
 		if err != nil {
 			log.Error(err)
 			return err
 		}
 	case "spvwallet":
-		walletTypeStr = "bitcoin spv"
+		walletTypeStr = "btc spv"
 		var tp net.Addr
 		if walletCfg.TrustedPeer != "" {
 			tp, err = net.ResolveTCPAddr("tcp", walletCfg.TrustedPeer)
@@ -830,7 +830,7 @@ func (x *Start) Execute(args []string) error {
 			cryptoWallet.AddTransactionListener(TL.OnTransactionReceived)
 			cryptoWallet.AddTransactionListener(WL.OnTransactionReceived)
 			log.Infof("Starting %s wallet\n", walletTypeStr)
-			su := bitcoin.NewStatusUpdater(cryptoWallet, core.Node.Broadcast, nd.Context())
+			su := phore.NewStatusUpdater(cryptoWallet, core.Node.Broadcast, nd.Context())
 			go su.Start()
 			go cryptoWallet.Start()
 			if resyncManager != nil {

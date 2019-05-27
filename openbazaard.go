@@ -84,11 +84,11 @@ func main() {
 		&restartServer)
 	parser.AddCommand("encryptdatabase",
 		"encrypt your database",
-		"This command encrypts the database containing your bitcoin private keys, identity key, and contracts",
+		"This command encrypts the database containing your phore private keys, identity key, and contracts",
 		&cmd.EncryptDatabase{})
 	parser.AddCommand("decryptdatabase",
 		"decrypt your database",
-		"This command decrypts the database containing your bitcoin private keys, identity key, and contracts.\n [Warning] doing so may put your bitcoins at risk.",
+		"This command decrypts the database containing your phore private keys, identity key, and contracts.\n [Warning] doing so may put your bitcoins at risk.",
 		&cmd.DecryptDatabase{})
 	parser.AddCommand("restore",
 		"restore user data",

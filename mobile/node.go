@@ -13,10 +13,10 @@ import (
 	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
 	ds "gx/ipfs/QmXRKBQA4wXP7xWbFiZsR1GP4HV6wMDQ1aWFxZZ4uBcPX9/go-datastore"
 
-	lis "github.com/phoreproject/openbazaar-go/bitcoin/listeners"
 	rep "github.com/phoreproject/openbazaar-go/net/repointer"
 	ret "github.com/phoreproject/openbazaar-go/net/retriever"
 	"github.com/phoreproject/openbazaar-go/net/service"
+	lis "github.com/phoreproject/openbazaar-go/phore/listeners"
 
 	"errors"
 	"fmt"
@@ -31,10 +31,10 @@ import (
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
 	"github.com/op/go-logging"
 	"github.com/phoreproject/btcd/chaincfg"
-	"github.com/phoreproject/openbazaar-go/bitcoin"
 	"github.com/phoreproject/openbazaar-go/core"
 	"github.com/phoreproject/openbazaar-go/ipfs"
 	obnet "github.com/phoreproject/openbazaar-go/net"
+	"github.com/phoreproject/openbazaar-go/phore"
 	"github.com/phoreproject/openbazaar-go/repo/db"
 	"github.com/phoreproject/openbazaar-go/schema"
 	"github.com/phoreproject/openbazaar-go/storage/selfhosted"
@@ -370,7 +370,7 @@ func (n *Node) Start() error {
 			WL := lis.NewWalletListener(n.OpenBazaarNode.Datastore, n.OpenBazaarNode.Broadcast)
 			n.OpenBazaarNode.Wallet.AddTransactionListener(TL.OnTransactionReceived)
 			n.OpenBazaarNode.Wallet.AddTransactionListener(WL.OnTransactionReceived)
-			su := bitcoin.NewStatusUpdater(n.OpenBazaarNode.Wallet, n.OpenBazaarNode.Broadcast, n.OpenBazaarNode.IpfsNode.Context())
+			su := phore.NewStatusUpdater(n.OpenBazaarNode.Wallet, n.OpenBazaarNode.Broadcast, n.OpenBazaarNode.IpfsNode.Context())
 			go su.Start()
 			go n.OpenBazaarNode.Wallet.Start()
 		}

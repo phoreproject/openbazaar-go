@@ -2,13 +2,11 @@ package test
 
 import (
 	"github.com/ipfs/go-ipfs/core/mock"
-	"github.com/phoreproject/btcd/chaincfg"
-	"github.com/phoreproject/openbazaar-go/bitcoin/phored"
-	// "github.com/ipfs/go-ipfs/thirdparty/testutil"
 	"github.com/phoreproject/openbazaar-go/core"
 	"github.com/phoreproject/openbazaar-go/ipfs"
 	"github.com/phoreproject/openbazaar-go/net"
 	"github.com/phoreproject/openbazaar-go/net/service"
+	"github.com/phoreproject/openbazaar-go/phore/phored"
 	"github.com/tyler-smith/go-bip39"
 	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	"gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
@@ -57,7 +55,7 @@ func NewNode() (*core.OpenBazaarNode, error) {
 		return nil, err
 	}
 
-	wallet, err := phored.NewRPCWallet(mnemonic, &chaincfg.MainNetParams, repository.Path, repository.DB, "rpc2.phore.io")
+	wallet, err := phored.NewRPCWallet(mnemonic, repository.Path, repository.DB, "rpc2.phore.io")
 	if err != nil {
 		return nil, err
 	}
