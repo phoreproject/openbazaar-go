@@ -30,6 +30,7 @@ type IpnsExtraConfig struct {
 }
 
 type WalletsConfig struct {
+	PHR *CoinConfig `json:"PHR"`
 	BTC *CoinConfig `json:"BTC"`
 	BCH *CoinConfig `json:"BCH"`
 	LTC *CoinConfig `json:"LTC"`
@@ -60,6 +61,17 @@ var MalformedConfigError = errors.New("config file is malformed")
 func DefaultWalletsConfig() *WalletsConfig {
 	var feeAPI = "https://btc.fees.openbazaar.org"
 	return &WalletsConfig{
+		PHR: &CoinConfig{
+			Type:             WalletTypeAPI,
+			APIPool:          CoinPoolPHR,
+			APITestnetPool:   CoinPoolTPHR,
+			FeeAPI:           feeAPI,
+			LowFeeDefault:    1,
+			MediumFeeDefault: 10,
+			HighFeeDefault:   50,
+			MaxFee:           200,
+			WalletOptions:    nil,
+		},
 		BTC: &CoinConfig{
 			Type:             WalletTypeAPI,
 			APIPool:          CoinPoolBTC,
