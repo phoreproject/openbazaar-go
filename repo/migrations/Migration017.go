@@ -10,14 +10,15 @@ import (
 
 var (
 	Migration017PushToBefore = []string{
-		"QmY8puEnVx66uEet64gAf4VZRo7oUyMCwG6KdB9KM92EGQ",
-		"QmPPg2qeF3n2KvTRXRZLaTwHCw8JxzF4uZK93RfMoDvf2o",
+		"QmWbi8z4uPkEdrWHtgxCkQGE5vxJnrStXAeEQnupmQnKRh",
+		"QmRh7fSZyFHesEL9aTmdxbrvMFxzyFxoaQGjYBotot6WLw",
+		"QmZLs6zVpVtkoR8oYyAbCxujvC6weU5CgUPTYx8zKMAtTf",
 	}
 
 	Migration017PushToAfter = []string{
-		"QmbwN82MVyBukT7WTdaQDppaACo62oUfma8dUa5R9nBFHm",
-		"QmY8puEnVx66uEet64gAf4VZRo7oUyMCwG6KdB9KM92EGQ",
-		"QmPPg2qeF3n2KvTRXRZLaTwHCw8JxzF4uZK93RfMoDvf2o",
+		"QmWbi8z4uPkEdrWHtgxCkQGE5vxJnrStXAeEQnupmQnKRh",
+		"QmRh7fSZyFHesEL9aTmdxbrvMFxzyFxoaQGjYBotot6WLw",
+		"QmZLs6zVpVtkoR8oYyAbCxujvC6weU5CgUPTYx8zKMAtTf",
 	}
 )
 

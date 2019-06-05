@@ -15,6 +15,7 @@ const (
 )
 
 type Migration016WalletsConfig struct {
+	PHR *migration016CoinConfig `json:"PHR"`
 	BTC *migration016CoinConfig `json:"BTC"`
 	BCH *migration016CoinConfig `json:"BCH"`
 	LTC *migration016CoinConfig `json:"LTC"`
@@ -38,6 +39,17 @@ type migration016CoinConfig struct {
 func migration016DefaultWalletConfig() *Migration016WalletsConfig {
 	var feeAPI = "https://btc.fees.openbazaar.org"
 	return &Migration016WalletsConfig{
+		PHR: &migration016CoinConfig{
+			Type:             "API",
+			APIPool:          []string{"https://phr.blockbook.api.phore.io/api"},
+			APITestnetPool:   []string{"https://phr.blockbook.api.phore.io/api"},
+			FeeAPI:           "",
+			LowFeeDefault:    1,
+			MediumFeeDefault: 10,
+			HighFeeDefault:   50,
+			MaxFee:           200,
+			WalletOptions:    nil,
+		},
 		BTC: &migration016CoinConfig{
 			Type:             "API",
 			APIPool:          []string{"https://btc.blockbook.api.openbazaar.org/api"},

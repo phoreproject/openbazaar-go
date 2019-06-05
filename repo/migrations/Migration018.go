@@ -187,7 +187,7 @@ func (Migration018) Down(repoPath string, dbPassword string, testnet bool) error
 		return errors.New("error parsing ipns config")
 	}
 	ipnsCfg["RecordLifetime"] = "7d"
-	ipnsCfg["BackUpAPI"] = "https://gateway.ob1.io"
+	ipnsCfg["BackUpAPI"] = "https://gateway.phore.io"
 	ipnsCfg["UsePersistentCache"] = true
 	ipnsCfg["QuerySize"] = 1
 
