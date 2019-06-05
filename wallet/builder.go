@@ -3,6 +3,8 @@ package wallet
 import (
 	"errors"
 	"fmt"
+	"github.com/phoreproject/multiwallet/phore"
+	"github.com/phoreproject/multiwallet/util"
 	"net"
 	"net/url"
 	"os"
@@ -33,7 +35,6 @@ import (
 )
 
 const InvalidCoinType wallet.CoinType = wallet.CoinType(^uint32(0))
-const CoinTypePhore wallet.CoinType = wallet.CoinType(11772)
 
 // ErrTrustedPeerRequired is returned when the config is missing the TrustedPeer field
 var ErrTrustedPeerRequired = errors.New("trusted peer required in spv wallet config during regtest use")
@@ -71,6 +72,14 @@ func NewMultiWallet(cfg *WalletConfig) (multiwallet.MultiWallet, error) {
 	)
 	logger.SetBackend(logging.AddModuleLevel(cfg.Logger))
 
+	if cfg.ConfigFile.PHR != nil {
+		switch cfg.ConfigFile.PHR.Type {
+		case schema.WalletTypeAPI:
+			enableAPIWallet[util.CoinTypePhore] = cfg.ConfigFile.PHR
+		case schema.WalletTypeSPV:
+			enableSPVWallet[util.CoinTypePhore] = cfg.ConfigFile.PHR
+		}
+	}
 	if cfg.ConfigFile.BTC != nil {
 		switch cfg.ConfigFile.BTC.Type {
 		case schema.WalletTypeAPI:
@@ -127,6 +136,20 @@ func createAPIWallet(coin wallet.CoinType, coinConfigOverrides *schema.CoinConfi
 	)
 
 	switch coin {
+	case util.CoinTypePhore:
+		params := chaincfg.Params{}
+		if testnet {
+			actualCoin = util.CoinTypePhoreTest
+			params = phore.PhoreMainNetParams
+		} else {
+			actualCoin = util.CoinTypePhore
+			params = phore.PhoreTestNetParams
+		}
+		w, err := phore.NewPhoreWallet(*coinConfig, cfg.Mnemonic, &params, cfg.Proxy, cache.NewMockCacher(), cfg.DisableExchangeRates)
+		if err != nil {
+			return InvalidCoinType, nil, err
+		}
+		return actualCoin, w, nil
 	case wallet.Bitcoin:
 		if testnet {
 			actualCoin = wallet.TestnetBitcoin
@@ -171,8 +194,6 @@ func createAPIWallet(coin wallet.CoinType, coinConfigOverrides *schema.CoinConfi
 			return InvalidCoinType, nil, err
 		}
 		return actualCoin, w, nil
-	case CoinTypePhore:
-		return InvalidCoinType, nil, nil
 	//case wallet.Ethereum:
 	//	actualCoin = wallet.Ethereum
 	//	w, err := eth.NewEthereumWallet(*coinConfig, cfg.Mnemonic, cfg.Proxy)
@@ -333,6 +354,8 @@ func prepareAPICoinConfig(coin wallet.CoinType, override *schema.CoinConfig, wal
 	)
 
 	switch coin {
+	case util.CoinTypePhore:
+		defaultConfig = defaultConfigSet.PHR
 	case wallet.Bitcoin:
 		defaultConfig = defaultConfigSet.BTC
 	case wallet.BitcoinCash:

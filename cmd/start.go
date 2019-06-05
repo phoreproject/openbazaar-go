@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
+	"github.com/phoreproject/multiwallet/util"
 	"io"
 	"io/ioutil"
 	"net"
@@ -196,7 +197,7 @@ func (x *Start) Execute(args []string) error {
 		return err
 	}
 
-	ct := wallet.CoinTypePhore
+	ct := util.CoinTypePhore
 	if x.BitcoinCash || strings.Contains(repoPath, "-bitcoincash") {
 		ct = wi.BitcoinCash
 	} else if x.ZCash != "" || strings.Contains(repoPath, "-zcash") {
