@@ -39,12 +39,15 @@ const (
 	// End SQL Statements
 
 	// Configuration defaults
-	DataPushNodeOne = "QmWbi8z4uPkEdrWHtgxCkQGE5vxJnrStXAeEQnupmQnKRh"
+	DataPushNodeOne   = "QmWbi8z4uPkEdrWHtgxCkQGE5vxJnrStXAeEQnupmQnKRh"
+	DataPushNodeTwo   = "QmRh7fSZyFHesEL9aTmdxbrvMFxzyFxoaQGjYBotot6WLw"
+	DataPushNodeThree = "QmZLs6zVpVtkoR8oYyAbCxujvC6weU5CgUPTYx8zKMAtTf"
 
+	BootstrapNodeDefaultOne               = "/ip4/54.227.172.110/tcp/5001/ipfs/QmWbi8z4uPkEdrWHtgxCkQGE5vxJnrStXAeEQnupmQnKRh"
+	BootstrapNodeDefaultTwo               = "/ip4/45.63.71.103/tcp/5001/ipfs/QmRh7fSZyFHesEL9aTmdxbrvMFxzyFxoaQGjYBotot6WLw"
+	BootstrapNodeDefaultThree             = "/ip4/54.175.193.226/tcp/5001/ipfs/QmZLs6zVpVtkoR8oYyAbCxujvC6weU5CgUPTYx8zKMAtTf"
 	BootstrapNodeDefault_LeMarcheSerpette = "/ip4/159.203.115.78/tcp/5001/ipfs/QmPJuP4Myo8pGL1k56b85Q4rpaoSnmn5L3wLjYHTzbBrk1"
 	BootstrapNodeDefault_BrixtonVillage   = "/ip4/104.131.19.44/tcp/5001/ipfs/QmRvbZttqh6CPFiMKWa1jPfRR9JxagYRv4wsvMAG4ADUTj"
-	BootstrapNodeDefault_Johari           = "/ip4/45.32.171.119/tcp/5001/ipfs/QmbkmTrfSjniyMUfYt9tVUcfZC8yeshVFYsnJ4kuzveYWc"
-	BootstrapNodeDefault_DuoSearch        = "/ip4/54.227.172.110/tcp/5001/ipfs/QmWbi8z4uPkEdrWHtgxCkQGE5vxJnrStXAeEQnupmQnKRh"
 	// End Configuration defaults
 )
 
@@ -55,13 +58,14 @@ var (
 )
 
 var (
-	DataPushNodes = []string{DataPushNodeOne}
+	DataPushNodes = []string{DataPushNodeOne, DataPushNodeTwo, DataPushNodeThree}
 
 	BootstrapAddressesDefault = []string{
+		BootstrapNodeDefaultOne,
+		BootstrapNodeDefaultTwo,
+		BootstrapNodeDefaultThree,
 		BootstrapNodeDefault_LeMarcheSerpette,
 		BootstrapNodeDefault_BrixtonVillage,
-		BootstrapNodeDefault_Johari,
-		BootstrapNodeDefault_DuoSearch,
 	}
 	BootstrapAddressesTestnet = []string{}
 )
