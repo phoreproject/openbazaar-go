@@ -19,9 +19,15 @@ var (
 	mainPowLimit = new(big.Int).Sub(new(big.Int).Lsh(bigOne, 255), bigOne)
 )
 
+const (
+	// MainNet represents the main bitcoin network.
+	MainPhoreNet wire.BitcoinNet = 0x504852 // PHR
+	MainPhoreTestNet wire.BitcoinNet = 0x54504852 // TPHR
+)
+
 var PhoreMainNetParams = chaincfg.Params{
-	Name:        "main",
-	Net:         wire.MainNet,
+	Name:        "mainPhore",
+	Net:         MainPhoreNet,
 	DefaultPort: "11771",
 	DNSSeeds: []chaincfg.DNSSeed{
 		{"dns0.phore.io", true},
