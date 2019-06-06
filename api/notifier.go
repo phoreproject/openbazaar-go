@@ -85,7 +85,7 @@ func (notifier *smtpNotifier) notify(n repo.Notifier) error {
 		"To: %s",
 		"MIME-Version: 1.0",
 		"Content-Type: text/html; charset=UTF-8",
-		"Subject: [OpenBazaar] %s\r\n",
+		"Subject: [Phore Marketplace] %s\r\n",
 		"%s\r\n",
 	}, "\r\n")
 	head, body, ok := n.GetSMTPTitleAndBody()
