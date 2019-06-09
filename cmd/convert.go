@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/phoreproject/multiwallet/util"
 	"io/ioutil"
 	"os"
 	"path"
@@ -50,7 +51,7 @@ func (x *Convert) Execute(args []string) error {
 	var str string
 	var cfgtype string
 	var currencyCode string
-	ct := wallet.Bitcoin
+	ct := util.ExtendCoinType(wallet.Bitcoin)
 	switch strings.ToLower(args[0]) {
 	case "bitcoin":
 		str = "Bitcoin"
@@ -60,12 +61,12 @@ func (x *Convert) Execute(args []string) error {
 		str = "Bitcoin Cash"
 		cfgtype = "bitcoincash"
 		currencyCode = "BCH"
-		ct = wallet.BitcoinCash
+		ct = util.ExtendCoinType(wallet.BitcoinCash)
 	case "zcash":
 		str = "ZCash"
 		cfgtype = "zcashd"
 		currencyCode = "ZEC"
-		ct = wallet.Zcash
+		ct = util.ExtendCoinType(wallet.Zcash)
 	}
 
 	if x.Testnet {

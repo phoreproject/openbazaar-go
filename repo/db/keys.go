@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"errors"
+	"github.com/phoreproject/multiwallet/util"
 	"strconv"
 	"sync"
 
@@ -14,10 +15,10 @@ import (
 
 type KeysDB struct {
 	modelStore
-	coinType wallet.CoinType
+	coinType util.ExtCoinType
 }
 
-func NewKeyStore(db *sql.DB, lock *sync.Mutex, coinType wallet.CoinType) repo.KeyStore {
+func NewKeyStore(db *sql.DB, lock *sync.Mutex, coinType util.ExtCoinType) repo.KeyStore {
 	return &KeysDB{modelStore{db, lock}, coinType}
 }
 

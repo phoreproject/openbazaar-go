@@ -3,6 +3,7 @@ package cmd
 import (
 	"bufio"
 	"fmt"
+	"github.com/phoreproject/multiwallet/util"
 	"os"
 	"path"
 	"path/filepath"
@@ -100,7 +101,7 @@ func (x *EncryptDatabase) Execute(args []string) error {
 	}
 	pw = strings.Replace(pw, "'", "''", -1)
 	tmpPath := path.Join(repoPath, "tmp")
-	sqlliteDB, err := db.Create(repoPath, "", testnet, wallet.Bitcoin)
+	sqlliteDB, err := db.Create(repoPath, "", testnet, util.ExtendCoinType(wallet.Bitcoin))
 	if err != nil {
 		log.Error(err)
 		fmt.Println(err)
@@ -113,7 +114,7 @@ func (x *EncryptDatabase) Execute(args []string) error {
 	if err := os.MkdirAll(path.Join(repoPath, "tmp", "datastore"), os.ModePerm); err != nil {
 		return err
 	}
-	tmpDB, err := db.Create(tmpPath, pw, testnet, wallet.Bitcoin)
+	tmpDB, err := db.Create(tmpPath, pw, testnet, util.ExtendCoinType(wallet.Bitcoin))
 	if err != nil {
 		log.Error(err)
 		fmt.Println(err)

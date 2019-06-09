@@ -3,6 +3,7 @@ package db
 import (
 	"database/sql"
 	"encoding/hex"
+	"github.com/phoreproject/multiwallet/util"
 	"strconv"
 	"strings"
 	"sync"
@@ -15,10 +16,10 @@ import (
 
 type StxoDB struct {
 	modelStore
-	coinType wallet.CoinType
+	coinType util.ExtCoinType
 }
 
-func NewSpentTransactionStore(db *sql.DB, lock *sync.Mutex, coinType wallet.CoinType) repo.SpentTransactionOutputStore {
+func NewSpentTransactionStore(db *sql.DB, lock *sync.Mutex, coinType util.ExtCoinType) repo.SpentTransactionOutputStore {
 	return &StxoDB{modelStore{db, lock}, coinType}
 }
 

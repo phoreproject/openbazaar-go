@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"github.com/phoreproject/multiwallet/util"
 	"path"
 	"sync"
 	"time"
@@ -40,7 +41,7 @@ type SQLiteDatastore struct {
 	lock            *sync.Mutex
 }
 
-func Create(repoPath, password string, testnet bool, coinType wallet.CoinType) (*SQLiteDatastore, error) {
+func Create(repoPath, password string, testnet bool, coinType util.ExtCoinType) (*SQLiteDatastore, error) {
 	var dbPath string
 	if testnet {
 		dbPath = path.Join(repoPath, "datastore", "testnet.db")
@@ -59,7 +60,7 @@ func Create(repoPath, password string, testnet bool, coinType wallet.CoinType) (
 	return NewSQLiteDatastore(conn, l, coinType), nil
 }
 
-func NewSQLiteDatastore(db *sql.DB, l *sync.Mutex, coinType wallet.CoinType) *SQLiteDatastore {
+func NewSQLiteDatastore(db *sql.DB, l *sync.Mutex, coinType util.ExtCoinType) *SQLiteDatastore {
 	return &SQLiteDatastore{
 		config:          &ConfigDB{db: db, lock: l},
 		followers:       NewFollowerStore(db, l),

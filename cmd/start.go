@@ -199,9 +199,9 @@ func (x *Start) Execute(args []string) error {
 
 	ct := util.CoinTypePhore
 	if x.BitcoinCash || strings.Contains(repoPath, "-bitcoincash") {
-		ct = wi.BitcoinCash
+		ct = util.ExtendCoinType(wi.BitcoinCash)
 	} else if x.ZCash != "" || strings.Contains(repoPath, "-zcash") {
-		ct = wi.Zcash
+		ct = util.ExtendCoinType(wi.Zcash)
 	}
 
 	migrations.WalletCoinType = ct
@@ -918,7 +918,7 @@ func serveHTTPApi(cctx *commands.Context) (<-chan error, error) {
 	return errc, nil
 }
 
-func InitializeRepo(dataDir, password, mnemonic string, testnet bool, creationDate time.Time, coinType wi.CoinType) (*db.SQLiteDatastore, error) {
+func InitializeRepo(dataDir, password, mnemonic string, testnet bool, creationDate time.Time, coinType util.ExtCoinType) (*db.SQLiteDatastore, error) {
 	// Database
 	sqliteDB, err := db.Create(dataDir, password, testnet, coinType)
 	if err != nil {

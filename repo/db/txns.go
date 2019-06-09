@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"github.com/phoreproject/multiwallet/util"
 	"sync"
 	"time"
 
@@ -12,10 +13,10 @@ import (
 
 type TxnsDB struct {
 	modelStore
-	coinType wallet.CoinType
+	coinType util.ExtCoinType
 }
 
-func NewTransactionStore(db *sql.DB, lock *sync.Mutex, coinType wallet.CoinType) repo.TransactionStore {
+func NewTransactionStore(db *sql.DB, lock *sync.Mutex, coinType util.ExtCoinType) repo.TransactionStore {
 	return &TxnsDB{modelStore{db, lock}, coinType}
 }
 

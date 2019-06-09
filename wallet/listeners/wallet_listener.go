@@ -1,6 +1,7 @@
 package bitcoin
 
 import (
+	"github.com/phoreproject/multiwallet/util"
 	"github.com/phoreproject/openbazaar-go/repo"
 	"github.com/OpenBazaar/wallet-interface"
 )
@@ -8,10 +9,10 @@ import (
 type WalletListener struct {
 	db        repo.Datastore
 	broadcast chan repo.Notifier
-	coinType  wallet.CoinType
+	coinType  util.ExtCoinType
 }
 
-func NewWalletListener(db repo.Datastore, broadcast chan repo.Notifier, coinType wallet.CoinType) *WalletListener {
+func NewWalletListener(db repo.Datastore, broadcast chan repo.Notifier, coinType util.ExtCoinType) *WalletListener {
 	l := &WalletListener{db, broadcast, coinType}
 	return l
 }

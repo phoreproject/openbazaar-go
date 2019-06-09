@@ -34,7 +34,7 @@ import (
 	"golang.org/x/net/proxy"
 )
 
-const InvalidCoinType wallet.CoinType = wallet.CoinType(^uint32(0))
+const InvalidCoinType util.ExtCoinType = util.ExtCoinType(^uint32(0))
 
 // ErrTrustedPeerRequired is returned when the config is missing the TrustedPeer field
 var ErrTrustedPeerRequired = errors.New("trusted peer required in spv wallet config during regtest use")
@@ -67,8 +67,8 @@ type WalletConfig struct {
 func NewMultiWallet(cfg *WalletConfig) (multiwallet.MultiWallet, error) {
 	var (
 		logger          = logging.MustGetLogger("NewMultiwallet")
-		enableAPIWallet = make(map[wallet.CoinType]*schema.CoinConfig)
-		enableSPVWallet = make(map[wallet.CoinType]*schema.CoinConfig)
+		enableAPIWallet = make(map[util.ExtCoinType]*schema.CoinConfig)
+		enableSPVWallet = make(map[util.ExtCoinType]*schema.CoinConfig)
 	)
 	logger.SetBackend(logging.AddModuleLevel(cfg.Logger))
 
@@ -83,26 +83,26 @@ func NewMultiWallet(cfg *WalletConfig) (multiwallet.MultiWallet, error) {
 	if cfg.ConfigFile.BTC != nil {
 		switch cfg.ConfigFile.BTC.Type {
 		case schema.WalletTypeAPI:
-			enableAPIWallet[wallet.Bitcoin] = cfg.ConfigFile.BTC
+			enableAPIWallet[util.ExtendCoinType(wallet.Bitcoin)] = cfg.ConfigFile.BTC
 		case schema.WalletTypeSPV:
-			enableSPVWallet[wallet.Bitcoin] = cfg.ConfigFile.BTC
+			enableSPVWallet[util.ExtendCoinType(wallet.Bitcoin)] = cfg.ConfigFile.BTC
 		}
 	}
 	if cfg.ConfigFile.BCH != nil {
 		switch cfg.ConfigFile.BCH.Type {
 		case schema.WalletTypeAPI:
-			enableAPIWallet[wallet.BitcoinCash] = cfg.ConfigFile.BCH
+			enableAPIWallet[util.ExtendCoinType(wallet.BitcoinCash)] = cfg.ConfigFile.BCH
 		case schema.WalletTypeSPV:
-			enableSPVWallet[wallet.BitcoinCash] = cfg.ConfigFile.BCH
+			enableSPVWallet[util.ExtendCoinType(wallet.BitcoinCash)] = cfg.ConfigFile.BCH
 		}
 	}
 	if cfg.ConfigFile.ZEC != nil && cfg.ConfigFile.ZEC.Type == "API" {
-		enableAPIWallet[wallet.Zcash] = cfg.ConfigFile.ZEC
+		enableAPIWallet[util.ExtendCoinType(wallet.Zcash)] = cfg.ConfigFile.ZEC
 	}
 	if cfg.ConfigFile.LTC != nil && cfg.ConfigFile.LTC.Type == "API" {
-		enableAPIWallet[wallet.Litecoin] = cfg.ConfigFile.LTC
+		enableAPIWallet[util.ExtendCoinType(wallet.Litecoin)] = cfg.ConfigFile.LTC
 	}
-	enableAPIWallet[wallet.Ethereum] = nil
+	enableAPIWallet[util.ExtendCoinType(wallet.Ethereum)] = nil
 
 	var newMultiwallet = make(multiwallet.MultiWallet)
 	for coin, coinConfig := range enableAPIWallet {
@@ -128,9 +128,9 @@ func NewMultiWallet(cfg *WalletConfig) (multiwallet.MultiWallet, error) {
 	return newMultiwallet, nil
 }
 
-func createAPIWallet(coin wallet.CoinType, coinConfigOverrides *schema.CoinConfig, cfg *WalletConfig) (wallet.CoinType, wallet.Wallet, error) {
+func createAPIWallet(coin util.ExtCoinType, coinConfigOverrides *schema.CoinConfig, cfg *WalletConfig) (util.ExtCoinType, wallet.Wallet, error) {
 	var (
-		actualCoin wallet.CoinType
+		actualCoin util.ExtCoinType
 		testnet    = cfg.Params.Name != chaincfg.MainNetParams.Name
 		coinConfig = prepareAPICoinConfig(coin, coinConfigOverrides, cfg)
 	)
@@ -150,22 +150,22 @@ func createAPIWallet(coin wallet.CoinType, coinConfigOverrides *schema.CoinConfi
 			return InvalidCoinType, nil, err
 		}
 		return actualCoin, w, nil
-	case wallet.Bitcoin:
+	case util.ExtendCoinType(wallet.Bitcoin):
 		if testnet {
-			actualCoin = wallet.TestnetBitcoin
+			actualCoin = util.ExtendCoinType(wallet.TestnetBitcoin)
 		} else {
-			actualCoin = wallet.Bitcoin
+			actualCoin = util.ExtendCoinType(wallet.Bitcoin)
 		}
 		w, err := bitcoin.NewBitcoinWallet(*coinConfig, cfg.Mnemonic, cfg.Params, cfg.Proxy, cache.NewMockCacher(), cfg.DisableExchangeRates)
 		if err != nil {
 			return InvalidCoinType, nil, err
 		}
 		return actualCoin, w, nil
-	case wallet.BitcoinCash:
+	case util.ExtendCoinType(wallet.BitcoinCash):
 		if testnet {
-			actualCoin = wallet.TestnetBitcoinCash
+			actualCoin = util.ExtendCoinType(wallet.TestnetBitcoinCash)
 		} else {
-			actualCoin = wallet.BitcoinCash
+			actualCoin = util.ExtendCoinType(wallet.BitcoinCash)
 		}
 		w, err := bitcoincash.NewBitcoinCashWallet(*coinConfig, cfg.Mnemonic, cfg.Params, cfg.Proxy, cache.NewMockCacher(), cfg.DisableExchangeRates)
 		if err != nil {
@@ -205,9 +205,9 @@ func createAPIWallet(coin wallet.CoinType, coinConfigOverrides *schema.CoinConfi
 	return InvalidCoinType, nil, fmt.Errorf("unable to create wallet for unknown coin %s", coin.String())
 }
 
-func createSPVWallet(coin wallet.CoinType, coinConfigOverrides *schema.CoinConfig, cfg *WalletConfig) (wallet.CoinType, wallet.Wallet, error) {
+func createSPVWallet(coin util.ExtCoinType, coinConfigOverrides *schema.CoinConfig, cfg *WalletConfig) (util.ExtCoinType, wallet.Wallet, error) {
 	var (
-		actualCoin         wallet.CoinType
+		actualCoin         util.ExtCoinType
 		notMainnet         = cfg.Params.Name != chaincfg.MainNetParams.Name
 		usingRegnet        = cfg.Params.Name == chaincfg.RegressionNetParams.Name
 		missingTrustedPeer = coinConfigOverrides.TrustedPeer == ""
@@ -232,7 +232,7 @@ func createSPVWallet(coin wallet.CoinType, coinConfigOverrides *schema.CoinConfi
 	}
 
 	switch coin {
-	case wallet.Bitcoin:
+	case util.ExtendCoinType(wallet.Bitcoin):
 		defaultConfig := defaultConfigSet.BTC
 		preparedConfig := &spvwallet.Config{
 			Mnemonic:             cfg.Mnemonic,
@@ -270,12 +270,12 @@ func createSPVWallet(coin wallet.CoinType, coinConfigOverrides *schema.CoinConfi
 		}
 
 		if notMainnet {
-			actualCoin = wallet.TestnetBitcoin
+			actualCoin = util.ExtendCoinType(wallet.TestnetBitcoin)
 		} else {
-			actualCoin = wallet.Bitcoin
+			actualCoin = util.ExtendCoinType(wallet.Bitcoin)
 		}
 		return actualCoin, newSPVWallet, nil
-	case wallet.BitcoinCash:
+	case util.ExtendCoinType(wallet.BitcoinCash):
 		defaultConfig := defaultConfigSet.BCH
 		preparedConfig := &bchspv.Config{
 			Mnemonic:             cfg.Mnemonic,
@@ -313,16 +313,16 @@ func createSPVWallet(coin wallet.CoinType, coinConfigOverrides *schema.CoinConfi
 		}
 
 		if notMainnet {
-			actualCoin = wallet.TestnetBitcoinCash
+			actualCoin = util.ExtendCoinType(wallet.TestnetBitcoinCash)
 		} else {
-			actualCoin = wallet.BitcoinCash
+			actualCoin = util.ExtendCoinType(wallet.BitcoinCash)
 		}
 		return actualCoin, newSPVWallet, nil
 	}
 	return InvalidCoinType, nil, fmt.Errorf("unable to create wallet for unknown coin %s", coin.String())
 }
 
-func ensureWalletRepoPath(repoPath string, coin wallet.CoinType, devGUID string) (string, error) {
+func ensureWalletRepoPath(repoPath string, coin util.ExtCoinType, devGUID string) (string, error) {
 	var (
 		walletPathName = walletPath(coin, devGUID)
 		walletRepoPath = path.Join(repoPath, "wallets", walletPathName)
@@ -333,7 +333,7 @@ func ensureWalletRepoPath(repoPath string, coin wallet.CoinType, devGUID string)
 	return walletRepoPath, nil
 }
 
-func walletPath(coin wallet.CoinType, devGUID string) string {
+func walletPath(coin util.ExtCoinType, devGUID string) string {
 	var (
 		raw         = fmt.Sprintf("%s.%s", coin.String(), devGUID)
 		lowerCoin   = strings.ToLower(raw)
@@ -342,7 +342,7 @@ func walletPath(coin wallet.CoinType, devGUID string) string {
 	return trimmedCoin
 }
 
-func prepareAPICoinConfig(coin wallet.CoinType, override *schema.CoinConfig, walletConfig *WalletConfig) *mwConfig.CoinConfig {
+func prepareAPICoinConfig(coin util.ExtCoinType, override *schema.CoinConfig, walletConfig *WalletConfig) *mwConfig.CoinConfig {
 	var (
 		defaultCoinOptions      map[string]interface{}
 		defaultConfig           *schema.CoinConfig
@@ -356,15 +356,15 @@ func prepareAPICoinConfig(coin wallet.CoinType, override *schema.CoinConfig, wal
 	switch coin {
 	case util.CoinTypePhore:
 		defaultConfig = defaultConfigSet.PHR
-	case wallet.Bitcoin:
+	case util.ExtendCoinType(wallet.Bitcoin):
 		defaultConfig = defaultConfigSet.BTC
-	case wallet.BitcoinCash:
+	case util.ExtendCoinType(wallet.BitcoinCash):
 		defaultConfig = defaultConfigSet.BCH
-	case wallet.Litecoin:
+	case util.ExtendCoinType(wallet.Litecoin):
 		defaultConfig = defaultConfigSet.LTC
-	case wallet.Zcash:
+	case util.ExtendCoinType(wallet.Zcash):
 		defaultConfig = defaultConfigSet.ZEC
-	case wallet.Ethereum:
+	case util.ExtendCoinType(wallet.Ethereum):
 		defaultConfig = defaultConfigSet.ETH
 		defaultCoinOptions = schema.EthereumDefaultOptions()
 	}
@@ -404,7 +404,7 @@ func prepareAPICoinConfig(coin wallet.CoinType, override *schema.CoinConfig, wal
 	if len(preparedConfig.ClientAPIs) == 0 {
 		preparedConfig.ClientAPIs = defaultWalletEndpoints
 	}
-	if preparedConfig.CoinType == wallet.Bitcoin && preparedConfig.FeeAPI == "" {
+	if preparedConfig.CoinType == util.ExtendCoinType(wallet.Bitcoin) && preparedConfig.FeeAPI == "" {
 		preparedConfig.FeeAPI = "https://btc.fees.openbazaar.org"
 	}
 	if len(preparedConfig.Options) == 0 {
@@ -438,7 +438,7 @@ func (d *WalletDatastore) WatchedScripts() wallet.WatchedScripts {
 	return d.watchedScripts
 }
 
-func CreateWalletDB(database *db.DB, coinType wallet.CoinType) *WalletDatastore {
+func CreateWalletDB(database *db.DB, coinType util.ExtCoinType) *WalletDatastore {
 	return &WalletDatastore{
 		keys:           db.NewKeyStore(database.SqlDB, database.Lock, coinType),
 		utxos:          db.NewUnspentTransactionStore(database.SqlDB, database.Lock, coinType),

@@ -2,13 +2,13 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/phoreproject/multiwallet/util"
 	"os"
 
+	"github.com/ipfs/go-ipfs/repo/fsrepo"
 	obnet "github.com/phoreproject/openbazaar-go/net"
 	"github.com/phoreproject/openbazaar-go/repo"
 	"github.com/phoreproject/openbazaar-go/repo/db"
-	"github.com/OpenBazaar/wallet-interface"
-	"github.com/ipfs/go-ipfs/repo/fsrepo"
 )
 
 type Status struct {
@@ -31,7 +31,7 @@ func (x *Status) Execute(args []string) error {
 		torAvailable = true
 	}
 	if fsrepo.IsInitialized(repoPath) {
-		sqliteDB, err := db.Create(repoPath, "", x.Testnet, wallet.Bitcoin)
+		sqliteDB, err := db.Create(repoPath, "", x.Testnet, util.CoinTypePhore)
 		if err != nil {
 			os.Exit(1)
 		}

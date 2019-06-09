@@ -3,6 +3,7 @@ package db
 import (
 	"database/sql"
 	"encoding/hex"
+	"github.com/phoreproject/multiwallet/util"
 	"strconv"
 	"strings"
 	"sync"
@@ -15,10 +16,10 @@ import (
 
 type UtxoDB struct {
 	modelStore
-	coinType wallet.CoinType
+	coinType util.ExtCoinType
 }
 
-func NewUnspentTransactionStore(db *sql.DB, lock *sync.Mutex, coinType wallet.CoinType) repo.UnspentTransactionOutputStore {
+func NewUnspentTransactionStore(db *sql.DB, lock *sync.Mutex, coinType util.ExtCoinType) repo.UnspentTransactionOutputStore {
 	return &UtxoDB{modelStore{db, lock}, coinType}
 }
 

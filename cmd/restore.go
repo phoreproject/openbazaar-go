@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/phoreproject/multiwallet/util"
 
 	bitswap "gx/ipfs/QmNkxFCmPtr2RQxjZNRCNryLud4L9wMEiBJsLgF14MqTHj/go-bitswap/network"
 	"gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
@@ -89,7 +90,7 @@ func (x *Restore) Execute(args []string) error {
 		}
 		os.RemoveAll(repoPath)
 	}
-	sqliteDB, err = InitializeRepo(repoPath, x.Password, x.Mnemonic, x.Testnet, creationDate, wallet.Bitcoin)
+	sqliteDB, err = InitializeRepo(repoPath, x.Password, x.Mnemonic, x.Testnet, creationDate, util.ExtendCoinType(wallet.Bitcoin))
 	if err != nil && err != repo.ErrRepoExists {
 		return err
 	}
@@ -102,7 +103,7 @@ func (x *Restore) Execute(args []string) error {
 		bytePassword, _ := terminal.ReadPassword(int(syscall.Stdin))
 		fmt.Println("")
 		pw := string(bytePassword)
-		sqliteDB, err = InitializeRepo(repoPath, pw, "", x.Testnet, time.Now(), wallet.Bitcoin)
+		sqliteDB, err = InitializeRepo(repoPath, pw, "", x.Testnet, time.Now(), util.ExtendCoinType(wallet.Bitcoin))
 		if err != nil && err != repo.ErrRepoExists {
 			return err
 		}
