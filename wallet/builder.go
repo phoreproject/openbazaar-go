@@ -141,9 +141,17 @@ func createAPIWallet(coin util.ExtCoinType, coinConfigOverrides *schema.CoinConf
 		if testnet {
 			actualCoin = util.CoinTypePhoreTest
 			params = phore.PhoreTestNetParams
+			err := chaincfg.Register(&phore.PhoreTestNetParams)
+			if err != nil {
+				return InvalidCoinType, nil, err
+			}
 		} else {
 			actualCoin = util.CoinTypePhore
 			params = phore.PhoreMainNetParams
+			err := chaincfg.Register(&phore.PhoreMainNetParams)
+			if err != nil {
+				return InvalidCoinType, nil, err
+			}
 		}
 		w, err := phore.NewPhoreWallet(*coinConfig, cfg.Mnemonic, &params, cfg.Proxy, cache.NewMockCacher(), cfg.DisableExchangeRates)
 		if err != nil {
