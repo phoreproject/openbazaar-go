@@ -87,7 +87,7 @@ func NewRPCWallet(mnemonic string, params *chaincfg.Params, repoPath string, DB 
 		return nil, err
 	}
 
-	keyManager, err := spvwallet.NewKeyManager(DB.Keys(), params, mPrivKey)
+	keyManager, err := spvwallet.NewKeyManager(DB.Keys(), params, mPrivKey, wallet.Phore)
 	if err != nil {
 		return nil, err
 	}
