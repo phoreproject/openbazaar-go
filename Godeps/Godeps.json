@@ -21,7 +21,7 @@
 		},
 		{
 			"ImportPath": "github.com/phoreproject/wallet-interface",
-			"Rev": "5d298be53cb82503253965ac47565bd861629b2c"
+			"Rev": "294114ebb86acfe5ab349ffa6adfea9b4f2e03d8"
 		},
 		{
 			"ImportPath": "github.com/boltdb/bolt",
