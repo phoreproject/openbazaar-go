@@ -13,11 +13,11 @@
 		},
 		{
 			"ImportPath": "github.com/phoreproject/spvwallet",
-			"Rev": "38d8ae391f5e77d3f13bc3ec869751281d25aca9"
+			"Rev": "8b0243c2b0fc86ded05bb85d9e18e9eca82ae690"
 		},
 		{
 			"ImportPath": "github.com/phoreproject/spvwallet/exchangerates",
-			"Rev": "38d8ae391f5e77d3f13bc3ec869751281d25aca9"
+			"Rev": "8b0243c2b0fc86ded05bb85d9e18e9eca82ae690"
 		},
 		{
 			"ImportPath": "github.com/phoreproject/wallet-interface",
