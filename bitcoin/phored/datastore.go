@@ -214,7 +214,7 @@ func (ts *TxStore) Ingest(tx *wire.MsgTx, height int32, timestamp time.Time) (ui
 	ts.txidsMutex.RLock()
 	sh, ok := ts.txids[tx.TxHash().String()]
 	ts.txidsMutex.RUnlock()
-	if ok && (sh == 0 && height == 0) {
+	if ok && (sh > 0 || (sh == 0 && height == 0)) {
 		return 1, nil
 	}
 

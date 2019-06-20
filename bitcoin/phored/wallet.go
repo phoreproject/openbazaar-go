@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"path"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -23,7 +24,7 @@ import (
 	"github.com/phoreproject/btcutil/txsort"
 	"github.com/phoreproject/btcwallet/wallet/txrules"
 	"github.com/phoreproject/spvwallet"
-	wallet "github.com/phoreproject/wallet-interface"
+	"github.com/phoreproject/wallet-interface"
 	b39 "github.com/tyler-smith/go-bip39"
 )
 
@@ -1133,6 +1134,14 @@ func (w *RPCWallet) Spend(amount int64, addr btc.Address, feeLevel wallet.FeeLev
 	if err != nil {
 		return nil, err
 	}
+
+	buf := bytes.NewBuffer(make([]byte, 0, tx.SerializeSize()))
+	if err := tx.Serialize(buf); err != nil {
+	}
+	txHex := hex.EncodeToString(buf.Bytes())
+	log.Debugf("Spend tx: %s\n", txHex)
+
+
 	// Broadcast
 	err = w.Broadcast(tx)
 	if err != nil {
@@ -1145,6 +1154,12 @@ func (w *RPCWallet) Spend(amount int64, addr btc.Address, feeLevel wallet.FeeLev
 // LookAheadDistance is the number of addresses to look for transactions before assuming the rest are unused
 var LookAheadDistance = 5
 
+type ReceivedTx struct {
+	tx wire.MsgTx
+	blockHeight int32
+	blockTime time.Time
+}
+
 // RetrieveTransactions fetches transactions from the rpc server and stores them into the database
 func (w *RPCWallet) RetrieveTransactions() error {
 	w.txstore.addrMutex.Lock()
@@ -1156,7 +1171,7 @@ func (w *RPCWallet) RetrieveTransactions() error {
 	w.txstore.addrMutex.Unlock()
 
 	// receive transactions for P2PKH and P2PK
-	w.receiveTransactions(addrs, false)
+	transactions := w.receiveTransactions(addrs, false)
 
 	// receive transactions for P2SH
 	log.Debugf("extracting P2SH script addresses")
@@ -1173,12 +1188,25 @@ func (w *RPCWallet) RetrieveTransactions() error {
 		scriptAddresses[idx] = localScriptAddress[0]
 	}
 
-	w.receiveTransactions(scriptAddresses, false)
+	transactions = append(transactions, w.receiveTransactions(scriptAddresses, false)...)
+	sort.SliceStable(transactions, func(i, j int) bool {
+		return transactions[i].blockHeight < transactions[j].blockHeight
+	})
+
+	for _, tx := range transactions {
+		_, err := w.txstore.Ingest(&tx.tx, tx.blockHeight, tx.blockTime)
+		if err != nil {
+			log.Warningf("Ingest error %s", err)
+		}
+		log.Debugf("ingested transactions hash %s", tx.tx.TxHash().String())
+	}
 	return nil
 }
 
-func (w *RPCWallet) receiveTransactions(addrs []btc.Address, lookAhead bool) {
+func (w *RPCWallet) receiveTransactions(addrs []btc.Address, lookAhead bool) []ReceivedTx{
 	numEmptyAddrs := 0
+
+	transactions := []ReceivedTx{}
 
 	for i := range addrs {
 		log.Debugf("fetching transactions for address %s", addrs[i].String())
@@ -1201,7 +1229,7 @@ func (w *RPCWallet) receiveTransactions(addrs []btc.Address, lookAhead bool) {
 			}
 
 			if numEmptyAddrs >= LookAheadDistance {
-				return
+				return transactions
 			}
 		}
 
@@ -1241,9 +1269,8 @@ func (w *RPCWallet) receiveTransactions(addrs []btc.Address, lookAhead bool) {
 				continue
 			}
 
-			w.txstore.Ingest(&transaction, int32(block.Height), time.Unix(block.Time, 0))
-
-			log.Debugf("ingested tx hash %s", transaction.TxHash().String())
+			transactions = append(transactions, ReceivedTx{transaction, int32(block.Height), time.Unix(block.Time, 0)})
 		}
 	}
+	return transactions
 }
