@@ -1134,14 +1134,6 @@ func (w *RPCWallet) Spend(amount int64, addr btc.Address, feeLevel wallet.FeeLev
 	if err != nil {
 		return nil, err
 	}
-
-	buf := bytes.NewBuffer(make([]byte, 0, tx.SerializeSize()))
-	if err := tx.Serialize(buf); err != nil {
-	}
-	txHex := hex.EncodeToString(buf.Bytes())
-	log.Debugf("Spend tx: %s\n", txHex)
-
-
 	// Broadcast
 	err = w.Broadcast(tx)
 	if err != nil {
@@ -1155,9 +1147,9 @@ func (w *RPCWallet) Spend(amount int64, addr btc.Address, feeLevel wallet.FeeLev
 var LookAheadDistance = 5
 
 type ReceivedTx struct {
-	tx wire.MsgTx
+	tx          wire.MsgTx
 	blockHeight int32
-	blockTime time.Time
+	blockTime   time.Time
 }
 
 // RetrieveTransactions fetches transactions from the rpc server and stores them into the database
@@ -1203,7 +1195,7 @@ func (w *RPCWallet) RetrieveTransactions() error {
 	return nil
 }
 
-func (w *RPCWallet) receiveTransactions(addrs []btc.Address, lookAhead bool) []ReceivedTx{
+func (w *RPCWallet) receiveTransactions(addrs []btc.Address, lookAhead bool) []ReceivedTx {
 	numEmptyAddrs := 0
 
 	transactions := []ReceivedTx{}
