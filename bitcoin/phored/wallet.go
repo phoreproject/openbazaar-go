@@ -61,7 +61,7 @@ type RPCWallet struct {
 // NewRPCWallet creates a new wallet given
 func NewRPCWallet(mnemonic string, params *chaincfg.Params, repoPath string, DB wallet.Datastore, host string) (*RPCWallet, error) {
 	if mnemonic == "" {
-		ent, _ := b39.NewEntropy(128)
+		ent, _ := b39.NewEntropy(256)
 		mnemonic, _ = b39.NewMnemonic(ent)
 	}
 

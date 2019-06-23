@@ -57,7 +57,7 @@ func NewSPVWallet(config *Config) (*SPVWallet, error) {
 	log.SetBackend(logging.AddModuleLevel(config.Logger))
 
 	if config.Mnemonic == "" {
-		ent, err := b39.NewEntropy(128)
+		ent, err := b39.NewEntropy(256)
 		if err != nil {
 			return nil, err
 		}
