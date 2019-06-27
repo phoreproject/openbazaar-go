@@ -57,7 +57,7 @@ func NewSPVWallet(config *Config) (*SPVWallet, error) {
 	log.SetBackend(logging.AddModuleLevel(config.Logger))
 
 	if config.Mnemonic == "" {
-		ent, err := b39.NewEntropy(128)
+		ent, err := b39.NewEntropy(256)
 		if err != nil {
 			return nil, err
 		}
@@ -98,7 +98,7 @@ func NewSPVWallet(config *Config) (*SPVWallet, error) {
 		mutex:         new(sync.RWMutex),
 	}
 
-	w.keyManager, err = NewKeyManager(config.DB.Keys(), w.params, w.masterPrivateKey)
+	w.keyManager, err = NewKeyManager(config.DB.Keys(), w.params, w.masterPrivateKey, wallet.Phore)
 
 	w.txstore, err = NewTxStore(w.params, config.DB, w.keyManager)
 	if err != nil {

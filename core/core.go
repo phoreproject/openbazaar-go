@@ -29,7 +29,7 @@ import (
 )
 
 var (
-	VERSION   = "1.3.4"
+	VERSION   = "2.0.0"
 	USERAGENT = "/Phore-Marketplace-go:" + VERSION + "/"
 )
 

@@ -450,7 +450,7 @@ func CreateIdentityKey(mnemonic string) ([]byte, error) {
 
 // NewMnemonic will return a randomly-generated BIP-39 compliant mnemonic
 func NewMnemonic() (string, error) {
-	entropy, err := bip39.NewEntropy(128)
+	entropy, err := bip39.NewEntropy(256)
 	if err != nil {
 		return "", fmt.Errorf("creating entropy: %s", err.Error())
 	}

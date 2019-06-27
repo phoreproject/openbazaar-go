@@ -302,7 +302,7 @@ const moderatorValidJSON = `{
 
 const walletMneumonicJSONResponse = `{"mnemonic": "pulp open fabric travel possible slogan sense piano fog knock weird merge"}`
 
-const walletAddressJSONResponse = `{"address": "PCNz5VN3ddp4EdfdiZBZhhxFRazuGwT3Wg"}`
+const walletAddressJSONResponse = `{"address": "PUne5vo5PuMujpV6usfbJ7QSeKKUJaZ3g2"}`
 
 //const walletBalanceJSONResponse = `{"confirmed": 0, "unconfirmed": 0, "height": 0}`
 
