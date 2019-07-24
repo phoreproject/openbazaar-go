@@ -2,12 +2,12 @@ package core_test
 
 import (
 	"encoding/hex"
-	crypto "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
+	"gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
 	"strings"
 	"testing"
 
-	"github.com/OpenBazaar/openbazaar-go/core"
 	"github.com/ipfs/go-ipfs/core/mock"
+	"github.com/phoreproject/openbazaar-go/core"
 )
 
 func TestSigningingPayload(t *testing.T) {

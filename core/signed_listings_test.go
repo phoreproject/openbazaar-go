@@ -4,9 +4,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/OpenBazaar/openbazaar-go/repo"
+	"github.com/phoreproject/openbazaar-go/repo"
 
-	"github.com/OpenBazaar/openbazaar-go/core"
+	"github.com/phoreproject/openbazaar-go/core"
 )
 
 func TestOpenBazaarSignedListings_GetSignedListingFromPath(t *testing.T) {
