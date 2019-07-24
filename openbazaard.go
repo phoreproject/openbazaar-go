@@ -6,11 +6,11 @@ import (
 	"os/signal"
 	"path/filepath"
 
-	"github.com/phoreproject/openbazaar-go/cmd"
-	"github.com/phoreproject/openbazaar-go/core"
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
 	"github.com/jessevdk/go-flags"
 	"github.com/op/go-logging"
+	"github.com/phoreproject/openbazaar-go/cmd"
+	"github.com/phoreproject/openbazaar-go/core"
 )
 
 var log = logging.MustGetLogger("main")
