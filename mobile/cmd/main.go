@@ -5,7 +5,7 @@ import (
 	"os"
 	"sync"
 
-	"github.com/OpenBazaar/openbazaar-go/mobile"
+	"github.com/phoreproject/openbazaar-go/mobile"
 	"github.com/jessevdk/go-flags"
 )
 

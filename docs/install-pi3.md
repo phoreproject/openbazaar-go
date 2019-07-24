@@ -60,7 +60,7 @@ Checkout a release version:
 git checkout v0.12.4
 ```
 
-Note: `go get` leaves the repo pointing at `master` which is a branch used for active development. Running OpenBazaar from `master` is NOT recommended. Check the [release versions](https://github.com/OpenBazaar/openbazaar-go/releases) for the available versions that you use iin checkout.
+Note: `go get` leaves the repo pointing at `master` which is a branch used for active development. Running OpenBazaar from `master` is NOT recommended. Check the [release versions](https://github.com/phoreproject/openbazaar-go/releases) for the available versions that you use iin checkout.
 
 To compile and run the source using the path above, WITHOUT encrypting the database:
 ```

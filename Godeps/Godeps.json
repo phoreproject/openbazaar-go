@@ -1,5 +1,5 @@
 {
-	"ImportPath": "github.com/OpenBazaar/openbazaar-go",
+	"ImportPath": "github.com/phoreproject/openbazaar-go",
 	"GoVersion": "go1.12",
 	"GodepVersion": "v80",
 	"Deps": [

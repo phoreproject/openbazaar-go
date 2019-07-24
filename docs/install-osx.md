@@ -59,7 +59,7 @@ Checkout a release version:
 git checkout v0.12.4
 ```
 
-Note: `go get` leaves the repo pointing at `master` which is a branch used for active development. Running OpenBazaar from `master` is NOT recommended. Check the [release versions](https://github.com/OpenBazaar/openbazaar-go/releases) for the available versions that you use in checkout.
+Note: `go get` leaves the repo pointing at `master` which is a branch used for active development. Running OpenBazaar from `master` is NOT recommended. Check the [release versions](https://github.com/phoreproject/openbazaar-go/releases) for the available versions that you use in checkout.
 
 ### Install openbazaar-go from other branch
 ```
@@ -83,12 +83,12 @@ NOTE FOR NEW GOLANG HACKERS:
 
 In most projects you usually perform a `git clone` of the repository in order to start hacking. 
 
-With `openbazaar-go` There's no need to manually `git clone` the project, this is done for you when you issue the `go get github.com/OpenBazaar/openbazaar-go` command, doing a manual `git clone` will only give you a repository that's missing a lot of recursive dependencies and building headaches.
+With `openbazaar-go` There's no need to manually `git clone` the project, this is done for you when you issue the `go get github.com/phoreproject/openbazaar-go` command, doing a manual `git clone` will only give you a repository that's missing a lot of recursive dependencies and building headaches.
 
-If you are used to having all your other projects in some other place on disk, just make a symlink from `$GOPATH/src/github.com/OpenBazaar/openbazaar-go` into your usual workspace folder.
+If you are used to having all your other projects in some other place on disk, just make a symlink from `$GOPATH/src/github.com/phoreproject/openbazaar-go` into your usual workspace folder.
 
-To start hacking make sure to add your git remote into the `$GOPATH/src/github.com/OpenBazaar/openbazaar-go` folder with:
+To start hacking make sure to add your git remote into the `$GOPATH/src/github.com/phoreproject/openbazaar-go` folder with:
 ```
-cd $GOPATH/src/github.com/OpenBazaar/openbazaar-go
+cd $GOPATH/src/github.com/phoreproject/openbazaar-go
 git remote add myusername git@github.com:myusername/openbazaar-go.git
 ```

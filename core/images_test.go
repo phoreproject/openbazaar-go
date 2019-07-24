@@ -8,10 +8,10 @@ import (
 	"os"
 	"testing"
 
-	"github.com/OpenBazaar/openbazaar-go/schema"
+	"github.com/phoreproject/openbazaar-go/schema"
 
-	"github.com/OpenBazaar/openbazaar-go/pb"
-	"github.com/OpenBazaar/openbazaar-go/test/factory"
+	"github.com/phoreproject/openbazaar-go/pb"
+	"github.com/phoreproject/openbazaar-go/test/factory"
 	"github.com/ipfs/go-ipfs/core/mock"
 )
 
