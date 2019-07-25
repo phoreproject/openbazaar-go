@@ -14,6 +14,6 @@ install:
 script:
   - $GOPATH/bin/golangci-lint run --deadline 10m
   - cd $TRAVIS_BUILD_DIR && go test -i && ./test_compile.sh
-  - goveralls -coverprofile=coverage.out -service travis-ci -repotoken $COVERALLS_TOKEN
+  - goveralls -coverprofile=coverage.out -service travis-ci
 after_success:
   - ./deploy.sh
