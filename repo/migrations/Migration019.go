@@ -12,9 +12,9 @@ import (
 	"github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/core/coreunix"
 
-	"gx/ipfs/QmZMWMvWMVKCbHetJ4RgndbuEF1io2UpUxwQwtNjtYPzSC/go-ipfs-files"
+	files "gx/ipfs/QmZMWMvWMVKCbHetJ4RgndbuEF1io2UpUxwQwtNjtYPzSC/go-ipfs-files"
 
-	"github.com/ipfs/go-ipfs/core/mock"
+	coremock "github.com/ipfs/go-ipfs/core/mock"
 )
 
 // Circular imports importing the core package here so we need to copy this here.

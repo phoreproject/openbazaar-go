@@ -3,9 +3,10 @@ package migrations
 import (
 	"database/sql"
 	"fmt"
-	"github.com/phoreproject/multiwallet/util"
 	"path"
 	"strings"
+
+	"github.com/phoreproject/multiwallet/util"
 )
 
 var WalletCoinType util.ExtCoinType

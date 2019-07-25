@@ -7,6 +7,7 @@ import (
 
 	libp2p "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
 	"gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
+	peer "gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
 
 	"strconv"
 	"sync"
@@ -171,9 +172,6 @@ func (n *OpenBazaarNode) SignDispute(contract *pb.RicardianContract) (*pb.Ricard
 	}
 	s := new(pb.Signature)
 	s.Section = pb.Signature_DISPUTE
-	if err != nil {
-		return contract, err
-	}
 	guidSig, err := n.IpfsNode.PrivateKey.Sign(serializedDispute)
 	if err != nil {
 		return contract, err
@@ -621,9 +619,6 @@ func (n *OpenBazaarNode) CloseDispute(orderID string, buyerPercentage, vendorPer
 		return err
 	}
 	mPrivKey := n.MasterPrivateKey
-	if err != nil {
-		return err
-	}
 	mECKey, err := mPrivKey.ECPrivKey()
 	if err != nil {
 		return err
@@ -729,9 +724,6 @@ func (n *OpenBazaarNode) SignDisputeResolution(contract *pb.RicardianContract) (
 	}
 	s := new(pb.Signature)
 	s.Section = pb.Signature_DISPUTE_RESOLUTION
-	if err != nil {
-		return contract, err
-	}
 	guidSig, err := n.IpfsNode.PrivateKey.Sign(serializedDR)
 	if err != nil {
 		return contract, err
@@ -1063,9 +1055,6 @@ func (n *OpenBazaarNode) ReleaseFunds(contract *pb.RicardianContract, records []
 		return err
 	}
 	mPrivKey := n.MasterPrivateKey
-	if err != nil {
-		return err
-	}
 	mECKey, err := mPrivKey.ECPrivKey()
 	if err != nil {
 		return err

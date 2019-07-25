@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ipfs/go-ipfs/core/mock"
+	coremock "github.com/ipfs/go-ipfs/core/mock"
 )
 
 func TestCidCompatibility(t *testing.T) {

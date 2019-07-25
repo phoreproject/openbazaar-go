@@ -1,9 +1,10 @@
 package db
 
 import (
-	"github.com/phoreproject/openbazaar-go/pb"
 	"strconv"
 	"strings"
+
+	"github.com/phoreproject/openbazaar-go/pb"
 )
 
 type query struct {

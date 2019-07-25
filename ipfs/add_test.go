@@ -6,7 +6,7 @@ import (
 	"path"
 	"testing"
 
-	"github.com/ipfs/go-ipfs/core/mock"
+	coremock "github.com/ipfs/go-ipfs/core/mock"
 )
 
 func TestMain(m *testing.M) {

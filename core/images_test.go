@@ -10,7 +10,7 @@ import (
 
 	"github.com/phoreproject/openbazaar-go/schema"
 
-	"github.com/ipfs/go-ipfs/core/mock"
+	coremock "github.com/ipfs/go-ipfs/core/mock"
 	"github.com/phoreproject/openbazaar-go/pb"
 	"github.com/phoreproject/openbazaar-go/test/factory"
 )

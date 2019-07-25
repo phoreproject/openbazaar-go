@@ -3,10 +3,11 @@ package db
 import (
 	"bytes"
 	"encoding/hex"
-	"github.com/phoreproject/multiwallet/util"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/phoreproject/multiwallet/util"
 
 	"github.com/btcsuite/btcd/wire"
 	"github.com/phoreproject/openbazaar-go/repo"

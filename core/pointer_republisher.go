@@ -1,7 +1,7 @@
 package core
 
 import (
-	"github.com/phoreproject/openbazaar-go/net/repointer"
+	net "github.com/phoreproject/openbazaar-go/net/repointer"
 )
 
 // StartPointerRepublisher - setup republisher for IPNS

@@ -3,14 +3,15 @@ package wallet
 import (
 	"errors"
 	"fmt"
-	"github.com/phoreproject/multiwallet/phore"
-	"github.com/phoreproject/multiwallet/util"
 	"net"
 	"net/url"
 	"os"
 	"path"
 	"strings"
 	"time"
+
+	"github.com/phoreproject/multiwallet/phore"
+	"github.com/phoreproject/multiwallet/util"
 
 	//eth "github.com/OpenBazaar/go-ethwallet/wallet"
 	"github.com/phoreproject/multiwallet"

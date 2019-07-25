@@ -57,9 +57,6 @@ func (n *OpenBazaarNode) RefundOrder(contract *pb.RicardianContract, records []*
 			return err
 		}
 		mPrivKey := n.MasterPrivateKey
-		if err != nil {
-			return err
-		}
 		mECKey, err := mPrivKey.ECPrivKey()
 		if err != nil {
 			return err
@@ -121,9 +118,6 @@ func (n *OpenBazaarNode) SignRefund(contract *pb.RicardianContract) (*pb.Ricardi
 	}
 	s := new(pb.Signature)
 	s.Section = pb.Signature_REFUND
-	if err != nil {
-		return contract, err
-	}
 	guidSig, err := n.IpfsNode.PrivateKey.Sign(serializedRefund)
 	if err != nil {
 		return contract, err
