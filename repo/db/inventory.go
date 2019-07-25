@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"strconv"
 	"sync"
+
 	"github.com/phoreproject/openbazaar-go/repo"
 )
 
