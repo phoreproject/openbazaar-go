@@ -8,13 +8,13 @@ import (
 	"time"
 
 	"github.com/OpenBazaar/jsonpb"
+	"github.com/op/go-logging"
+	"github.com/phoreproject/multiwallet/util"
 	"github.com/phoreproject/openbazaar-go/pb"
 	"github.com/phoreproject/openbazaar-go/repo"
 	"github.com/phoreproject/openbazaar-go/repo/db"
 	"github.com/phoreproject/openbazaar-go/schema"
 	"github.com/phoreproject/openbazaar-go/test/factory"
-	wi "github.com/OpenBazaar/wallet-interface"
-	"github.com/op/go-logging"
 )
 
 // DISPUTE CASES
@@ -197,7 +197,7 @@ func TestPerformTaskCreatesModeratorDisputeExpiryNotifications(t *testing.T) {
 		}
 	}()
 
-	datastore := db.NewSQLiteDatastore(database, new(sync.Mutex), wallet.Phore)
+	datastore := db.NewSQLiteDatastore(database, new(sync.Mutex), util.CoinTypePhore)
 	worker := &recordAgingNotifier{
 		datastore: datastore,
 		broadcast: broadcastChannel,
@@ -508,7 +508,7 @@ func TestPerformTaskCreatesBuyerDisputeTimeoutNotifications(t *testing.T) {
 		}
 	}()
 
-	datastore := db.NewSQLiteDatastore(database, new(sync.Mutex), wallet.Phore)
+	datastore := db.NewSQLiteDatastore(database, new(sync.Mutex), util.CoinTypePhore)
 	worker := &recordAgingNotifier{
 		datastore: datastore,
 		broadcast: broadcastChannel,
@@ -816,7 +816,7 @@ func TestPerformTaskCreatesPurchaseExpiryNotifications(t *testing.T) {
 		}
 	}()
 
-	datastore := db.NewSQLiteDatastore(database, new(sync.Mutex), wallet.Phore)
+	datastore := db.NewSQLiteDatastore(database, new(sync.Mutex), util.CoinTypePhore)
 	worker := &recordAgingNotifier{
 		datastore: datastore,
 		broadcast: broadcastChannel,
@@ -1061,7 +1061,7 @@ func TestPerformTaskCreatesVendorDisputeTimeoutNotifications(t *testing.T) {
 		}
 	}()
 
-	datastore := db.NewSQLiteDatastore(database, new(sync.Mutex), wallet.Phore)
+	datastore := db.NewSQLiteDatastore(database, new(sync.Mutex), util.CoinTypePhore)
 	worker := &recordAgingNotifier{
 		datastore: datastore,
 		broadcast: broadcastChannel,

@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/phoreproject/multiwallet/util"
 	"github.com/phoreproject/openbazaar-go/schema"
-	"github.com/OpenBazaar/wallet-interface"
 )
 
 func buildNewDatastore() (*SQLiteDatastore, func(), error) {
@@ -26,7 +26,7 @@ func buildNewDatastore() (*SQLiteDatastore, func(), error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	datastore := NewSQLiteDatastore(database, new(sync.Mutex), wallet.Phore)
+	datastore := NewSQLiteDatastore(database, new(sync.Mutex), util.CoinTypePhore)
 	return datastore, appSchema.DestroySchemaDirectories, nil
 }
 
@@ -35,7 +35,7 @@ func TestCreate(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer os.RemoveAll(path.Join("./", "datastore"))
-	_, err := Create("", "LetMeIn", false, wallet.Phore)
+	_, err := Create("", "LetMeIn", false, util.CoinTypePhore)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -55,7 +55,7 @@ func TestInit(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer os.RemoveAll(path.Join("./", "datastore"))
-	testDB, err := Create("", "LetMeIn", false, wallet.Phore)
+	testDB, err := Create("", "LetMeIn", false, util.CoinTypePhore)
 	if err != nil {
 		t.Fatal(err)
 	}

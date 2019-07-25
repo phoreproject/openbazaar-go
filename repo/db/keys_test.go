@@ -8,9 +8,10 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/phoreproject/openbazaar-go/repo"
 	"github.com/OpenBazaar/wallet-interface"
 	"github.com/btcsuite/btcd/btcec"
+	"github.com/phoreproject/multiwallet/util"
+	"github.com/phoreproject/openbazaar-go/repo"
 )
 
 var kdb repo.KeyStore
@@ -18,7 +19,7 @@ var kdb repo.KeyStore
 func init() {
 	conn, _ := sql.Open("sqlite3", ":memory:")
 	initDatabaseTables(conn, "")
-	kdb = NewKeyStore(conn, new(sync.Mutex), wallet.Bitcoin)
+	kdb = NewKeyStore(conn, new(sync.Mutex), util.CoinTypePhore)
 }
 
 func TestGetAll(t *testing.T) {

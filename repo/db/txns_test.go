@@ -3,14 +3,14 @@ package db
 import (
 	"bytes"
 	"encoding/hex"
+	"github.com/phoreproject/multiwallet/util"
 	"sync"
 	"testing"
 	"time"
 
+	"github.com/btcsuite/btcd/wire"
 	"github.com/phoreproject/openbazaar-go/repo"
 	"github.com/phoreproject/openbazaar-go/schema"
-	"github.com/OpenBazaar/wallet-interface"
-	"github.com/btcsuite/btcd/wire"
 )
 
 func buildNewTransactionStore() (repo.TransactionStore, func(), error) {
@@ -29,7 +29,7 @@ func buildNewTransactionStore() (repo.TransactionStore, func(), error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	return NewTransactionStore(database, new(sync.Mutex), wallet.Bitcoin), appSchema.DestroySchemaDirectories, nil
+	return NewTransactionStore(database, new(sync.Mutex), util.CoinTypePhore), appSchema.DestroySchemaDirectories, nil
 }
 
 func TestTxnsPut(t *testing.T) {

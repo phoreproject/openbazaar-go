@@ -7,10 +7,11 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/OpenBazaar/wallet-interface"
+	"github.com/phoreproject/multiwallet/util"
 	"github.com/phoreproject/openbazaar-go/repo"
 	"github.com/phoreproject/openbazaar-go/schema"
 	"github.com/phoreproject/openbazaar-go/test/factory"
-	"github.com/OpenBazaar/wallet-interface"
 )
 
 func buildNewUnspentTransactionOutputStore() (repo.UnspentTransactionOutputStore, func(), error) {
@@ -28,7 +29,7 @@ func buildNewUnspentTransactionOutputStore() (repo.UnspentTransactionOutputStore
 	if err != nil {
 		return nil, nil, err
 	}
-	return NewUnspentTransactionStore(database, new(sync.Mutex), wallet.Bitcoin), appSchema.DestroySchemaDirectories, nil
+	return NewUnspentTransactionStore(database, new(sync.Mutex), util.CoinTypePhore), appSchema.DestroySchemaDirectories, nil
 }
 
 func newPopulatedUtxoStore() (repo.UnspentTransactionOutputStore, wallet.Utxo, func(), error) {

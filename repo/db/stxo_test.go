@@ -7,11 +7,12 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/phoreproject/openbazaar-go/repo"
-	"github.com/phoreproject/openbazaar-go/schema"
 	"github.com/OpenBazaar/wallet-interface"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcd/wire"
+	"github.com/phoreproject/multiwallet/util"
+	"github.com/phoreproject/openbazaar-go/repo"
+	"github.com/phoreproject/openbazaar-go/schema"
 )
 
 func mustNewStxo() wallet.Stxo {
@@ -47,7 +48,7 @@ func buildNewSpentTransactionOutputStore() (repo.SpentTransactionOutputStore, fu
 	if err != nil {
 		return nil, nil, err
 	}
-	return NewSpentTransactionStore(database, new(sync.Mutex), wallet.Bitcoin), appSchema.DestroySchemaDirectories, nil
+	return NewSpentTransactionStore(database, new(sync.Mutex), util.CoinTypePhore), appSchema.DestroySchemaDirectories, nil
 }
 
 func TestStxoPut(t *testing.T) {
