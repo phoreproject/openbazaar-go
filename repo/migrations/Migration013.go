@@ -239,25 +239,6 @@ func Migration013_ScriptToAddress(coinType string, script []byte, testmodeEnanab
 	return "", fmt.Errorf("unable to migrate coinType %s", coinType)
 }
 
-func migration013_DecodeBCHAddress(addr string, params *chaincfg.Params) (*btcutil.Address, error) {
-	// Legacy
-	decoded, err := btcutil.DecodeAddress(addr, params)
-	if err == nil {
-		return &decoded, nil
-	}
-	//// Cashaddr
-	//decoded, err = bchutil.DecodeAddress(addr, params)
-	//if err == nil {
-	//	return &decoded, nil
-	//}
-	//// Bitpay
-	//decoded, err = bchutil.DecodeBitpay(addr, params)
-	//if err == nil {
-	//	return &decoded, nil
-	//}
-	return nil, fmt.Errorf("unable to decode BCH address")
-}
-
 func Migration013_AddressToScript(coinType string, addr string, testmodeEnanabled bool) ([]byte, error) {
 	var params = Migration013_ChainConfigParams(testmodeEnanabled)
 

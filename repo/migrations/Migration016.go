@@ -8,12 +8,6 @@ import (
 	"path"
 )
 
-const (
-	migration016EthereumRegistryAddressMainnet = "0x403d907982474cdd51687b09a8968346159378f3"
-	migration016EthereumRegistryAddressRinkeby = "0x403d907982474cdd51687b09a8968346159378f3"
-	migration016EthereumRegistryAddressRopsten = "0x403d907982474cdd51687b09a8968346159378f3"
-)
-
 type Migration016WalletsConfig struct {
 	PHR *migration016CoinConfig `json:"PHR"`
 	BTC *migration016CoinConfig `json:"BTC"`
