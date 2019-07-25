@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/phoreproject/multiwallet/util"
 	"gx/ipfs/QmPpYHPRGVpSJTkQDQDwTYZ1cYUR2NM4HS6M3iAXi8aoUa/go-libp2p-kad-dht"
 	"gx/ipfs/QmPpYHPRGVpSJTkQDQDwTYZ1cYUR2NM4HS6M3iAXi8aoUa/go-libp2p-kad-dht/opts"
 	ma "gx/ipfs/QmT4U94DnD8FRfqr21obWY32HLM5VExccPKMjQHofeYqr9/go-multiaddr"
@@ -95,7 +96,7 @@ func NewNodeWithConfig(config *NodeConfig, password string, mnemonic string) (*N
 	logger = logging.NewBackendFormatter(backendStdout, stdoutLogFormat)
 	logging.SetBackend(logger)
 
-	migrations.WalletCoinType = config.CoinType
+	migrations.WalletCoinType = util.ExtendCoinType(config.CoinType)
 
 	sqliteDB, err := initializeRepo(config.RepoPath, "", "", true, time.Now(), config.CoinType)
 	if err != nil && err != repo.ErrRepoExists {
@@ -424,7 +425,7 @@ func (n *Node) Stop() error {
 // initializeRepo create the database
 func initializeRepo(dataDir, password, mnemonic string, testnet bool, creationDate time.Time, coinType wi.CoinType) (*db.SQLiteDatastore, error) {
 	// Database
-	sqliteDB, err := db.Create(dataDir, password, testnet, coinType)
+	sqliteDB, err := db.Create(dataDir, password, testnet, util.ExtendCoinType(coinType))
 	if err != nil {
 		return sqliteDB, err
 	}
