@@ -21,7 +21,7 @@ const preMigration018Config = `{
     	},
 	"Gateway":{},
 	"Ipns": {
-		"BackUpAPI": "https://gateway.ob1.io",
+		"BackUpAPI": "https://gateway.phore.io",
         	"QuerySize": 1,
         	"RecordLifetime": "7d",
         	"RepublishPeriod": "24h",
@@ -58,7 +58,7 @@ const postMigration018Config = `{
 	},
 	"IpnsExtra": {
         	"DHTQuorumSize": 1,
-        	"FallbackAPI": "https://gateway.ob1.io"
+        	"FallbackAPI": "https://gateway.phore.io"
 	},
 	"OtherConfigProperty1": [1, 2, 3],
 	"OtherConfigProperty2": "abc123",

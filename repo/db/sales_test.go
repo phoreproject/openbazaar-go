@@ -319,7 +319,7 @@ func TestSalesGetByPaymentAddress(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	addr, err = btcutil.DecodeAddress("PUxo8xZwGYYasHGmkdQo3YnE7ZTyZuwwzK", &chaincfg.MainNetParams)
+	addr, err = btcutil.DecodeAddress("19bsDJeYjH6JX1pvsCcA8Qt5LQmPYt7Mry", &chaincfg.MainNetParams)
 	if err != nil {
 		t.Error(err)
 	}

@@ -36,7 +36,7 @@ func migration016DefaultWalletConfig() *Migration016WalletsConfig {
 		PHR: &migration016CoinConfig{
 			Type:             "API",
 			APIPool:          []string{"https://phr.blockbook.api.phore.io/api"},
-			APITestnetPool:   []string{"https://phr.blockbook.api.phore.io/api"},
+			APITestnetPool:   []string{"https://tphr.blockbook.api.phore.io/api"},
 			FeeAPI:           "",
 			LowFeeDefault:    1,
 			MediumFeeDefault: 10,

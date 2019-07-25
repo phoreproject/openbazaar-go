@@ -104,7 +104,7 @@ func (Migration018) Up(repoPath string, dbPassword string, testnet bool) error {
 	// Add IPNSExtra config
 	cfg["IpnsExtra"] = map[string]interface{}{
 		"DHTQuorumSize": 1,
-		"FallbackAPI":   "https://gateway.ob1.io",
+		"FallbackAPI":   "https://gateway.phore.io",
 	}
 
 	out, err := json.MarshalIndent(cfg, "", "   ")
