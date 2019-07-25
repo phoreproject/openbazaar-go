@@ -2,10 +2,10 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/phoreproject/multiwallet/util"
 	"os"
 
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
+	"github.com/phoreproject/multiwallet/util"
 	obnet "github.com/phoreproject/openbazaar-go/net"
 	"github.com/phoreproject/openbazaar-go/repo"
 	"github.com/phoreproject/openbazaar-go/repo/db"
