@@ -521,8 +521,8 @@ type SearchRawTransactionsResult struct {
 	Hex           string       `json:"hex,omitempty"`
 	Txid          string       `json:"txid"`
 	Hash          string       `json:"hash"`
-	Size          string       `json:"size"`
-	Vsize         string       `json:"vsize"`
+	Size          int          `json:"size"`
+	Vsize         int          `json:"vsize"`
 	Version       int32        `json:"version"`
 	LockTime      uint32       `json:"locktime"`
 	Vin           []VinPrevOut `json:"vin"`
