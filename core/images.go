@@ -19,9 +19,9 @@ import (
 	ipath "gx/ipfs/QmT3rzed1ppXefourpmoZ7tyVQfsGPQZ1pHDngLmCvXxd3/go-path"
 	"gx/ipfs/QmfB3oNXGGq9S4B2a9YeCajoATms3Zw2VvDm8fK7VeLSV8/go-unixfs/io"
 
+	"github.com/nfnt/resize"
 	"github.com/phoreproject/openbazaar-go/ipfs"
 	"github.com/phoreproject/openbazaar-go/pb"
-	"github.com/nfnt/resize"
 )
 
 // SetAvatarImages - set avatar image from the base64 encoded image string

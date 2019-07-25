@@ -5,9 +5,9 @@ import (
 	"gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
 	"time"
 
+	"github.com/op/go-logging"
 	"github.com/phoreproject/openbazaar-go/ipfs"
 	"github.com/phoreproject/openbazaar-go/repo"
-	"github.com/op/go-logging"
 	"golang.org/x/net/context"
 )
 

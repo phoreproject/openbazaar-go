@@ -9,10 +9,10 @@ import (
 
 	"time"
 
-	"github.com/phoreproject/openbazaar-go/pb"
 	"github.com/OpenBazaar/wallet-interface"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
+	"github.com/phoreproject/openbazaar-go/pb"
 )
 
 var (

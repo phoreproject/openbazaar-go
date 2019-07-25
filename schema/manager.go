@@ -15,9 +15,9 @@ import (
 
 	"gx/ipfs/QmPEpj17FDRpc7K1aArKZp3RsHtzRMKykeK9GVgn4WQGPR/go-ipfs-config"
 
-	"github.com/phoreproject/openbazaar-go/ipfs"
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
 	_ "github.com/mutecomm/go-sqlcipher"
+	"github.com/phoreproject/openbazaar-go/ipfs"
 	"github.com/tyler-smith/go-bip39"
 )
 

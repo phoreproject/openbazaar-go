@@ -15,10 +15,10 @@ import (
 	"testing"
 
 	"github.com/OpenBazaar/jsonpb"
-	"github.com/phoreproject/openbazaar-go/pb"
-	"github.com/phoreproject/openbazaar-go/repo/migrations"
 	"github.com/golang/protobuf/proto"
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
+	"github.com/phoreproject/openbazaar-go/pb"
+	"github.com/phoreproject/openbazaar-go/repo/migrations"
 )
 
 const (

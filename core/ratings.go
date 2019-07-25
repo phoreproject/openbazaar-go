@@ -13,9 +13,9 @@ import (
 	"os"
 	"path"
 
-	"github.com/phoreproject/openbazaar-go/pb"
 	"github.com/btcsuite/btcd/btcec"
 	"github.com/golang/protobuf/proto"
+	"github.com/phoreproject/openbazaar-go/pb"
 )
 
 // ValidateRating - validates rating for API GET and Post/Update

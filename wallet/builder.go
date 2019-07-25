@@ -202,13 +202,13 @@ func createAPIWallet(coin util.ExtCoinType, coinConfigOverrides *schema.CoinConf
 			return InvalidCoinType, nil, err
 		}
 		return actualCoin, w, nil
-	//case wallet.Ethereum:
-	//	actualCoin = wallet.Ethereum
-	//	w, err := eth.NewEthereumWallet(*coinConfig, cfg.Mnemonic, cfg.Proxy)
-	//	if err != nil {
-	//		return InvalidCoinType, nil, err
-	//	}
-	//	return actualCoin, w, nil
+		//case wallet.Ethereum:
+		//	actualCoin = wallet.Ethereum
+		//	w, err := eth.NewEthereumWallet(*coinConfig, cfg.Mnemonic, cfg.Proxy)
+		//	if err != nil {
+		//		return InvalidCoinType, nil, err
+		//	}
+		//	return actualCoin, w, nil
 	}
 	return InvalidCoinType, nil, fmt.Errorf("unable to create wallet for unknown coin %s", coin.String())
 }

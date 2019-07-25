@@ -19,13 +19,13 @@ import (
 	"sync"
 	"time"
 
+	"github.com/golang/protobuf/proto"
+	"github.com/ipfs/go-ipfs/core"
+	"github.com/op/go-logging"
 	"github.com/phoreproject/openbazaar-go/ipfs"
 	"github.com/phoreproject/openbazaar-go/net"
 	"github.com/phoreproject/openbazaar-go/pb"
 	"github.com/phoreproject/openbazaar-go/repo"
-	"github.com/golang/protobuf/proto"
-	"github.com/ipfs/go-ipfs/core"
-	"github.com/op/go-logging"
 	"golang.org/x/net/proxy"
 )
 

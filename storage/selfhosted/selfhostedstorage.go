@@ -11,8 +11,8 @@ import (
 	"os"
 	"path"
 
-	"github.com/phoreproject/openbazaar-go/ipfs"
 	"github.com/ipfs/go-ipfs/core"
+	"github.com/phoreproject/openbazaar-go/ipfs"
 )
 
 type SelfHostedStorage struct {

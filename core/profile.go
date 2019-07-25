@@ -18,9 +18,9 @@ import (
 	ipnspath "gx/ipfs/QmT3rzed1ppXefourpmoZ7tyVQfsGPQZ1pHDngLmCvXxd3/go-path"
 
 	"github.com/OpenBazaar/jsonpb"
-	"github.com/phoreproject/openbazaar-go/pb"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/imdario/mergo"
+	"github.com/phoreproject/openbazaar-go/pb"
 )
 
 const KeyCachePrefix = "/pubkey/"

@@ -8,8 +8,8 @@ import (
 	"path"
 
 	"github.com/OpenBazaar/jsonpb"
-	"github.com/phoreproject/openbazaar-go/pb"
 	_ "github.com/mutecomm/go-sqlcipher"
+	"github.com/phoreproject/openbazaar-go/pb"
 )
 
 type Migration009 struct{}

@@ -8,9 +8,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/OpenBazaar/wallet-interface"
 	"github.com/phoreproject/openbazaar-go/repo/migrations"
 	"github.com/phoreproject/openbazaar-go/schema"
-	"github.com/OpenBazaar/wallet-interface"
 )
 
 func TestMigration014(t *testing.T) {

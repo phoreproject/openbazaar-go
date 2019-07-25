@@ -4,9 +4,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/op/go-logging"
 	"github.com/phoreproject/multiwallet"
 	"github.com/phoreproject/openbazaar-go/repo"
-	"github.com/op/go-logging"
 )
 
 var log = logging.MustGetLogger("ResyncManager")

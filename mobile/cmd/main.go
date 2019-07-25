@@ -5,8 +5,8 @@ import (
 	"os"
 	"sync"
 
-	"github.com/phoreproject/openbazaar-go/mobile"
 	"github.com/jessevdk/go-flags"
+	"github.com/phoreproject/openbazaar-go/mobile"
 )
 
 type Options struct {

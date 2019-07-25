@@ -16,9 +16,9 @@ import (
 	"gx/ipfs/QmdxUuburamoF6zF9qjeQC4WYcWGbWuRmdLacMEsW8ioD8/gogo-protobuf/proto"
 	"gx/ipfs/QmfVj3x4D6Jkq9SEoi5n2NmoUomLwoeiwnYz2KQa15wRw6/base32"
 
-	dhtpb "github.com/phoreproject/openbazaar-go/repo/migrations/helpers/Migration020"
 	"github.com/ipfs/go-ipfs/repo"
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
+	dhtpb "github.com/phoreproject/openbazaar-go/repo/migrations/helpers/Migration020"
 )
 
 // Migration020 runs an IPFS migration which migrates the IPNS records in the

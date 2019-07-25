@@ -10,9 +10,9 @@ import (
 
 	"github.com/phoreproject/openbazaar-go/schema"
 
+	"github.com/ipfs/go-ipfs/core/mock"
 	"github.com/phoreproject/openbazaar-go/pb"
 	"github.com/phoreproject/openbazaar-go/test/factory"
-	"github.com/ipfs/go-ipfs/core/mock"
 )
 
 func TestImageFormats(t *testing.T) {

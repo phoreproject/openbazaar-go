@@ -6,10 +6,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/phoreproject/openbazaar-go/pb"
-	"github.com/phoreproject/openbazaar-go/repo"
 	"github.com/OpenBazaar/wallet-interface"
 	"github.com/btcsuite/btcutil"
+	"github.com/phoreproject/openbazaar-go/pb"
+	"github.com/phoreproject/openbazaar-go/repo"
 )
 
 // DefaultCurrencyDivisibility is the Divisibility of the Currency if not
