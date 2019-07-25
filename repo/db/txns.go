@@ -2,13 +2,13 @@ package db
 
 import (
 	"database/sql"
-	"github.com/phoreproject/multiwallet/util"
 	"sync"
 	"time"
 
-	"github.com/phoreproject/openbazaar-go/repo"
 	"github.com/OpenBazaar/wallet-interface"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
+	"github.com/phoreproject/multiwallet/util"
+	"github.com/phoreproject/openbazaar-go/repo"
 )
 
 type TxnsDB struct {

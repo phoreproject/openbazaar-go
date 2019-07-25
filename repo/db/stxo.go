@@ -3,15 +3,15 @@ package db
 import (
 	"database/sql"
 	"encoding/hex"
-	"github.com/phoreproject/multiwallet/util"
 	"strconv"
 	"strings"
 	"sync"
 
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
-	"github.com/phoreproject/openbazaar-go/repo"
-	"github.com/btcsuite/btcd/wire"
 	"github.com/OpenBazaar/wallet-interface"
+	"github.com/btcsuite/btcd/chaincfg/chainhash"
+	"github.com/btcsuite/btcd/wire"
+	"github.com/phoreproject/multiwallet/util"
+	"github.com/phoreproject/openbazaar-go/repo"
 )
 
 type StxoDB struct {

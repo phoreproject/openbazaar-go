@@ -4,11 +4,11 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
-	"github.com/phoreproject/multiwallet/util"
 	"os"
 	"strings"
 	"time"
 
+	"github.com/phoreproject/multiwallet/util"
 	"github.com/phoreproject/openbazaar-go/repo"
 
 	"github.com/op/go-logging"

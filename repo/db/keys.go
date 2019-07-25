@@ -4,13 +4,13 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"errors"
-	"github.com/phoreproject/multiwallet/util"
 	"strconv"
 	"sync"
 
-	"github.com/phoreproject/openbazaar-go/repo"
 	"github.com/OpenBazaar/wallet-interface"
 	"github.com/btcsuite/btcd/btcec"
+	"github.com/phoreproject/multiwallet/util"
+	"github.com/phoreproject/openbazaar-go/repo"
 )
 
 type KeysDB struct {
