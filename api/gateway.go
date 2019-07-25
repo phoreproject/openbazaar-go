@@ -4,10 +4,10 @@ import (
 	"net"
 	"net/http"
 
-	"github.com/phoreproject/openbazaar-go/core"
-	"github.com/phoreproject/openbazaar-go/schema"
 	"github.com/ipfs/go-ipfs/core/corehttp"
 	"github.com/op/go-logging"
+	"github.com/phoreproject/openbazaar-go/core"
+	"github.com/phoreproject/openbazaar-go/schema"
 )
 
 var log = logging.MustGetLogger("api")

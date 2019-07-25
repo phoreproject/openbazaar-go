@@ -7,10 +7,10 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/phoreproject/openbazaar-go/core"
-	"github.com/phoreproject/openbazaar-go/schema"
 	"github.com/gorilla/websocket"
 	"github.com/op/go-logging"
+	"github.com/phoreproject/openbazaar-go/core"
+	"github.com/phoreproject/openbazaar-go/schema"
 )
 
 type connection struct {
