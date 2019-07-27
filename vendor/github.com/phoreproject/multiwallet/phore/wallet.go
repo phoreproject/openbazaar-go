@@ -18,8 +18,6 @@ import (
 	"github.com/phoreproject/multiwallet/util"
 
 	"github.com/OpenBazaar/spvwallet"
-	"github.com/OpenBazaar/wallet-interface"
-
 	"github.com/btcsuite/btcd/blockchain"
 	"github.com/btcsuite/btcd/btcec"
 	"github.com/btcsuite/btcd/chaincfg"
@@ -1064,6 +1062,7 @@ type ReceivedTx struct {
 	tx          wire.MsgTx
 	blockHeight int32
 	blockTime   time.Time
+	blockIndex  int32
 }
 
 // RetrieveTransactions fetches transactions from the rpc server and stores them into the database
@@ -1096,7 +1095,8 @@ func (w *RPCWallet) RetrieveTransactions() error {
 
 	transactions = append(transactions, w.receiveTransactions(scriptAddresses, false)...)
 	sort.SliceStable(transactions, func(i, j int) bool {
-		return transactions[i].blockHeight < transactions[j].blockHeight
+		return transactions[i].blockHeight < transactions[j].blockHeight ||
+			(transactions[i].blockHeight == transactions[j].blockHeight && transactions[i].blockIndex < transactions[j].blockIndex)
 	})
 
 	for _, tx := range transactions {
@@ -1175,8 +1175,26 @@ func (w *RPCWallet) receiveTransactions(addrs []btc.Address, lookAhead bool) []R
 				continue
 			}
 
-			transactions = append(transactions, ReceivedTx{transaction, int32(block.Height), time.Unix(block.Time, 0)})
+			// replace this by sending the index of the transaction in the block
+			index := int32(-1)
 
+			for i, transactionHex := range block.Tx {
+				if transactionHex == transaction.TxHash().String() {
+					index = int32(i)
+				}
+			}
+
+			if index == -1 {
+				log.Errorf("could not find transaction in block")
+				continue
+			}
+
+			transactions = append(transactions, ReceivedTx{
+				tx:          transaction,
+				blockHeight: int32(block.Height),
+				blockTime:   time.Unix(block.Time, 0),
+				blockIndex:  index,
+			})
 		}
 	}
 	return transactions
