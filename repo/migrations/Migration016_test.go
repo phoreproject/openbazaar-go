@@ -135,7 +135,6 @@ func TestMigration016(t *testing.T) {
 	migration016AssertAPI(t, phr["API"], "https://phr.blockbook.api.phore.io/api")
 	migration016AssertAPI(t, phr["APITestnet"], "https://tphr.blockbook.api.phore.io/api")
 
-
 	var re = regexp.MustCompile(`\s`)
 	if re.ReplaceAllString(string(configBytes), "") != re.ReplaceAllString(string(postMigration016Config), "") {
 		t.Logf("actual: %s", re.ReplaceAllString(string(configBytes), ""))

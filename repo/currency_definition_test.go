@@ -231,12 +231,13 @@ func TestCurrencyDictionaryValid(t *testing.T) {
 	if errOne == nil {
 		t.Fatalf("expected invalidTwo to be invalid, but was not")
 	}
-
+	//nolint
 	expectedErrs := map[string]error{
 		invalidOne.Code.String(): errOne,
 		invalidTwo.Code.String(): errTwo,
 		"DIF":                    repo.ErrDictionaryIndexMismatchedCode,
 	}
+	//nolint
 	_, err := repo.NewCurrencyDictionary(map[string]*repo.CurrencyDefinition{
 		valid.Code.String():      valid,
 		invalidOne.Code.String(): invalidOne,

@@ -607,7 +607,7 @@ func (x *Start) Execute(args []string) error {
 		MasterPrivateKey:              mPrivKey,
 		Multiwallet:                   mw,
 		OfflineMessageFailoverTimeout: 30 * time.Second,
-		Pubsub:                        ps,
+		Pubsub:                        ps, //nolint,gofmt,goimports
 		PushNodes:                     pushNodes,
 		RegressionTestEnable:          x.Regtest,
 		RepoPath:                      repoPath,

@@ -78,6 +78,7 @@ func (x *GenerateCertificates) Execute(args []string) error {
 		}
 	}
 
+	//nolint,gofmt,goimports
 	template := x509.Certificate{
 		SerialNumber: serialNumber,
 		IPAddresses:  ipAddresses,

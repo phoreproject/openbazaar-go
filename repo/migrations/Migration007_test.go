@@ -60,6 +60,7 @@ func TestMigration007(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	//nolint
 	_, err = db.Exec(dbSetupSql,
 		caseID,                 // dispute case id
 		int(0),                 // dispute OrderState
