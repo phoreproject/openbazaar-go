@@ -13,10 +13,6 @@ import (
 
 	"github.com/ipfs/go-ipfs/core"
 	"github.com/phoreproject/openbazaar-go/ipfs"
-<<<<<<< HEAD
-	"gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
-=======
->>>>>>> 1eba569e5bc08b0e8756887aa5838fee26022b3c
 )
 
 type SelfHostedStorage struct {

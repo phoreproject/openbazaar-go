@@ -48,49 +48,6 @@ func TestGetApiConfig(t *testing.T) {
 	}
 }
 
-<<<<<<< HEAD
-func TestGetWalletConfig(t *testing.T) {
-	config, err := GetWalletConfig(configFixture())
-	if err != nil {
-		t.Errorf(err.Error())
-		return
-	}
-	if config.FeeAPI != "https://btc.fees.openbazaar.org" {
-		t.Error("FeeApi does not equal expected value")
-	}
-	if config.TrustedPeer != "127.0.0.1:8333" {
-		t.Error("TrustedPeer does not equal expected value")
-	}
-	if config.Type != "spvwallet" {
-		t.Error("Type does not equal expected value")
-	}
-	if config.Binary != "/path/to/bitcoind" {
-		t.Error("Binary does not equal expected value")
-	}
-	if config.LowFeeDefault != 20 {
-		t.Error("Expected low to be 20, got ", config.LowFeeDefault)
-	}
-	if config.MediumFeeDefault != 40 {
-		t.Error("Expected medium to be 40, got ", config.MediumFeeDefault)
-	}
-	if config.HighFeeDefault != 60 {
-		t.Error("Expected high to be 60, got ", config.HighFeeDefault)
-	}
-	if config.MaxFee != 2000 {
-		t.Error("Expected maxFee to be 2000, got ", config.MaxFee)
-	}
-	if err != nil {
-		t.Error("GetFeeAPI threw an unexpected error")
-	}
-
-	_, err = GetWalletConfig([]byte{})
-	if err == nil {
-		t.Error("GetFeeAPI didn't throw an error")
-	}
-}
-
-=======
->>>>>>> 1eba569e5bc08b0e8756887aa5838fee26022b3c
 func TestGetWalletsConfig(t *testing.T) {
 	config, err := GetWalletsConfig(configFixture())
 	if err != nil {
@@ -386,8 +343,7 @@ func configFixture() []byte {
     "RPCPassword": "password",
     "RPCUser": "username",
     "TrustedPeer": "127.0.0.1:8333",
-    "Type": "spvwallet",
-	"RPCLocation": "rpc2.phore.io"
+    "Type": "spvwallet"
   },
   "Wallets": {
     "BTC": {

@@ -26,33 +26,15 @@ import (
 	ipfsconfig "gx/ipfs/QmPEpj17FDRpc7K1aArKZp3RsHtzRMKykeK9GVgn4WQGPR/go-ipfs-config"
 	ipnspb "gx/ipfs/QmaRFtZhVAwXBk4Z3zEsvjScH9fjsDZmhXfa1Gm8eMb9cg/go-ipns/pb"
 
-<<<<<<< HEAD
-	rep "github.com/phoreproject/openbazaar-go/net/repointer"
-	ret "github.com/phoreproject/openbazaar-go/net/retriever"
-	"github.com/phoreproject/openbazaar-go/net/service"
-	lis "github.com/phoreproject/openbazaar-go/phore/listeners"
-
-	"errors"
-	"fmt"
-	bstk "github.com/OpenBazaar/go-blockstackclient"
-=======
 	wi "github.com/OpenBazaar/wallet-interface"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcutil/hdkeychain"
->>>>>>> 1eba569e5bc08b0e8756887aa5838fee26022b3c
 	"github.com/ipfs/go-ipfs/commands"
 	ipfscore "github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/core/corehttp"
 	"github.com/ipfs/go-ipfs/namesys"
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
 	"github.com/op/go-logging"
-<<<<<<< HEAD
-	"github.com/phoreproject/btcd/chaincfg"
-	"github.com/phoreproject/openbazaar-go/core"
-	"github.com/phoreproject/openbazaar-go/ipfs"
-	obnet "github.com/phoreproject/openbazaar-go/net"
-	"github.com/phoreproject/openbazaar-go/phore"
-=======
 	"github.com/phoreproject/multiwallet/util"
 	"github.com/phoreproject/openbazaar-go/api"
 	"github.com/phoreproject/openbazaar-go/core"
@@ -62,7 +44,6 @@ import (
 	ret "github.com/phoreproject/openbazaar-go/net/retriever"
 	"github.com/phoreproject/openbazaar-go/net/service"
 	"github.com/phoreproject/openbazaar-go/repo"
->>>>>>> 1eba569e5bc08b0e8756887aa5838fee26022b3c
 	"github.com/phoreproject/openbazaar-go/repo/db"
 	"github.com/phoreproject/openbazaar-go/repo/migrations"
 	apiSchema "github.com/phoreproject/openbazaar-go/schema"
@@ -418,18 +399,6 @@ func (n *Node) Start() error {
 		go PR.Run()
 		n.OpenBazaarNode.PointerRepublisher = PR
 		MR.Wait()
-<<<<<<< HEAD
-		if n.OpenBazaarNode.Wallet != nil {
-			TL := lis.NewTransactionListener(n.OpenBazaarNode.Datastore, n.OpenBazaarNode.Broadcast, n.OpenBazaarNode.Wallet)
-			WL := lis.NewWalletListener(n.OpenBazaarNode.Datastore, n.OpenBazaarNode.Broadcast)
-			n.OpenBazaarNode.Wallet.AddTransactionListener(TL.OnTransactionReceived)
-			n.OpenBazaarNode.Wallet.AddTransactionListener(WL.OnTransactionReceived)
-			su := phore.NewStatusUpdater(n.OpenBazaarNode.Wallet, n.OpenBazaarNode.Broadcast, n.OpenBazaarNode.IpfsNode.Context())
-			go su.Start()
-			go n.OpenBazaarNode.Wallet.Start()
-		}
-=======
->>>>>>> 1eba569e5bc08b0e8756887aa5838fee26022b3c
 
 		core.PublishLock.Unlock()
 		core.Node.UpdateFollow()

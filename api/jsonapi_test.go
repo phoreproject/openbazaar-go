@@ -208,13 +208,8 @@ func TestListingsAcceptedCurrencies(t *testing.T) {
 		t.Fatal("Listing should contain exactly 1 acceptedCurrency")
 	}
 
-<<<<<<< HEAD
-	if respObj[0].AcceptedCurrencies[0] != "phr" {
-		t.Fatal("Listing acceptedCurrenc9es should contain 'PHR'")
-=======
 	if respObj[0].AcceptedCurrencies[0] != "TBTC" {
 		t.Fatal("Listing acceptedCurrencies should contain 'TBTC'")
->>>>>>> 1eba569e5bc08b0e8756887aa5838fee26022b3c
 	}
 }
 
@@ -257,8 +252,8 @@ func TestListingAcceptedCurrencies(t *testing.T) {
 		t.Fatal("Listing should contain exactly 1 acceptedCurrency")
 	}
 
-	if respObj.Listing.Metadata.AcceptedCurrencies[0] != "PHR" {
-		t.Fatal("Listing acceptedCurrenc9es should contain 'PHR'")
+	if respObj.Listing.Metadata.AcceptedCurrencies[0] != "TBTC" {
+		t.Fatal("Listing acceptedCurrenc9es should contain 'TBTC'")
 	}
 }
 
@@ -484,16 +479,10 @@ func TestStatus(t *testing.T) {
 
 func TestWallet(t *testing.T) {
 	runAPITests(t, apiTests{
-		// Cannot get wallet balance and spend without rpc client and downloading tons of data
-
 		{"GET", "/wallet/address", "", 200, walletAddressJSONResponse},
-		//{"GET", "/wallet/balance", "", 200, walletBalanceJSONResponse},
+		{"GET", "/wallet/balance", "", 200, walletBalanceJSONResponse},
 		{"GET", "/wallet/mnemonic", "", 200, walletMneumonicJSONResponse},
-<<<<<<< HEAD
-		//{"POST", "/wallet/spend", spendJSON, 400, insuffientFundsJSON},
-=======
 		{"POST", "/wallet/spend/", spendJSON, 400, insuffientFundsJSON},
->>>>>>> 1eba569e5bc08b0e8756887aa5838fee26022b3c
 		// TODO: Test successful spend on regnet with coins
 	})
 }

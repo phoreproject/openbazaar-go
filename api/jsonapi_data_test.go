@@ -320,13 +320,8 @@ const moderatorValidJSON = `{
 // Wallet
 //
 
-const walletMneumonicJSONResponse = `{"mnemonic": "pulp open fabric travel possible slogan sense piano fog knock weird merge"}`
+const walletMneumonicJSONResponse = `{"mnemonic": "correct horse battery staple"}`
 
-<<<<<<< HEAD
-const walletAddressJSONResponse = `{"address": "PCNz5VN3ddp4EdfdiZBZhhxFRazuGwT3Wg"}`
-
-//const walletBalanceJSONResponse = `{"confirmed": 0, "unconfirmed": 0, "height": 0}`
-=======
 const walletAddressJSONResponse = `{
     "TBCH": "qptj7gckxunjzd0dtjhmllm44we5ry9sv5r05a59v8",
     "TBTC": "moLsBry5Dk8AN3QT3i1oxZdwD12MYRfTL5",
@@ -356,24 +351,11 @@ const walletBalanceJSONResponse = `{
         "unconfirmed": 0
     }
 }`
->>>>>>> 1eba569e5bc08b0e8756887aa5838fee26022b3c
 
 //
 // Spending
 //
 
-<<<<<<< HEAD
-//const spendJSON = `{
-//	"address": "PGR63nGwTeB6ZmbbgDMxoYPsxkbXhTmnRn",
-//	"amount": 1700000,
-//	"feeLevel": "NORMAL"
-//}`
-//
-//const insuffientFundsJSON = `{
-//	"success": false,
-//	"reason": "ERROR_INSUFFICIENT_FUNDS"
-//}`
-=======
 const spendJSON = `{
 	"wallet": "btc",
 	"address": "1HYhu8e2wv19LZ2umXoo1pMiwzy2rL32UQ",
@@ -385,7 +367,6 @@ const insuffientFundsJSON = `{
 	"success": false,
 	"reason": "ERROR_INSUFFICIENT_FUNDS"
 }`
->>>>>>> 1eba569e5bc08b0e8756887aa5838fee26022b3c
 
 const invalidCoinJSON = `{
     	"success": false,

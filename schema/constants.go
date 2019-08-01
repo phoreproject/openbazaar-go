@@ -39,17 +39,6 @@ const (
 	// End SQL Statements
 
 	// Configuration defaults
-<<<<<<< HEAD
-	DataPushNodeOne   = "QmWbi8z4uPkEdrWHtgxCkQGE5vxJnrStXAeEQnupmQnKRh"
-	DataPushNodeTwo   = "QmRh7fSZyFHesEL9aTmdxbrvMFxzyFxoaQGjYBotot6WLw"
-	DataPushNodeThree = "QmZLs6zVpVtkoR8oYyAbCxujvC6weU5CgUPTYx8zKMAtTf"
-
-	BootstrapNodeDefaultOne               = "/ip4/54.227.172.110/tcp/5001/ipfs/QmWbi8z4uPkEdrWHtgxCkQGE5vxJnrStXAeEQnupmQnKRh"
-	BootstrapNodeDefaultTwo               = "/ip4/45.63.71.103/tcp/5001/ipfs/QmRh7fSZyFHesEL9aTmdxbrvMFxzyFxoaQGjYBotot6WLw"
-	BootstrapNodeDefaultThree             = "/ip4/54.175.193.226/tcp/5001/ipfs/QmZLs6zVpVtkoR8oYyAbCxujvC6weU5CgUPTYx8zKMAtTf"
-	BootstrapNodeDefault_LeMarcheSerpette = "/ip4/159.203.115.78/tcp/5001/ipfs/QmPJuP4Myo8pGL1k56b85Q4rpaoSnmn5L3wLjYHTzbBrk1"
-	BootstrapNodeDefault_BrixtonVillage   = "/ip4/104.131.19.44/tcp/5001/ipfs/QmRvbZttqh6CPFiMKWa1jPfRR9JxagYRv4wsvMAG4ADUTj"
-=======
 	EthereumRegistryAddressMainnet = "0x403d907982474cdd51687b09a8968346159378f3"
 	EthereumRegistryAddressRinkeby = "0x403d907982474cdd51687b09a8968346159378f3"
 	EthereumRegistryAddressRopsten = "0x403d907982474cdd51687b09a8968346159378f3"
@@ -66,7 +55,6 @@ const (
 	BootstrapNodeDefault_LeMarcheSerpette = "/ip4/159.203.115.78/tcp/5001/ipfs/QmPJuP4Myo8pGL1k56b85Q4rpaoSnmn5L3wLjYHTzbBrk1"
 	BootstrapNodeDefault_BrixtonVillage   = "/ip4/104.131.19.44/tcp/5001/ipfs/QmRvbZttqh6CPFiMKWa1jPfRR9JxagYRv4wsvMAG4ADUTj"
 
->>>>>>> 1eba569e5bc08b0e8756887aa5838fee26022b3c
 	// End Configuration defaults
 )
 
@@ -77,20 +65,13 @@ var (
 )
 
 var (
-<<<<<<< HEAD
-	DataPushNodes = []string{DataPushNodeOne, DataPushNodeTwo, DataPushNodeThree}
-=======
 	DataPushNodes = []string{DataPushNodeOne, DataPushNodeTwo, DataPushNodeThree, DataPushNodeFour}
->>>>>>> 1eba569e5bc08b0e8756887aa5838fee26022b3c
 
 	BootstrapAddressesDefault = []string{
 		BootstrapNodeDefaultOne,
 		BootstrapNodeDefaultTwo,
 		BootstrapNodeDefaultThree,
-<<<<<<< HEAD
-=======
 		BootstrapNodeDefaultFour,
->>>>>>> 1eba569e5bc08b0e8756887aa5838fee26022b3c
 		BootstrapNodeDefault_LeMarcheSerpette,
 		BootstrapNodeDefault_BrixtonVillage,
 	}

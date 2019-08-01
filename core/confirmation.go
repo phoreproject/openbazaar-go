@@ -9,18 +9,9 @@ import (
 	crypto "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
 	"time"
 
-<<<<<<< HEAD
-	"github.com/golang/protobuf/proto"
-	"github.com/golang/protobuf/ptypes"
-	"github.com/phoreproject/wallet-interface"
-
-	crypto "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
-
-=======
 	"github.com/OpenBazaar/wallet-interface"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
->>>>>>> 1eba569e5bc08b0e8756887aa5838fee26022b3c
 	"github.com/phoreproject/openbazaar-go/pb"
 )
 

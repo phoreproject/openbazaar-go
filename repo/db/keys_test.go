@@ -5,13 +5,6 @@ import (
 	"crypto/rand"
 	"database/sql"
 	"encoding/hex"
-<<<<<<< HEAD
-	"github.com/phoreproject/btcd/btcec"
-	"github.com/phoreproject/openbazaar-go/repo"
-	"github.com/phoreproject/wallet-interface"
-	"sync"
-	"testing"
-=======
 	"sync"
 	"testing"
 
@@ -19,7 +12,6 @@ import (
 	"github.com/btcsuite/btcd/btcec"
 	"github.com/phoreproject/multiwallet/util"
 	"github.com/phoreproject/openbazaar-go/repo"
->>>>>>> 1eba569e5bc08b0e8756887aa5838fee26022b3c
 )
 
 var kdb repo.KeyStore

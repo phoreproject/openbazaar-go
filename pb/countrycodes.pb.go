@@ -754,10 +754,7 @@ var CountryCode_value = map[string]int32{
 	"SUDAN":                          209,
 	"SURINAME":                       210,
 	"SVALBARD":                       211,
-<<<<<<< HEAD
-=======
 	"ESWATINI":                       212,
->>>>>>> 1eba569e5bc08b0e8756887aa5838fee26022b3c
 	"SWAZILAND":                      212,
 	"SWEDEN":                         213,
 	"SWITZERLAND":                    214,
@@ -793,10 +790,7 @@ var CountryCode_value = map[string]int32{
 	"YEMEN":                          244,
 	"ZAMBIA":                         245,
 	"ZIMBABWE":                       246,
-<<<<<<< HEAD
-=======
 	"UNITED_STATES_MINOR_ISLANDS":    247,
->>>>>>> 1eba569e5bc08b0e8756887aa5838fee26022b3c
 	"ALL":                            500,
 	"AFRICA":                         501,
 	"ASIA":                           502,

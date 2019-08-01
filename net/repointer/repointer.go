@@ -5,10 +5,6 @@ import (
 	peer "gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
 	"time"
 
-<<<<<<< HEAD
-	"github.com/ipfs/go-ipfs/core"
-=======
->>>>>>> 1eba569e5bc08b0e8756887aa5838fee26022b3c
 	"github.com/op/go-logging"
 	"github.com/phoreproject/openbazaar-go/ipfs"
 	"github.com/phoreproject/openbazaar-go/repo"

@@ -4,10 +4,6 @@
 	"GodepVersion": "v80",
 	"Deps": [
 		{
-<<<<<<< HEAD
-			"ImportPath": "github.com/OpenBazaar/go-blockstackclient",
-			"Rev": "28fae9038857d4a311f2b5e5c45c05b15ff78582"
-=======
 			"ImportPath": "github.com/OpenBazaar/bitcoind-wallet",
 			"Rev": "6c59e2405456eac2ea76c13e7472bb51b655bdd3"
 		},
@@ -30,25 +26,12 @@
 		{
 			"ImportPath": "github.com/OpenBazaar/golang-socketio/transport",
 			"Rev": "909b73d947ae79609bc2c5b03cb480f35180c564"
->>>>>>> 1eba569e5bc08b0e8756887aa5838fee26022b3c
 		},
 		{
 			"ImportPath": "github.com/OpenBazaar/jsonpb",
 			"Rev": "37d32ddf4eefaab6c19a01c99f4e00df9b1be48f"
 		},
 		{
-<<<<<<< HEAD
-			"ImportPath": "github.com/phoreproject/spvwallet",
-			"Rev": "38d8ae391f5e77d3f13bc3ec869751281d25aca9"
-		},
-		{
-			"ImportPath": "github.com/phoreproject/spvwallet/exchangerates",
-			"Rev": "38d8ae391f5e77d3f13bc3ec869751281d25aca9"
-		},
-		{
-			"ImportPath": "github.com/phoreproject/wallet-interface",
-			"Rev": "5d298be53cb82503253965ac47565bd861629b2c"
-=======
 			"ImportPath": "github.com/phoreproject/multiwallet",
 			"Rev": "a9d7231d7f5bf5f048f5dc43b184c0b5d5659002"
 		},
@@ -170,7 +153,6 @@
 		{
 			"ImportPath": "github.com/bifurcation/mint/syntax",
 			"Rev": "a14404e9a861605b3bc889790cbc303435876d6b"
->>>>>>> 1eba569e5bc08b0e8756887aa5838fee26022b3c
 		},
 		{
 			"ImportPath": "github.com/boltdb/bolt",
@@ -178,98 +160,6 @@
 			"Rev": "9da31745363232bc1e27dbab3569e77383a51585"
 		},
 		{
-<<<<<<< HEAD
-			"ImportPath": "github.com/btcsuite/btclog",
-			"Comment": "BTCLOG_0_0_3-13-g84c8d23",
-			"Rev": "84c8d2346e9fc8c7b947e243b9c24e6df9fd206a"
-		},
-		{
-			"ImportPath": "github.com/phoreproject/btcd/btcec",
-			"Comment": "BTCD_0_12_0_BETA-846-g68bf1002",
-			"Rev": "b1a66255ffec2471db2caafd3733886e6241fc4f"
-		},
-		{
-			"ImportPath": "github.com/phoreproject/btcd/btcjson",
-			"Comment": "BTCD_0_12_0_BETA-846-g68bf1002",
-			"Rev": "b1a66255ffec2471db2caafd3733886e6241fc4f"
-		},
-		{
-			"ImportPath": "github.com/phoreproject/btcd/chaincfg",
-			"Comment": "BTCD_0_12_0_BETA-846-g68bf1002",
-			"Rev": "b1a66255ffec2471db2caafd3733886e6241fc4f"
-		},
-		{
-			"ImportPath": "github.com/phoreproject/btcd/chaincfg",
-			"Comment": "BTCD_0_12_0_BETA-846-g68bf1002",
-			"Rev": "b1a66255ffec2471db2caafd3733886e6241fc4f"
-		},
-		{
-			"ImportPath": "github.com/phoreproject/btcd/chaincfg/chainhash",
-			"Comment": "BTCD_0_12_0_BETA-846-g68bf1002",
-			"Rev": "b1a66255ffec2471db2caafd3733886e6241fc4f"
-		},
-		{
-			"ImportPath": "github.com/phoreproject/btcd/rpcclient",
-			"Comment": "BTCD_0_12_0_BETA-846-g68bf1002",
-			"Rev": "b1a66255ffec2471db2caafd3733886e6241fc4f"
-		},
-		{
-			"ImportPath": "github.com/phoreproject/btcd/wire",
-			"Comment": "BTCD_0_12_0_BETA-846-g68bf1002",
-			"Rev": "b1a66255ffec2471db2caafd3733886e6241fc4f"
-		},
-		{
-			"ImportPath": "github.com/phoreproject/btcutil",
-			"Comment": "BTCUTIL_0_5_0-88-g49c0dc7",
-			"Rev": "49c0dc73329bd362941232efdd62065817c5c3f0"
-		},
-		{
-			"ImportPath": "github.com/phoreproject/btcutil/base58",
-			"Comment": "BTCUTIL_0_5_0-88-g49c0dc7",
-			"Rev": "49c0dc73329bd362941232efdd62065817c5c3f0"
-		},
-		{
-			"ImportPath": "github.com/phoreproject/btcutil/bech32",
-			"Comment": "BTCUTIL_0_5_0-88-g49c0dc7",
-			"Rev": "49c0dc73329bd362941232efdd62065817c5c3f0"
-		},
-		{
-			"ImportPath": "github.com/phoreproject/btcutil/hdkeychain",
-			"Comment": "BTCUTIL_0_5_0-88-g49c0dc7",
-			"Rev": "49c0dc73329bd362941232efdd62065817c5c3f0"
-		},
-		{
-			"ImportPath": "github.com/phoreproject/go-x11/blake",
-			"Rev": "df0f52b15c3a4e68e89cc5b4479539fd416bb6e4"
-		},
-		{
-			"ImportPath": "github.com/phoreproject/go-x11/bmw",
-			"Rev": "df0f52b15c3a4e68e89cc5b4479539fd416bb6e4"
-		},
-		{
-			"ImportPath": "github.com/phoreproject/go-x11/groest",
-			"Rev": "df0f52b15c3a4e68e89cc5b4479539fd416bb6e4"
-		},
-		{
-			"ImportPath": "github.com/phoreproject/go-x11/hash",
-			"Rev": "df0f52b15c3a4e68e89cc5b4479539fd416bb6e4"
-		},
-		{
-			"ImportPath": "github.com/phoreproject/go-x11/jhash",
-			"Rev": "df0f52b15c3a4e68e89cc5b4479539fd416bb6e4"
-		},
-		{
-			"ImportPath": "github.com/phoreproject/go-x11/keccak",
-			"Rev": "df0f52b15c3a4e68e89cc5b4479539fd416bb6e4"
-		},
-		{
-			"ImportPath": "github.com/phoreproject/go-x11/skein",
-			"Rev": "df0f52b15c3a4e68e89cc5b4479539fd416bb6e4"
-		},
-		{
-			"ImportPath": "github.com/phoreproject/wallet-interface",
-			"Rev": "5d298be53cb82503253965ac47565bd861629b2c"
-=======
 			"ImportPath": "github.com/btcsuite/btcd/addrmgr",
 			"Comment": "BTCD_0_12_0_BETA-829-g4dc53c2",
 			"Rev": "4dc53c2060ed6aa56851c3d9cafde02cca738900"
@@ -388,25 +278,12 @@
 			"ImportPath": "github.com/btcsuite/btcwallet/wallet/txrules",
 			"Comment": "BTCWALLET_0_7_0_ALPHA-352-gf4ae41c",
 			"Rev": "f4ae41ce5f5834eb67ab64cdeed74c74fc95638c"
->>>>>>> 1eba569e5bc08b0e8756887aa5838fee26022b3c
 		},
 		{
 			"ImportPath": "github.com/btcsuite/go-socks/socks",
 			"Rev": "4720035b7bfd2a9bb130b1c184f8bbe41b6f0d0f"
 		},
 		{
-<<<<<<< HEAD
-			"ImportPath": "github.com/btcsuite/goleveldb/leveldb/errors",
-			"Rev": "7834afc9e8cd15233b6c3d97e12674a31ca24602"
-		},
-		{
-			"ImportPath": "github.com/btcsuite/goleveldb/leveldb/storage",
-			"Rev": "7834afc9e8cd15233b6c3d97e12674a31ca24602"
-		},
-		{
-			"ImportPath": "github.com/btcsuite/goleveldb/leveldb/util",
-			"Rev": "7834afc9e8cd15233b6c3d97e12674a31ca24602"
-=======
 			"ImportPath": "github.com/btcsuite/golangcrypto/ripemd160",
 			"Rev": "53f62d9b43e87a6c56975cf862af7edf33a8d0df"
 		},
@@ -424,7 +301,6 @@
 			"ImportPath": "github.com/btcsuite/goleveldb/leveldb/util",
 			"Comment": "v1.0.0",
 			"Rev": "3fd0373267b6461dbefe91cef614278064d05465"
->>>>>>> 1eba569e5bc08b0e8756887aa5838fee26022b3c
 		},
 		{
 			"ImportPath": "github.com/btcsuite/websocket",
@@ -2575,81 +2451,7 @@
 		},
 		{
 			"ImportPath": "gx/ipfs/QmfVj3x4D6Jkq9SEoi5n2NmoUomLwoeiwnYz2KQa15wRw6/base32",
-<<<<<<< HEAD
-			"Rev": "440a840c48279b8bc64fbc88e2af5b0140756959"
-		},
-		{
-			"ImportPath": "github.com/phoreproject/btcd/addrmgr",
-			"Comment": "BTCD_0_12_0_BETA-846-g68bf1002",
-			"Rev": "68bf100240243edf1435b943a4be93695502b8e2"
-		},
-		{
-			"ImportPath": "github.com/phoreproject/btcd/blockchain",
-			"Comment": "BTCD_0_12_0_BETA-846-g68bf1002",
-			"Rev": "68bf100240243edf1435b943a4be93695502b8e2"
-		},
-		{
-			"ImportPath": "github.com/phoreproject/btcd/connmgr",
-			"Comment": "BTCD_0_12_0_BETA-846-g68bf1002",
-			"Rev": "68bf100240243edf1435b943a4be93695502b8e2"
-		},
-		{
-			"ImportPath": "github.com/phoreproject/btcd/peer",
-			"Comment": "BTCD_0_12_0_BETA-846-g68bf1002",
-			"Rev": "68bf100240243edf1435b943a4be93695502b8e2"
-		},
-		{
-			"ImportPath": "github.com/phoreproject/btcd/txscript",
-			"Comment": "BTCD_0_12_0_BETA-846-g68bf1002",
-			"Rev": "68bf100240243edf1435b943a4be93695502b8e2"
-		},
-		{
-			"ImportPath": "github.com/phoreproject/btcutil/bloom",
-			"Comment": "BTCUTIL_0_5_0-88-g49c0dc7",
-			"Rev": "49c0dc73329bd362941232efdd62065817c5c3f0"
-		},
-		{
-			"ImportPath": "github.com/phoreproject/btcutil/coinset",
-			"Comment": "BTCUTIL_0_5_0-88-g49c0dc7",
-			"Rev": "49c0dc73329bd362941232efdd62065817c5c3f0"
-		},
-		{
-			"ImportPath": "github.com/phoreproject/btcutil/txsort",
-			"Comment": "BTCUTIL_0_5_0-88-g49c0dc7",
-			"Rev": "49c0dc73329bd362941232efdd62065817c5c3f0"
-		},
-		{
-			"ImportPath": "github.com/phoreproject/btcwallet/wallet/txauthor",
-			"Comment": "BTCWALLET_0_7_0_ALPHA-365-g75aad0a",
-			"Rev": "75aad0a74ceb01f4bc1df92d0ee2594f877aeaf6"
-		},
-		{
-			"ImportPath": "github.com/phoreproject/btcwallet/wallet/txrules",
-			"Comment": "BTCWALLET_0_7_0_ALPHA-365-g75aad0a",
-			"Rev": "75aad0a74ceb01f4bc1df92d0ee2594f877aeaf6"
-		},
-		{
-			"ImportPath": "github.com/phoreproject/btcd/database",
-			"Comment": "BTCD_0_12_0_BETA-846-g68bf1002",
-			"Rev": "68bf100240243edf1435b943a4be93695502b8e2"
-		},
-		{
-			"ImportPath": "github.com/phoreproject/btcwallet/internal/helpers",
-			"Comment": "BTCWALLET_0_7_0_ALPHA-365-g75aad0a",
-			"Rev": "75aad0a74ceb01f4bc1df92d0ee2594f877aeaf6"
-		},
-		{
-			"ImportPath": "github.com/phoreproject/btcwallet/wallet/internal/txsizes",
-			"Comment": "BTCWALLET_0_7_0_ALPHA-365-g75aad0a",
-			"Rev": "75aad0a74ceb01f4bc1df92d0ee2594f877aeaf6"
-		},
-		{
-			"ImportPath": "github.com/phoreproject/btcd/zerocoin",
-			"Comment": "BTCD_0_12_0_BETA-846-g68bf1002",
-			"Rev": "68bf100240243edf1435b943a4be93695502b8e2"
-=======
 			"Rev": "1ead2dde773af0b86b45040ee07ebdfa015bf1d7"
->>>>>>> 1eba569e5bc08b0e8756887aa5838fee26022b3c
 		}
 	]
 }

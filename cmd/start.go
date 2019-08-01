@@ -14,16 +14,6 @@ import (
 	"path/filepath"
 	"sort"
 	"strconv"
-<<<<<<< HEAD
-
-	"github.com/phoreproject/openbazaar-go/phore/phored"
-
-	"crypto/rand"
-	"io/ioutil"
-	"net/http"
-	"net/url"
-=======
->>>>>>> 1eba569e5bc08b0e8756887aa5838fee26022b3c
 	"strings"
 	"syscall"
 	"time"
@@ -60,12 +50,6 @@ import (
 	"github.com/op/go-logging"
 	"github.com/phoreproject/multiwallet/util"
 	"github.com/phoreproject/openbazaar-go/api"
-<<<<<<< HEAD
-	"github.com/phoreproject/openbazaar-go/phore"
-	lis "github.com/phoreproject/openbazaar-go/phore/listeners"
-	"github.com/phoreproject/openbazaar-go/phore/resync"
-=======
->>>>>>> 1eba569e5bc08b0e8756887aa5838fee26022b3c
 	"github.com/phoreproject/openbazaar-go/core"
 	"github.com/phoreproject/openbazaar-go/ipfs"
 	obnet "github.com/phoreproject/openbazaar-go/net"
@@ -118,7 +102,6 @@ type Start struct {
 	Storage              string   `long:"storage" description:"set the outgoing message storage option [self-hosted, dropbox] default=self-hosted"`
 	BitcoinCash          bool     `long:"bitcoincash" description:"use a Bitcoin Cash wallet in a dedicated data directory"`
 	ZCash                string   `long:"zcash" description:"use a ZCash wallet in a dedicated data directory. To use this you must pass in the location of the zcashd binary."`
-	Bitcoin              bool     `long:"bitcoin" description:"use a Bitcoin SPV wallet in a dedicated data directory"`
 }
 
 func (x *Start) Execute(args []string) error {
@@ -146,15 +129,11 @@ func (x *Start) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
-
 	if x.BitcoinCash {
 		repoPath += "-bitcoincash"
 	} else if x.ZCash != "" {
 		repoPath += "-zcash"
-	} else if x.Bitcoin {
-		repoPath += "-btc"
 	}
-
 	if x.DataDir != "" {
 		repoPath = x.DataDir
 	}
@@ -218,38 +197,11 @@ func (x *Start) Execute(args []string) error {
 		return err
 	}
 
-<<<<<<< HEAD
-	var ct wi.CoinType = wi.Phore
-	cfgf, err := ioutil.ReadFile(path.Join(repoPath, "config"))
-	if err == nil {
-		wcfg, err := schema.GetWalletConfig(cfgf)
-		if err == nil {
-			switch wcfg.Type {
-			case "bitcoincash":
-				ct = wi.BitcoinCash
-			case "zcashd":
-				ct = wi.Zcash
-			case "spvwallet":
-				fallthrough
-			case "bitcoind":
-				ct = wi.Bitcoin
-			}
-		}
-	}
-
-	if x.BitcoinCash {
-		ct = wi.BitcoinCash
-	} else if x.ZCash != "" {
-		ct = wi.Zcash
-	} else if x.Bitcoin {
-		ct = wi.Bitcoin
-=======
 	ct := util.CoinTypePhore
 	if x.BitcoinCash || strings.Contains(repoPath, "-bitcoincash") {
 		ct = util.ExtendCoinType(wi.BitcoinCash)
 	} else if x.ZCash != "" || strings.Contains(repoPath, "-zcash") {
 		ct = util.ExtendCoinType(wi.Zcash)
->>>>>>> 1eba569e5bc08b0e8756887aa5838fee26022b3c
 	}
 
 	migrations.WalletCoinType = ct
@@ -310,21 +262,10 @@ func (x *Start) Execute(args []string) error {
 		log.Error("scan wallets config:", err)
 		return err
 	}
-<<<<<<< HEAD
-
-	if x.BitcoinCash {
-		walletCfg.Type = "bitcoincash"
-	} else if x.ZCash != "" {
-		walletCfg.Type = "zcashd"
-		walletCfg.Binary = x.ZCash
-	} else if x.Bitcoin {
-		walletCfg.Type = "spvwallet"
-=======
 	ipnsExtraConfig, err := schema.GetIPNSExtraConfig(configFile)
 	if err != nil {
 		log.Error("scan ipns extra config:", err)
 		return err
->>>>>>> 1eba569e5bc08b0e8756887aa5838fee26022b3c
 	}
 
 	// IPFS node setup
@@ -520,97 +461,18 @@ func (x *Start) Execute(args []string) error {
 		params = chaincfg.MainNetParams
 	}
 
-<<<<<<< HEAD
-	// Wallet setup
-	if x.BitcoinCash {
-		walletCfg.Type = "bitcoincash"
-	} else if x.ZCash != "" {
-		walletCfg.Type = "zcashd"
-		walletCfg.Binary = x.ZCash
-	} else if x.Bitcoin {
-		walletCfg.Type = "spvwallet"
-	}
-
-	var exchangeRates wi.ExchangeRates
-	if !x.DisableExchangeRates {
-		exchangeRates = exchange.NewBitcoinPriceFetcher(torDialer)
-	}
-	var w3 io.Writer
-=======
 	// Multiwallet setup
 	var walletLogWriter io.Writer
->>>>>>> 1eba569e5bc08b0e8756887aa5838fee26022b3c
 	if x.NoLogFiles {
 		walletLogWriter = &DummyWriter{}
 	} else {
-<<<<<<< HEAD
-		w3 = &lumberjack.Logger{
-			Filename:   path.Join(repoPath, "logs", "phore.log"),
-=======
 		walletLogWriter = &lumberjack.Logger{
 			Filename:   path.Join(repoPath, "logs", "wallet.log"),
->>>>>>> 1eba569e5bc08b0e8756887aa5838fee26022b3c
 			MaxSize:    10, // Megabytes
 			MaxBackups: 3,
 			MaxAge:     30, // Days
 		}
 	}
-<<<<<<< HEAD
-	bitcoinFile := logging.NewLogBackend(w3, "", 0)
-	bitcoinFileFormatter := logging.NewBackendFormatter(bitcoinFile, fileLogFormat)
-	ml := logging.MultiLogger(bitcoinFileFormatter)
-
-	var resyncManager *resync.ResyncManager
-	var cryptoWallet wi.Wallet
-	var walletTypeStr string
-	switch strings.ToLower(walletCfg.Type) {
-	case "phored":
-		walletTypeStr = "phored"
-		cryptoWallet, err = phored.NewRPCWallet(mn, repoPath, sqliteDB, walletCfg.RPCLocation)
-		if err != nil {
-			log.Error(err)
-			return err
-		}
-	case "spvwallet":
-		walletTypeStr = "btc spv"
-		var tp net.Addr
-		if walletCfg.TrustedPeer != "" {
-			tp, err = net.ResolveTCPAddr("tcp", walletCfg.TrustedPeer)
-			if err != nil {
-				log.Error(err)
-				return err
-			}
-		}
-		feeAPI, err := url.Parse(walletCfg.FeeAPI)
-		if err != nil {
-			log.Error(err)
-			return err
-		}
-		spvwalletConfig := &spvwallet.Config{
-			Mnemonic:     mn,
-			Params:       &params,
-			MaxFee:       uint64(walletCfg.MaxFee),
-			LowFee:       uint64(walletCfg.LowFeeDefault),
-			MediumFee:    uint64(walletCfg.MediumFeeDefault),
-			HighFee:      uint64(walletCfg.HighFeeDefault),
-			FeeAPI:       *feeAPI,
-			RepoPath:     repoPath,
-			CreationDate: creationDate,
-			DB:           sqliteDB,
-			UserAgent:    "OpenBazaar",
-			TrustedPeer:  tp,
-			Proxy:        torDialer,
-			Logger:       ml,
-		}
-		cryptoWallet, err = spvwallet.NewSPVWallet(spvwalletConfig)
-		if err != nil {
-			log.Error(err)
-			return err
-		}
-		resyncManager = resync.NewResyncManager(sqliteDB.Sales(), cryptoWallet)
-	default:
-		log.Fatal("Unknown wallet type")
-=======
 	walletLogFile := logging.NewLogBackend(walletLogWriter, "", 0)
 	walletFileFormatter := logging.NewBackendFormatter(walletLogFile, fileLogFormat)
 	walletLogger := logging.MultiLogger(walletFileFormatter)
@@ -637,7 +499,6 @@ func (x *Start) Execute(args []string) error {
 	if err != nil {
 		log.Error(err)
 		return err
->>>>>>> 1eba569e5bc08b0e8756887aa5838fee26022b3c
 	}
 
 	// Push nodes
@@ -811,14 +672,6 @@ func (x *Start) Execute(args []string) error {
 			if resyncManager == nil {
 				core.Node.WaitForMessageRetrieverCompletion()
 			}
-<<<<<<< HEAD
-			TL := lis.NewTransactionListener(core.Node.Datastore, core.Node.Broadcast, core.Node.Wallet)
-			WL := lis.NewWalletListener(core.Node.Datastore, core.Node.Broadcast)
-			cryptoWallet.AddTransactionListener(TL.OnTransactionReceived)
-			cryptoWallet.AddTransactionListener(WL.OnTransactionReceived)
-			log.Infof("Starting %s wallet\n", walletTypeStr)
-			su := phore.NewStatusUpdater(cryptoWallet, core.Node.Broadcast, nd.Context())
-=======
 			TL := lis.NewTransactionListener(core.Node.Multiwallet, core.Node.Datastore, core.Node.Broadcast)
 			for ct, wal := range mw {
 				WL := lis.NewWalletListener(core.Node.Datastore, core.Node.Broadcast, ct)
@@ -827,7 +680,6 @@ func (x *Start) Execute(args []string) error {
 			}
 			log.Info("Starting multiwallet...")
 			su := wallet.NewStatusUpdater(mw, core.Node.Broadcast, nd.Context())
->>>>>>> 1eba569e5bc08b0e8756887aa5838fee26022b3c
 			go su.Start()
 			go mw.Start()
 			if resyncManager != nil {

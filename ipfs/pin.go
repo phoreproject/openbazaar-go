@@ -2,12 +2,9 @@ package ipfs
 
 import (
 	"context"
-<<<<<<< HEAD
-=======
 
 	"github.com/ipfs/go-ipfs/core/coreapi"
 
->>>>>>> 1eba569e5bc08b0e8756887aa5838fee26022b3c
 	"github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/core/corerepo"
 )

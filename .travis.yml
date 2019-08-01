@@ -12,13 +12,8 @@ before_install:
 install:
   - echo "No external dependencies required. Skipping travis default library dependency setup to use vendors..."
 script:
-<<<<<<< HEAD
-  - $GOPATH/bin/golangci-lint run -verbose
-=======
   - $GOPATH/bin/golangci-lint run --deadline 10m
->>>>>>> 1eba569e5bc08b0e8756887aa5838fee26022b3c
   - cd $TRAVIS_BUILD_DIR && go test -i && ./test_compile.sh
   - goveralls -coverprofile=coverage.out -service travis-ci
 after_success:
   - ./deploy.sh
-install: true

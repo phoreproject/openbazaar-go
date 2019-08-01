@@ -2,18 +2,7 @@ package net
 
 import (
 	"context"
-<<<<<<< HEAD
-	"github.com/golang/protobuf/proto"
-	"github.com/phoreproject/openbazaar-go/ipfs"
-	"github.com/phoreproject/openbazaar-go/net"
-	"github.com/phoreproject/openbazaar-go/pb"
-	"github.com/phoreproject/openbazaar-go/repo"
-	"golang.org/x/net/proxy"
-
-	"github.com/ipfs/go-ipfs/core"
-=======
 	"errors"
->>>>>>> 1eba569e5bc08b0e8756887aa5838fee26022b3c
 
 	"gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
 	"gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"

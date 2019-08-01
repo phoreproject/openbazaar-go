@@ -7,17 +7,11 @@ import (
 	"testing"
 	"time"
 
-<<<<<<< HEAD
-	"github.com/phoreproject/btcd/wire"
-	"github.com/phoreproject/openbazaar-go/repo"
-	"github.com/phoreproject/wallet-interface"
-=======
 	"github.com/phoreproject/multiwallet/util"
 
 	"github.com/btcsuite/btcd/wire"
 	"github.com/phoreproject/openbazaar-go/repo"
 	"github.com/phoreproject/openbazaar-go/schema"
->>>>>>> 1eba569e5bc08b0e8756887aa5838fee26022b3c
 )
 
 func buildNewTransactionStore() (repo.TransactionStore, func(), error) {

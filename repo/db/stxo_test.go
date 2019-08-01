@@ -3,20 +3,9 @@ package db
 import (
 	"bytes"
 	"encoding/hex"
-<<<<<<< HEAD
-	"github.com/phoreproject/btcd/chaincfg/chainhash"
-	"github.com/phoreproject/btcd/wire"
-	"github.com/phoreproject/openbazaar-go/repo"
-	"github.com/phoreproject/wallet-interface"
 	"strconv"
 	"sync"
 	"testing"
-)
-=======
-	"strconv"
-	"sync"
-	"testing"
->>>>>>> 1eba569e5bc08b0e8756887aa5838fee26022b3c
 
 	"github.com/OpenBazaar/wallet-interface"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"

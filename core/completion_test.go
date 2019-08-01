@@ -5,14 +5,8 @@ import (
 	"testing"
 	"time"
 
-<<<<<<< HEAD
-	"github.com/golang/protobuf/ptypes"
-	"github.com/phoreproject/wallet-interface"
-
-=======
 	"github.com/OpenBazaar/wallet-interface"
 	"github.com/golang/protobuf/ptypes"
->>>>>>> 1eba569e5bc08b0e8756887aa5838fee26022b3c
 	"github.com/phoreproject/openbazaar-go/core"
 	"github.com/phoreproject/openbazaar-go/repo"
 	"github.com/phoreproject/openbazaar-go/test/factory"

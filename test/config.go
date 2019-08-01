@@ -36,7 +36,7 @@ func GetRepoPath() string {
 
 // GetPassword returns a static mneumonic to use
 func GetPassword() string {
-	return getEnvString("OPENBAZAAR_TEST_PASSWORD", "pulp open fabric travel possible slogan sense piano fog knock weird merge")
+	return getEnvString("OPENBAZAAR_TEST_PASSWORD", "correct horse battery staple")
 }
 
 // GetAuthCookie returns a pointer to a test authentication cookie

@@ -9,23 +9,6 @@ import (
 
 	opts "github.com/ipfs/go-ipfs/namesys/opts"
 
-<<<<<<< HEAD
-	"gx/ipfs/QmTmqJGRQfuH8eKWD1FjThwPRipt1QhqJQNZ8MpzmfAAxo/go-ipfs-ds-help"
-	ds "gx/ipfs/QmXRKBQA4wXP7xWbFiZsR1GP4HV6wMDQ1aWFxZZ4uBcPX9/go-datastore"
-	mh "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
-	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
-)
-
-var log = logging.Logger("namesys")
-
-const keyCachePrefix = "/pubkey/"
-
-// routingResolver implements NSResolver for the main IPFS SFS-like naming
-type routingResolver struct {
-	routing   routing.ValueStore
-	datastore ds.Datastore
-	cache     *lru.Cache
-=======
 	cid "gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 	dht "gx/ipfs/QmPpYHPRGVpSJTkQDQDwTYZ1cYUR2NM4HS6M3iAXi8aoUa/go-libp2p-kad-dht"
@@ -42,7 +25,6 @@ var log = logging.Logger("namesys")
 // IpnsResolver implements NSResolver for the main IPFS SFS-like naming
 type IpnsResolver struct {
 	routing routing.ValueStore
->>>>>>> 1eba569e5bc08b0e8756887aa5838fee26022b3c
 }
 
 // NewIpnsResolver constructs a name resolver using the IPFS Routing system
@@ -51,21 +33,8 @@ func NewIpnsResolver(route routing.ValueStore) *IpnsResolver {
 	if route == nil {
 		panic("attempt to create resolver with nil routing system")
 	}
-<<<<<<< HEAD
-
-	var cache *lru.Cache
-	if cachesize > 0 {
-		cache, _ = lru.New(cachesize)
-	}
-
-	return &routingResolver{
-		routing:   route,
-		cache:     cache,
-		datastore: ds,
-=======
 	return &IpnsResolver{
 		routing: route,
->>>>>>> 1eba569e5bc08b0e8756887aa5838fee26022b3c
 	}
 }
 
@@ -191,11 +160,3 @@ func (r *IpnsResolver) resolveOnceAsync(ctx context.Context, name string, option
 
 	return out
 }
-<<<<<<< HEAD
-
-func putToDatabase(datastore ds.Datastore, name string, ipnsRec, pubkey []byte) {
-	datastore.Put(dshelp.NewKeyFromBinary([]byte(name)), ipnsRec)
-	datastore.Put(ds.NewKey(keyCachePrefix+strings.TrimPrefix(name, "/ipns/")), pubkey)
-}
-=======
->>>>>>> 1eba569e5bc08b0e8756887aa5838fee26022b3c

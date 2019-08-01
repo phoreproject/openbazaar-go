@@ -276,30 +276,6 @@ func GetTorConfig(cfgBytes []byte) (*TorConfig, error) {
 	if !ok {
 		return nil, MalformedConfigError
 	}
-<<<<<<< HEAD
-
-	var binaryStr string
-	binary, ok := wallet["Binary"]
-	if ok {
-		binaryStr, ok = binary.(string)
-		if !ok {
-			return nil, MalformedConfigError
-		}
-	}
-
-	var rpcLocationStr string
-	rpcLocation, ok := wallet["RPCLocation"]
-	if ok {
-		rpcLocationStr, ok = rpcLocation.(string)
-		if !ok {
-			return nil, MalformedConfigError
-		}
-
-		if rpcLocationStr == "rpc.phore.io" {
-			rpcLocationStr = "rpc2.phore.io"
-		}
-
-=======
 	controlUrl, ok := tc["TorControl"]
 	if !ok {
 		return nil, MalformedConfigError
@@ -307,7 +283,6 @@ func GetTorConfig(cfgBytes []byte) (*TorConfig, error) {
 	controlUrlStr, ok := controlUrl.(string)
 	if !ok {
 		return nil, MalformedConfigError
->>>>>>> 1eba569e5bc08b0e8756887aa5838fee26022b3c
 	}
 
 	return &TorConfig{TorControl: controlUrlStr, Password: pwStr}, nil

@@ -25,12 +25,8 @@ func NewContract() *pb.RicardianContract {
 			Payment: &pb.Order_Payment{
 				Amount:  10,
 				Method:  pb.Order_Payment_DIRECT,
-<<<<<<< HEAD
-				Address: "PL7EtCQoAwZvmUFR4KdgVSA8S1LFeWc5RM",
-=======
 				Address: "3BDbGsH5h5ctDiFtWMmZawcf3E7iWirVms",
 				Coin:    "BTC",
->>>>>>> 1eba569e5bc08b0e8756887aa5838fee26022b3c
 			},
 			Timestamp: nowData,
 		}
@@ -45,7 +41,7 @@ func NewContract() *pb.RicardianContract {
 				},
 				Item: &pb.Listing_Item{Images: images},
 				Metadata: &pb.Listing_Metadata{
-					AcceptedCurrencies: []string{"PHR"},
+					AcceptedCurrencies: []string{"BTC"},
 				},
 			},
 		},

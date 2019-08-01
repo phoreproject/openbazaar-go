@@ -6,13 +6,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-<<<<<<< HEAD
-	"github.com/ipfs/go-ipfs/repo/fsrepo"
-	"github.com/phoreproject/openbazaar-go/repo"
-	"github.com/phoreproject/openbazaar-go/schema"
-	"golang.org/x/crypto/ssh/terminal"
-=======
->>>>>>> 1eba569e5bc08b0e8756887aa5838fee26022b3c
 	"io/ioutil"
 	"os"
 	"path"

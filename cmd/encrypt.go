@@ -9,18 +9,11 @@ import (
 	"strings"
 	"syscall"
 
-<<<<<<< HEAD
-	"github.com/ipfs/go-ipfs/repo/fsrepo"
-	"github.com/phoreproject/openbazaar-go/repo"
-	"github.com/phoreproject/openbazaar-go/repo/db"
-	"github.com/phoreproject/wallet-interface"
-=======
 	"github.com/OpenBazaar/wallet-interface"
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
 	"github.com/phoreproject/multiwallet/util"
 	"github.com/phoreproject/openbazaar-go/repo"
 	"github.com/phoreproject/openbazaar-go/repo/db"
->>>>>>> 1eba569e5bc08b0e8756887aa5838fee26022b3c
 	"golang.org/x/crypto/ssh/terminal"
 )
 

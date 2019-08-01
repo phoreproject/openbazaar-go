@@ -6,20 +6,12 @@ import (
 	"sync"
 	"time"
 
-<<<<<<< HEAD
-	_ "github.com/mutecomm/go-sqlcipher"
-	"github.com/op/go-logging"
-	"github.com/phoreproject/openbazaar-go/repo"
-	"github.com/phoreproject/openbazaar-go/schema"
-	"github.com/phoreproject/wallet-interface"
-=======
 	"github.com/OpenBazaar/wallet-interface"
 	_ "github.com/mutecomm/go-sqlcipher"
 	"github.com/op/go-logging"
 	"github.com/phoreproject/multiwallet/util"
 	"github.com/phoreproject/openbazaar-go/repo"
 	"github.com/phoreproject/openbazaar-go/schema"
->>>>>>> 1eba569e5bc08b0e8756887aa5838fee26022b3c
 )
 
 var log = logging.MustGetLogger("db")

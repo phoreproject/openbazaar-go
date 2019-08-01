@@ -15,22 +15,7 @@ import (
 	"sync"
 	"time"
 
-<<<<<<< HEAD
-	"github.com/ipfs/go-ipfs/core"
-	"github.com/op/go-logging"
-	"github.com/phoreproject/wallet-interface"
-	"golang.org/x/net/context"
-	"golang.org/x/net/proxy"
-
-	routing "gx/ipfs/QmTiWLZ6Fo5j4KcTVutZJ5KWRRJrbxzmxA4td8NfEdrPh7/go-libp2p-routing"
-	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
-	ds "gx/ipfs/QmXRKBQA4wXP7xWbFiZsR1GP4HV6wMDQ1aWFxZZ4uBcPX9/go-datastore"
-	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
-	libp2p "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
-	"gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
-=======
 	"github.com/phoreproject/multiwallet"
->>>>>>> 1eba569e5bc08b0e8756887aa5838fee26022b3c
 
 	"github.com/phoreproject/openbazaar-go/ipfs"
 	"github.com/phoreproject/openbazaar-go/net"
@@ -48,15 +33,10 @@ import (
 	"golang.org/x/net/proxy"
 )
 
-<<<<<<< HEAD
-var (
-	VERSION   = "1.3.4"
-=======
 const (
 	// VERSION - current version
 	VERSION = "2.1.0-dev4"
 	// USERAGENT - user-agent header string
->>>>>>> 1eba569e5bc08b0e8756887aa5838fee26022b3c
 	USERAGENT = "/Phore-Marketplace-go:" + VERSION + "/"
 )
 

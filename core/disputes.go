@@ -12,27 +12,12 @@ import (
 	"sync"
 	"time"
 
-<<<<<<< HEAD
-	"github.com/golang/protobuf/proto"
-	"github.com/golang/protobuf/ptypes"
-	"github.com/phoreproject/btcd/chaincfg/chainhash"
-	"github.com/phoreproject/btcutil"
-	hd "github.com/phoreproject/btcutil/hdkeychain"
-	"github.com/phoreproject/wallet-interface"
-	"golang.org/x/net/context"
-
-	dht "gx/ipfs/QmRaVcGchmC1stHHK7YhcgEuTk5k1JiGS568pfYWMgT91H/go-libp2p-kad-dht"
-	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
-	libp2p "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
-
-=======
 	"github.com/OpenBazaar/wallet-interface"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcutil"
 	hd "github.com/btcsuite/btcutil/hdkeychain"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
->>>>>>> 1eba569e5bc08b0e8756887aa5838fee26022b3c
 	"github.com/phoreproject/openbazaar-go/net"
 	"github.com/phoreproject/openbazaar-go/pb"
 	"github.com/phoreproject/openbazaar-go/repo"
@@ -41,7 +26,7 @@ import (
 )
 
 // ConfirmationsPerHour is temporary until the Wallet interface has Attributes() to provide this value
-const ConfirmationsPerHour = 60
+const ConfirmationsPerHour = 6
 
 // DisputeWg - waitgroup for disputes
 var DisputeWg = new(sync.WaitGroup)

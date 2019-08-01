@@ -13,26 +13,15 @@ import (
 	"strconv"
 	"time"
 
-<<<<<<< HEAD
-	"github.com/golang/protobuf/proto"
-	"github.com/golang/protobuf/ptypes"
-	"github.com/golang/protobuf/ptypes/any"
-	"github.com/phoreproject/btcutil"
-=======
 	"github.com/OpenBazaar/wallet-interface"
 	"github.com/btcsuite/btcutil"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
->>>>>>> 1eba569e5bc08b0e8756887aa5838fee26022b3c
 	"github.com/phoreproject/openbazaar-go/core"
 	"github.com/phoreproject/openbazaar-go/net"
 	"github.com/phoreproject/openbazaar-go/pb"
 	"github.com/phoreproject/openbazaar-go/repo"
-<<<<<<< HEAD
-	"github.com/phoreproject/wallet-interface"
-=======
->>>>>>> 1eba569e5bc08b0e8756887aa5838fee26022b3c
 )
 
 func (service *OpenBazaarService) HandlerForMsgType(t pb.Message_MessageType) func(peer.ID, *pb.Message, interface{}) (*pb.Message, error) {

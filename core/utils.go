@@ -6,13 +6,6 @@ import (
 	"fmt"
 	"time"
 
-<<<<<<< HEAD
-	"github.com/golang/protobuf/ptypes"
-	google_protobuf "github.com/golang/protobuf/ptypes/timestamp"
-	"github.com/phoreproject/btcd/chaincfg/chainhash"
-	"github.com/phoreproject/wallet-interface"
-
-=======
 	cid "gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
 	util "gx/ipfs/QmPdKqUcHGFdeSpvjVoaTRPPstGif9GBZb5Q56RVw9o69A/go-ipfs-util"
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
@@ -23,7 +16,6 @@ import (
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/golang/protobuf/ptypes"
 	google_protobuf "github.com/golang/protobuf/ptypes/timestamp"
->>>>>>> 1eba569e5bc08b0e8756887aa5838fee26022b3c
 	"github.com/phoreproject/openbazaar-go/pb"
 	"github.com/phoreproject/openbazaar-go/repo"
 )

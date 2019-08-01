@@ -29,17 +29,6 @@ import (
 	"gx/ipfs/QmaRb5yNXKonhbkpNxNawoydk4N6es6b4fPj19sjEKsh5D/go-datastore"
 
 	"github.com/OpenBazaar/jsonpb"
-<<<<<<< HEAD
-	//"github.com/phoreproject/openbazaar-go/bitcoin/phored"
-	"github.com/golang/protobuf/proto"
-	"github.com/golang/protobuf/ptypes"
-	"github.com/ipfs/go-ipfs/core/coreunix"
-	ipnspb "github.com/ipfs/go-ipfs/namesys/pb"
-	ipnspath "github.com/ipfs/go-ipfs/path"
-	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
-	"github.com/phoreproject/btcd/chaincfg/chainhash"
-	"github.com/phoreproject/btcutil/base58"
-=======
 	"github.com/OpenBazaar/spvwallet"
 	"github.com/OpenBazaar/wallet-interface"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
@@ -50,18 +39,11 @@ import (
 	iface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 	"github.com/ipfs/go-ipfs/namesys"
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
->>>>>>> 1eba569e5bc08b0e8756887aa5838fee26022b3c
 	"github.com/phoreproject/openbazaar-go/core"
 	"github.com/phoreproject/openbazaar-go/ipfs"
 	"github.com/phoreproject/openbazaar-go/pb"
 	"github.com/phoreproject/openbazaar-go/repo"
 	"github.com/phoreproject/openbazaar-go/schema"
-<<<<<<< HEAD
-	"github.com/phoreproject/spvwallet"
-	"github.com/phoreproject/wallet-interface"
-	"gx/ipfs/QmTmqJGRQfuH8eKWD1FjThwPRipt1QhqJQNZ8MpzmfAAxo/go-ipfs-ds-help"
-=======
->>>>>>> 1eba569e5bc08b0e8756887aa5838fee26022b3c
 )
 
 type JSONAPIConfig struct {

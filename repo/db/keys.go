@@ -4,12 +4,6 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"errors"
-<<<<<<< HEAD
-	"github.com/phoreproject/btcd/btcec"
-	"github.com/phoreproject/openbazaar-go/repo"
-	"github.com/phoreproject/wallet-interface"
-=======
->>>>>>> 1eba569e5bc08b0e8756887aa5838fee26022b3c
 	"strconv"
 	"sync"
 

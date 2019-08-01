@@ -8,25 +8,15 @@ import (
 	"time"
 
 	"github.com/OpenBazaar/jsonpb"
-<<<<<<< HEAD
-	"github.com/golang/protobuf/ptypes"
-	"github.com/phoreproject/btcd/chaincfg"
-	"github.com/phoreproject/btcutil"
-=======
 	"github.com/OpenBazaar/wallet-interface"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcutil"
 	"github.com/golang/protobuf/ptypes"
->>>>>>> 1eba569e5bc08b0e8756887aa5838fee26022b3c
 	"github.com/phoreproject/openbazaar-go/pb"
 	"github.com/phoreproject/openbazaar-go/repo"
 	"github.com/phoreproject/openbazaar-go/repo/db"
 	"github.com/phoreproject/openbazaar-go/schema"
 	"github.com/phoreproject/openbazaar-go/test/factory"
-<<<<<<< HEAD
-	"github.com/phoreproject/wallet-interface"
-=======
->>>>>>> 1eba569e5bc08b0e8756887aa5838fee26022b3c
 )
 
 func buildNewSaleStore() (repo.SaleStore, func(), error) {

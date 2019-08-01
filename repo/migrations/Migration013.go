@@ -223,8 +223,6 @@ func Migration013_ScriptToAddress(coinType string, script []byte, testmodeEnanab
 			return "", fmt.Errorf("unable to convert %s address to script", coinType)
 		}
 		return addrs[0].String(), nil
-<<<<<<< HEAD
-=======
 		//case "bch", "tbch":
 		//	addr, err := bchutil.ExtractPkScriptAddrs(script, params)
 		//	if err != nil {
@@ -237,7 +235,6 @@ func Migration013_ScriptToAddress(coinType string, script []byte, testmodeEnanab
 		//		return "", fmt.Errorf("converting %s script to address: %s", coinType, err.Error())
 		//	}
 		//	return addr.String(), nil
->>>>>>> 1eba569e5bc08b0e8756887aa5838fee26022b3c
 	}
 	return "", fmt.Errorf("unable to migrate coinType %s", coinType)
 }
@@ -256,8 +253,6 @@ func Migration013_AddressToScript(coinType string, addr string, testmodeEnanable
 			return nil, fmt.Errorf("converting %s address to script: %s", coinType, err.Error())
 		}
 		return script, nil
-<<<<<<< HEAD
-=======
 		//case "bch", "tbch":
 		//	addr, err := migration013_DecodeBCHAddress(addr, params)
 		//	if err != nil {
@@ -278,7 +273,6 @@ func Migration013_AddressToScript(coinType string, addr string, testmodeEnanable
 		//		return nil, fmt.Errorf("converting %s address to script: %s", coinType, err.Error())
 		//	}
 		//	return script, nil
->>>>>>> 1eba569e5bc08b0e8756887aa5838fee26022b3c
 	}
 	return nil, fmt.Errorf("unable to migrate coinType %s", coinType)
 }

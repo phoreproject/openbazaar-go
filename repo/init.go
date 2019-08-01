@@ -175,59 +175,6 @@ func addConfigExtensions(repoRoot string) error {
 		return err
 	}
 	var (
-<<<<<<< HEAD
-		w = schema.WalletConfig{
-			Type:             "phored",
-			MaxFee:           2000,
-			FeeAPI:           "https://btc.fees.openbazaar.org",
-			HighFeeDefault:   160,
-			MediumFeeDefault: 60,
-			LowFeeDefault:    20,
-			TrustedPeer:      "",
-			RPCLocation:      "rpc2.phore.io",
-		}
-		ws = schema.WalletsConfig{
-			BTC: schema.CoinConfig{
-				Type:             "API",
-				API:              "https://btc.bloqapi.net/insight-api",
-				APITestnet:       "https://test-insight.bitpay.com/api",
-				MaxFee:           200,
-				FeeAPI:           "https://btc.fees.openbazaar.org",
-				HighFeeDefault:   50,
-				MediumFeeDefault: 10,
-				LowFeeDefault:    1,
-			},
-			BCH: schema.CoinConfig{
-				Type:             "API",
-				API:              "https://bch-insight.bitpay.com/api",
-				APITestnet:       "https://test-bch-insight.bitpay.com/api",
-				MaxFee:           200,
-				HighFeeDefault:   10,
-				MediumFeeDefault: 5,
-				LowFeeDefault:    1,
-			},
-			LTC: schema.CoinConfig{
-				Type:             "API",
-				API:              "https://insight.litecore.io/api",
-				APITestnet:       "https://testnet.litecore.io/api",
-				MaxFee:           200,
-				HighFeeDefault:   20,
-				MediumFeeDefault: 10,
-				LowFeeDefault:    5,
-			},
-			ZEC: schema.CoinConfig{
-				Type:             "API",
-				API:              "https://zcashnetwork.info/api",
-				APITestnet:       "https://explorer.testnet.z.cash/api",
-				MaxFee:           200,
-				HighFeeDefault:   20,
-				MediumFeeDefault: 10,
-				LowFeeDefault:    5,
-			},
-		}
-
-=======
->>>>>>> 1eba569e5bc08b0e8756887aa5838fee26022b3c
 		a = schema.APIConfig{
 			Enabled:     true,
 			AllowedIPs:  []string{},

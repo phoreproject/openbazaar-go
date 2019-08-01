@@ -3,15 +3,6 @@ package db
 import (
 	"bytes"
 	"encoding/hex"
-<<<<<<< HEAD
-	"github.com/phoreproject/btcd/chaincfg/chainhash"
-	"github.com/phoreproject/btcd/wire"
-	"github.com/phoreproject/openbazaar-go/repo"
-	"github.com/phoreproject/wallet-interface"
-	"strconv"
-	"sync"
-	"testing"
-=======
 	"strconv"
 	"sync"
 	"testing"
@@ -21,7 +12,6 @@ import (
 	"github.com/phoreproject/openbazaar-go/repo"
 	"github.com/phoreproject/openbazaar-go/schema"
 	"github.com/phoreproject/openbazaar-go/test/factory"
->>>>>>> 1eba569e5bc08b0e8756887aa5838fee26022b3c
 )
 
 func buildNewUnspentTransactionOutputStore() (repo.UnspentTransactionOutputStore, func(), error) {

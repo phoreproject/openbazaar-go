@@ -2,14 +2,6 @@ package cmd
 
 import (
 	"fmt"
-<<<<<<< HEAD
-	"github.com/ipfs/go-ipfs/repo/fsrepo"
-	obnet "github.com/phoreproject/openbazaar-go/net"
-	"github.com/phoreproject/openbazaar-go/repo"
-	"github.com/phoreproject/openbazaar-go/repo/db"
-	"github.com/phoreproject/wallet-interface"
-	"os"
-=======
 	"os"
 
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
@@ -17,7 +9,6 @@ import (
 	obnet "github.com/phoreproject/openbazaar-go/net"
 	"github.com/phoreproject/openbazaar-go/repo"
 	"github.com/phoreproject/openbazaar-go/repo/db"
->>>>>>> 1eba569e5bc08b0e8756887aa5838fee26022b3c
 )
 
 type Status struct {

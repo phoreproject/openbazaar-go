@@ -27,17 +27,6 @@ import (
 	"syscall"
 	"time"
 
-<<<<<<< HEAD
-	ipfscore "github.com/ipfs/go-ipfs/core"
-	bitswap "github.com/ipfs/go-ipfs/exchange/bitswap/network"
-	"github.com/phoreproject/openbazaar-go/ipfs"
-	obnet "github.com/phoreproject/openbazaar-go/net"
-	"io/ioutil"
-	"strings"
-
-	"bufio"
-	"errors"
-=======
 	"github.com/ipfs/go-ipfs/core/coreapi"
 	iface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 
@@ -51,14 +40,9 @@ import (
 	"github.com/phoreproject/openbazaar-go/repo/db"
 	"github.com/phoreproject/openbazaar-go/schema"
 
->>>>>>> 1eba569e5bc08b0e8756887aa5838fee26022b3c
 	"github.com/ipfs/go-ipfs/core"
 	ipfscore "github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
-	"github.com/phoreproject/openbazaar-go/repo"
-	"github.com/phoreproject/openbazaar-go/repo/db"
-	"github.com/phoreproject/openbazaar-go/schema"
-	"github.com/phoreproject/wallet-interface"
 	"golang.org/x/crypto/ssh/terminal"
 )
 

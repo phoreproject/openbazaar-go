@@ -5,16 +5,10 @@ import (
 	"sync"
 	"time"
 
-<<<<<<< HEAD
-	"github.com/phoreproject/btcd/chaincfg/chainhash"
-	"github.com/phoreproject/openbazaar-go/repo"
-	"github.com/phoreproject/wallet-interface"
-=======
 	"github.com/OpenBazaar/wallet-interface"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/phoreproject/multiwallet/util"
 	"github.com/phoreproject/openbazaar-go/repo"
->>>>>>> 1eba569e5bc08b0e8756887aa5838fee26022b3c
 )
 
 type TxnsDB struct {

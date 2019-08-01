@@ -22,24 +22,10 @@ import (
 	ipfspath "gx/ipfs/QmT3rzed1ppXefourpmoZ7tyVQfsGPQZ1pHDngLmCvXxd3/go-path"
 
 	"github.com/OpenBazaar/jsonpb"
-<<<<<<< HEAD
-	"github.com/golang/protobuf/proto"
-	"github.com/golang/protobuf/ptypes"
-	ipfspath "github.com/ipfs/go-ipfs/path"
-	hd "github.com/phoreproject/btcutil/hdkeychain"
-	"github.com/phoreproject/wallet-interface"
-
-	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
-	mh "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
-	crypto "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
-
-	"github.com/phoreproject/openbazaar-go/ipfs"
-=======
 	"github.com/OpenBazaar/wallet-interface"
 	hd "github.com/btcsuite/btcutil/hdkeychain"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
->>>>>>> 1eba569e5bc08b0e8756887aa5838fee26022b3c
 	"github.com/phoreproject/openbazaar-go/pb"
 	"github.com/phoreproject/openbazaar-go/repo"
 )

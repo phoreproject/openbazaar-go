@@ -2,13 +2,6 @@ package repo
 
 import (
 	"database/sql"
-<<<<<<< HEAD
-	btc "github.com/phoreproject/btcutil"
-	"github.com/phoreproject/openbazaar-go/ipfs"
-	"github.com/phoreproject/openbazaar-go/pb"
-	"github.com/phoreproject/wallet-interface"
-	"time"
-=======
 
 	peer "gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
 	"time"
@@ -17,7 +10,6 @@ import (
 	btc "github.com/btcsuite/btcutil"
 	"github.com/phoreproject/openbazaar-go/ipfs"
 	"github.com/phoreproject/openbazaar-go/pb"
->>>>>>> 1eba569e5bc08b0e8756887aa5838fee26022b3c
 )
 
 type Datastore interface {

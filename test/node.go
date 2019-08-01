@@ -1,9 +1,6 @@
 package test
 
 import (
-<<<<<<< HEAD
-	"github.com/ipfs/go-ipfs/core/mock"
-=======
 	"context"
 	dht "gx/ipfs/QmPpYHPRGVpSJTkQDQDwTYZ1cYUR2NM4HS6M3iAXi8aoUa/go-libp2p-kad-dht"
 	crypto "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
@@ -15,17 +12,12 @@ import (
 	"github.com/btcsuite/btcutil/hdkeychain"
 	"github.com/phoreproject/multiwallet"
 	"github.com/phoreproject/multiwallet/config"
->>>>>>> 1eba569e5bc08b0e8756887aa5838fee26022b3c
 	"github.com/phoreproject/openbazaar-go/core"
 	"github.com/phoreproject/openbazaar-go/ipfs"
 	"github.com/phoreproject/openbazaar-go/net"
 	"github.com/phoreproject/openbazaar-go/net/service"
-<<<<<<< HEAD
-	"github.com/phoreproject/openbazaar-go/phore/phored"
-=======
 
 	coremock "github.com/ipfs/go-ipfs/core/mock"
->>>>>>> 1eba569e5bc08b0e8756887aa5838fee26022b3c
 	"github.com/tyler-smith/go-bip39"
 )
 
@@ -82,14 +74,10 @@ func NewNode() (*core.OpenBazaarNode, error) {
 	coins[wi.Zcash] = true
 	coins[wi.Litecoin] = true
 
-<<<<<<< HEAD
-	wallet, err := phored.NewRPCWallet(mnemonic, repository.Path, repository.DB, "rpc2.phore.io")
-=======
 	walletConf := config.NewDefaultConfig(coins, &chaincfg.RegressionNetParams)
 	walletConf.Mnemonic = mnemonic
 	walletConf.DisableExchangeRates = true
 	mw, err := multiwallet.NewMultiWallet(walletConf)
->>>>>>> 1eba569e5bc08b0e8756887aa5838fee26022b3c
 	if err != nil {
 		return nil, err
 	}

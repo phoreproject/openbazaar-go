@@ -16,16 +16,6 @@ import (
 
 	"github.com/OpenBazaar/jsonpb"
 	"github.com/golang/protobuf/proto"
-<<<<<<< HEAD
-	"github.com/phoreproject/openbazaar-go/test"
-
-	manet "gx/ipfs/QmRK2LxanhK2gZq6k6R7vk5ZoYZk8ULSSTB7FzDsMUX6CB/go-multiaddr-net"
-	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
-
-	"os"
-
-=======
->>>>>>> 1eba569e5bc08b0e8756887aa5838fee26022b3c
 	"github.com/op/go-logging"
 	"github.com/phoreproject/openbazaar-go/test"
 )
