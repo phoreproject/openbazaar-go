@@ -65,9 +65,9 @@ func DefaultWalletsConfig() *WalletsConfig {
 			Type:             WalletTypeAPI,
 			APIPool:          CoinPoolPHR,
 			APITestnetPool:   CoinPoolTPHR,
-			FeeAPI:           feeAPI,
+			FeeAPI:           "https://phr.fees.phore.io",
 			LowFeeDefault:    1,
-			MediumFeeDefault: 10,
+			MediumFeeDefault: 20,
 			HighFeeDefault:   50,
 			MaxFee:           200,
 			WalletOptions:    nil,
@@ -82,50 +82,6 @@ func DefaultWalletsConfig() *WalletsConfig {
 			HighFeeDefault:   50,
 			MaxFee:           200,
 			WalletOptions:    nil,
-		},
-		BCH: &CoinConfig{
-			Type:             WalletTypeAPI,
-			APIPool:          CoinPoolBCH,
-			APITestnetPool:   CoinPoolTBCH,
-			FeeAPI:           "", // intentionally blank
-			LowFeeDefault:    1,
-			MediumFeeDefault: 5,
-			HighFeeDefault:   10,
-			MaxFee:           200,
-			WalletOptions:    nil,
-		},
-		LTC: &CoinConfig{
-			Type:             WalletTypeAPI,
-			APIPool:          CoinPoolLTC,
-			APITestnetPool:   CoinPoolTLTC,
-			FeeAPI:           "", // intentionally blank
-			LowFeeDefault:    5,
-			MediumFeeDefault: 10,
-			HighFeeDefault:   20,
-			MaxFee:           200,
-			WalletOptions:    nil,
-		},
-		ZEC: &CoinConfig{
-			Type:             WalletTypeAPI,
-			APIPool:          CoinPoolZEC,
-			APITestnetPool:   CoinPoolTZEC,
-			FeeAPI:           "", // intentionally blank
-			LowFeeDefault:    5,
-			MediumFeeDefault: 10,
-			HighFeeDefault:   20,
-			MaxFee:           200,
-			WalletOptions:    nil,
-		},
-		ETH: &CoinConfig{
-			Type:             WalletTypeAPI,
-			APIPool:          CoinPoolETH,
-			APITestnetPool:   CoinPoolTETH,
-			FeeAPI:           "", // intentionally blank
-			LowFeeDefault:    7,
-			MediumFeeDefault: 15,
-			HighFeeDefault:   30,
-			MaxFee:           200,
-			WalletOptions:    EthereumDefaultOptions(),
 		},
 	}
 }
