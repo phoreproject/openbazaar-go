@@ -1,14 +1,23 @@
 package repo
 
 import (
-	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
-
 	"database/sql"
+<<<<<<< HEAD
 	btc "github.com/phoreproject/btcutil"
 	"github.com/phoreproject/openbazaar-go/ipfs"
 	"github.com/phoreproject/openbazaar-go/pb"
 	"github.com/phoreproject/wallet-interface"
 	"time"
+=======
+
+	peer "gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
+	"time"
+
+	"github.com/OpenBazaar/wallet-interface"
+	btc "github.com/btcsuite/btcutil"
+	"github.com/phoreproject/openbazaar-go/ipfs"
+	"github.com/phoreproject/openbazaar-go/pb"
+>>>>>>> 1eba569e5bc08b0e8756887aa5838fee26022b3c
 )
 
 type Datastore interface {
@@ -200,7 +209,7 @@ type PurchaseStore interface {
 	GetByPaymentAddress(addr btc.Address) (contract *pb.RicardianContract, state pb.OrderState, funded bool, records []*wallet.TransactionRecord, err error)
 
 	// Return a purchase given the order ID
-	GetByOrderId(orderId string) (contract *pb.RicardianContract, state pb.OrderState, funded bool, records []*wallet.TransactionRecord, read bool, err error)
+	GetByOrderId(orderId string) (contract *pb.RicardianContract, state pb.OrderState, funded bool, records []*wallet.TransactionRecord, read bool, currencyCode *CurrencyCode, err error)
 
 	// Return the metadata for all purchases. Also returns the original size of the query.
 	GetAll(stateFilter []pb.OrderState, searchTerm string, sortByAscending bool, sortByRead bool, limit int, exclude []string) ([]Purchase, int, error)
@@ -245,7 +254,7 @@ type SaleStore interface {
 	GetByPaymentAddress(addr btc.Address) (contract *pb.RicardianContract, state pb.OrderState, funded bool, records []*wallet.TransactionRecord, err error)
 
 	// Return a sale given the order ID
-	GetByOrderId(orderId string) (contract *pb.RicardianContract, state pb.OrderState, funded bool, records []*wallet.TransactionRecord, read bool, err error)
+	GetByOrderId(orderId string) (contract *pb.RicardianContract, state pb.OrderState, funded bool, records []*wallet.TransactionRecord, read bool, currencyCode *CurrencyCode, err error)
 
 	// Return the metadata for all sales. Also returns the original size of the query.
 	GetAll(stateFilter []pb.OrderState, searchTerm string, sortByAscending bool, sortByRead bool, limit int, exclude []string) ([]Sale, int, error)

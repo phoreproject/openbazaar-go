@@ -3,19 +3,20 @@ package db
 import (
 	"database/sql"
 	"encoding/hex"
-	"github.com/phoreproject/openbazaar-go/repo"
-	"github.com/phoreproject/wallet-interface"
 	"sync"
+
+	"github.com/phoreproject/multiwallet/util"
+	"github.com/phoreproject/openbazaar-go/repo"
 )
 
 // WatchScriptsDB type definition.
 // Sets a pointer to SQL database and syncs reader/writer mutex-based lock.
 type WatchedScriptsDB struct {
 	modelStore
-	coinType wallet.CoinType
+	coinType util.ExtCoinType
 }
 
-func NewWatchedScriptStore(db *sql.DB, lock *sync.Mutex, coinType wallet.CoinType) repo.WatchedScriptStore {
+func NewWatchedScriptStore(db *sql.DB, lock *sync.Mutex, coinType util.ExtCoinType) repo.WatchedScriptStore {
 	return &WatchedScriptsDB{modelStore{db, lock}, coinType}
 }
 

@@ -2,8 +2,8 @@ package db
 
 import (
 	"bytes"
-	"database/sql"
 	"encoding/hex"
+<<<<<<< HEAD
 	"github.com/phoreproject/btcd/chaincfg/chainhash"
 	"github.com/phoreproject/btcd/wire"
 	"github.com/phoreproject/openbazaar-go/repo"
@@ -12,14 +12,21 @@ import (
 	"sync"
 	"testing"
 )
+=======
+	"strconv"
+	"sync"
+	"testing"
+>>>>>>> 1eba569e5bc08b0e8756887aa5838fee26022b3c
 
-var sxdb repo.SpentTransactionOutputStore
-var stxo wallet.Stxo
+	"github.com/OpenBazaar/wallet-interface"
+	"github.com/btcsuite/btcd/chaincfg/chainhash"
+	"github.com/btcsuite/btcd/wire"
+	"github.com/phoreproject/multiwallet/util"
+	"github.com/phoreproject/openbazaar-go/repo"
+	"github.com/phoreproject/openbazaar-go/schema"
+)
 
-func init() {
-	conn, _ := sql.Open("sqlite3", ":memory:")
-	initDatabaseTables(conn, "")
-	sxdb = NewSpentTransactionStore(conn, new(sync.Mutex), wallet.Bitcoin)
+func mustNewStxo() wallet.Stxo {
 	sh1, _ := chainhash.NewHashFromStr("e941e1c32b3dd1a68edc3af9f7fe711f35aaca60f758c2dd49561e45ca2c41c0")
 	sh2, _ := chainhash.NewHashFromStr("82998e18760a5f6e5573cd789269e7853e3ebaba07a8df0929badd69dc644c5f")
 	outpoint := wire.NewOutPoint(sh1, 0)
@@ -30,15 +37,40 @@ func init() {
 		ScriptPubkey: []byte("scriptpubkey"),
 		WatchOnly:    false,
 	}
-	stxo = wallet.Stxo{
+	return wallet.Stxo{
 		Utxo:        utxo,
 		SpendHeight: 300100,
 		SpendTxid:   *sh2,
 	}
 }
 
+func buildNewSpentTransactionOutputStore() (repo.SpentTransactionOutputStore, func(), error) {
+	appSchema := schema.MustNewCustomSchemaManager(schema.SchemaContext{
+		DataPath:        schema.GenerateTempPath(),
+		TestModeEnabled: true,
+	})
+	if err := appSchema.BuildSchemaDirectories(); err != nil {
+		return nil, nil, err
+	}
+	if err := appSchema.InitializeDatabase(); err != nil {
+		return nil, nil, err
+	}
+	database, err := appSchema.OpenDatabase()
+	if err != nil {
+		return nil, nil, err
+	}
+	return NewSpentTransactionStore(database, new(sync.Mutex), util.CoinTypePhore), appSchema.DestroySchemaDirectories, nil
+}
+
 func TestStxoPut(t *testing.T) {
-	err := sxdb.Put(stxo)
+	var sxdb, teardown, err = buildNewSpentTransactionOutputStore()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer teardown()
+
+	stxo := mustNewStxo()
+	err = sxdb.Put(stxo)
 	if err != nil {
 		t.Error(err)
 	}
@@ -81,7 +113,14 @@ func TestStxoPut(t *testing.T) {
 }
 
 func TestStxoGetAll(t *testing.T) {
-	err := sxdb.Put(stxo)
+	var sxdb, teardown, err = buildNewSpentTransactionOutputStore()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer teardown()
+
+	stxo := mustNewStxo()
+	err = sxdb.Put(stxo)
 	if err != nil {
 		t.Error(err)
 	}
@@ -116,7 +155,14 @@ func TestStxoGetAll(t *testing.T) {
 }
 
 func TestDeleteStxo(t *testing.T) {
-	err := sxdb.Put(stxo)
+	var sxdb, teardown, err = buildNewSpentTransactionOutputStore()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer teardown()
+
+	stxo := mustNewStxo()
+	err = sxdb.Put(stxo)
 	if err != nil {
 		t.Error(err)
 	}

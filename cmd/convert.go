@@ -1,34 +1,31 @@
 package cmd
 
 import (
+	"bufio"
+	"context"
 	"database/sql"
 	"encoding/json"
-
-	"context"
+	"errors"
 	"fmt"
-	"github.com/OpenBazaar/jsonpb"
-	"github.com/phoreproject/openbazaar-go/pb"
+	"io/ioutil"
 	"os"
 	"path"
-
-	"github.com/phoreproject/openbazaar-go/ipfs"
-
-	ipfscore "github.com/ipfs/go-ipfs/core"
-	"io/ioutil"
 	"strings"
-
-	"bufio"
-	"errors"
-	"github.com/phoreproject/openbazaar-go/repo"
-	"github.com/phoreproject/openbazaar-go/repo/db"
-
-	"github.com/golang/protobuf/proto"
-	"github.com/ipfs/go-ipfs/repo/fsrepo"
-	"github.com/phoreproject/openbazaar-go/core"
-	"github.com/phoreproject/wallet-interface"
-	"golang.org/x/crypto/ssh/terminal"
 	"syscall"
 	"time"
+
+	"github.com/OpenBazaar/jsonpb"
+	"github.com/OpenBazaar/wallet-interface"
+	"github.com/golang/protobuf/proto"
+	ipfscore "github.com/ipfs/go-ipfs/core"
+	"github.com/ipfs/go-ipfs/repo/fsrepo"
+	"github.com/phoreproject/multiwallet/util"
+	"github.com/phoreproject/openbazaar-go/core"
+	"github.com/phoreproject/openbazaar-go/ipfs"
+	"github.com/phoreproject/openbazaar-go/pb"
+	"github.com/phoreproject/openbazaar-go/repo"
+	"github.com/phoreproject/openbazaar-go/repo/db"
+	"golang.org/x/crypto/ssh/terminal"
 )
 
 type Convert struct {
@@ -54,7 +51,7 @@ func (x *Convert) Execute(args []string) error {
 	var str string
 	var cfgtype string
 	var currencyCode string
-	ct := wallet.Bitcoin
+	ct := util.ExtendCoinType(wallet.Bitcoin)
 	switch strings.ToLower(args[0]) {
 	case "phore":
 		str = "phored"
@@ -65,12 +62,12 @@ func (x *Convert) Execute(args []string) error {
 		str = "Bitcoin Cash"
 		cfgtype = "bitcoincash"
 		currencyCode = "BCH"
-		ct = wallet.BitcoinCash
+		ct = util.ExtendCoinType(wallet.BitcoinCash)
 	case "zcash":
 		str = "ZCash"
 		cfgtype = "zcashd"
 		currencyCode = "ZEC"
-		ct = wallet.Zcash
+		ct = util.ExtendCoinType(wallet.Zcash)
 	}
 
 	if x.Testnet {
@@ -146,16 +143,16 @@ func (x *Convert) Execute(args []string) error {
 	json.Unmarshal(cf, &cfgIface)
 	cfgObj, ok := cfgIface.(map[string]interface{})
 	if !ok {
-		return errors.New("Invalid config file")
+		return errors.New("invalid config file")
 	}
 
 	walletIface, ok := cfgObj["Wallet"]
 	if !ok {
-		return errors.New("Config file missing wallet field")
+		return errors.New("config file missing wallet field")
 	}
 	walletCfg, ok := walletIface.(map[string]interface{})
 	if !ok {
-		return errors.New("Invalid config file")
+		return errors.New("invalid config file")
 	}
 	walletCfg["Type"] = cfgtype
 	if strings.ToLower(args[0]) == "zcash" {
@@ -187,6 +184,7 @@ func (x *Convert) Execute(args []string) error {
 	if sqliteDB.Config().IsEncrypted() {
 		sqliteDB.Close()
 		fmt.Print("Database is encrypted, enter your password: ")
+		// nolint:unconvert
 		bytePassword, _ := terminal.ReadPassword(int(syscall.Stdin))
 		fmt.Println("")
 		pw := string(bytePassword)
@@ -233,8 +231,7 @@ func (x *Convert) Execute(args []string) error {
 		ExtraOpts: map[string]bool{
 			"mplex": true,
 		},
-		DNSResolver: nil,
-		Routing:     nil,
+		Routing: nil,
 	}
 
 	nd, err := ipfscore.NewNode(cctx, ncfg)
@@ -309,7 +306,7 @@ func (x *Convert) Execute(args []string) error {
 	for i, l := range index {
 		h, ok := hashes[l.Slug]
 		if !ok {
-			return errors.New("Malformatted index file")
+			return errors.New("malformatted index file")
 		}
 		l.Hash = h
 		index[i] = l

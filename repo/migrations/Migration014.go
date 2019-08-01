@@ -3,12 +3,13 @@ package migrations
 import (
 	"database/sql"
 	"fmt"
-	"github.com/phoreproject/wallet-interface"
 	"path"
 	"strings"
+
+	"github.com/phoreproject/multiwallet/util"
 )
 
-var WalletCoinType wallet.CoinType
+var WalletCoinType util.ExtCoinType
 
 type Migration014 struct{}
 

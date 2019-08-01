@@ -12,8 +12,8 @@ class PurchaseDirectOfflineTest(OpenBazaarTestFramework):
         self.num_nodes = 3
 
     def run_test(self):
-        alice = self.nodes[0]
-        bob = self.nodes[1]
+        alice = self.nodes[1]
+        bob = self.nodes[2]
 
         # post profile for alice
         with open('testdata/profile.json') as profile_file:
@@ -24,6 +24,7 @@ class PurchaseDirectOfflineTest(OpenBazaarTestFramework):
         # post listing to alice
         with open('testdata/listing.json') as listing_file:
             listing_json = json.load(listing_file, object_pairs_hook=OrderedDict)
+        listing_json["metadata"]["pricingCurrency"] = "t" + self.cointype
 
         api_url = alice["gateway_url"] + "ob/listing"
         r = requests.post(api_url, data=json.dumps(listing_json, indent=4))
@@ -35,7 +36,7 @@ class PurchaseDirectOfflineTest(OpenBazaarTestFramework):
         time.sleep(20)
 
         # get listing hash
-        api_url = alice["gateway_url"] + "ipns/" + alice["peerId"] + "/listings.json"
+        api_url = alice["gateway_url"] + "ob/listings/" + alice["peerId"]
         r = requests.get(api_url)
         if r.status_code != 200:
             raise TestFailure("PurchaseDirectOfflineTest - FAIL: Couldn't get listing index")
@@ -47,7 +48,7 @@ class PurchaseDirectOfflineTest(OpenBazaarTestFramework):
         requests.get(api_url)
 
         # generate some coins and send them to bob
-        api_url = bob["gateway_url"] + "wallet/address"
+        api_url = bob["gateway_url"] + "wallet/address/" + self.cointype
         r = requests.get(api_url)
         if r.status_code == 200:
             resp = json.loads(r.text)
@@ -62,12 +63,13 @@ class PurchaseDirectOfflineTest(OpenBazaarTestFramework):
         # shutdown alice
         api_url = alice["gateway_url"] + "ob/shutdown"
         requests.post(api_url, data="")
-        time.sleep(4)
+        time.sleep(10)
 
         # bob send order
         with open('testdata/order_direct.json') as order_file:
             order_json = json.load(order_file, object_pairs_hook=OrderedDict)
         order_json["items"][0]["listingHash"] = listingId
+        order_json["paymentCoin"] = "t" + self.cointype
         api_url = bob["gateway_url"] + "ob/purchase"
         r = requests.post(api_url, data=json.dumps(order_json, indent=4))
         if r.status_code == 404:
@@ -95,6 +97,7 @@ class PurchaseDirectOfflineTest(OpenBazaarTestFramework):
 
         # fund order
         spend = {
+            "wallet": self.cointype,
             "address": payment_address,
             "amount": payment_amount,
             "feeLevel": "NORMAL"
@@ -105,7 +108,7 @@ class PurchaseDirectOfflineTest(OpenBazaarTestFramework):
             raise TestFailure("PurchaseDirectOfflineTest - FAIL: Spend post endpoint not found")
         elif r.status_code != 200:
             resp = json.loads(r.text)
-            raise TestFailure("PurchaseDirectOfflineTest - FAIL: Purchase POST failed. Reason: %s", resp["reason"])
+            raise TestFailure("PurchaseDirectOfflineTest - FAIL: Spend POST failed. Reason: %s", resp["reason"])
         time.sleep(20)
 
         # check bob detected payment
@@ -126,7 +129,7 @@ class PurchaseDirectOfflineTest(OpenBazaarTestFramework):
 
         # startup alice again
         self.start_node(alice)
-        time.sleep(45)
+        time.sleep(60)
 
         # check alice detected order and payment
         api_url = alice["gateway_url"] + "ob/order/" + orderId
@@ -140,7 +143,7 @@ class PurchaseDirectOfflineTest(OpenBazaarTestFramework):
             raise TestFailure("PurchaseDirectOfflineTest - FAIL: Alice incorrectly saved as unfunded")
 
         # check alice balance is zero
-        api_url = alice["gateway_url"] + "wallet/balance"
+        api_url = alice["gateway_url"] + "wallet/balance/" + self.cointype
         r = requests.get(api_url)
         if r.status_code == 200:
             resp = json.loads(r.text)
@@ -163,14 +166,14 @@ class PurchaseDirectOfflineTest(OpenBazaarTestFramework):
             raise TestFailure("PurchaseDirectOfflineTest - FAIL: Order confirmation post endpoint not found")
         elif r.status_code != 200:
             resp = json.loads(r.text)
-            raise TestFailure("PurchaseDirectOfflineTest - FAIL: Purchase POST failed. Reason: %s", resp["reason"])
+            raise TestFailure("PurchaseDirectOfflineTest - FAIL: order confirmation POST failed. Reason: %s", resp["reason"])
         time.sleep(10)
 
         self.send_bitcoin_cmd("generate", 1)
         time.sleep(2)
 
         # Check the funds moved into alice's wallet
-        api_url = alice["gateway_url"] + "wallet/balance"
+        api_url = alice["gateway_url"] + "wallet/balance/" + self.cointype
         r = requests.get(api_url)
         if r.status_code == 200:
             resp = json.loads(r.text)
@@ -199,7 +202,7 @@ class PurchaseDirectOfflineTest(OpenBazaarTestFramework):
             raise TestFailure("PurchaseDirectOnlineTest - FAIL: Couldn't load order from Alice")
         resp = json.loads(r.text)
         if resp["state"] != "AWAITING_FULFILLMENT":
-            raise TestFailure("PurchaseDirectOnlineTest - FAIL: Alice failed to detect payment")
+            raise TestFailure("PurchaseDirectOnlineTest - FAIL: Alice failed to detect payment2")
         if resp["funded"] == False:
             raise TestFailure("PurchaseDirectOnlineTest - FAIL: Alice incorrectly saved as unfunded")
 

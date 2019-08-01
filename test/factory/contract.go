@@ -1,9 +1,9 @@
 package factory
 
 import (
-	"time"
+	crypto "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
 
-	crypto "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
+	"time"
 
 	"github.com/golang/protobuf/ptypes"
 	"github.com/phoreproject/openbazaar-go/pb"
@@ -25,7 +25,12 @@ func NewContract() *pb.RicardianContract {
 			Payment: &pb.Order_Payment{
 				Amount:  10,
 				Method:  pb.Order_Payment_DIRECT,
+<<<<<<< HEAD
 				Address: "PL7EtCQoAwZvmUFR4KdgVSA8S1LFeWc5RM",
+=======
+				Address: "3BDbGsH5h5ctDiFtWMmZawcf3E7iWirVms",
+				Coin:    "BTC",
+>>>>>>> 1eba569e5bc08b0e8756887aa5838fee26022b3c
 			},
 			Timestamp: nowData,
 		}

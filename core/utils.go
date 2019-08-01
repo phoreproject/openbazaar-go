@@ -3,20 +3,29 @@ package core
 import (
 	"crypto/sha256"
 	"errors"
-	util "gx/ipfs/QmNiJuT8Ja3hMVpBHXv3Q6dwmperaQ6JjLtpMQgMCD7xvx/go-ipfs-util"
-	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
-	ps "gx/ipfs/QmXauCuJzmzapetmC6W4TuDJLL1yFFrVzSHoWv8YdbmnxH/go-libp2p-peerstore"
-	mh "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
-	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
-	"strings"
+	"fmt"
 	"time"
 
+<<<<<<< HEAD
 	"github.com/golang/protobuf/ptypes"
 	google_protobuf "github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/phoreproject/btcd/chaincfg/chainhash"
 	"github.com/phoreproject/wallet-interface"
 
+=======
+	cid "gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
+	util "gx/ipfs/QmPdKqUcHGFdeSpvjVoaTRPPstGif9GBZb5Q56RVw9o69A/go-ipfs-util"
+	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
+	ma "gx/ipfs/QmT4U94DnD8FRfqr21obWY32HLM5VExccPKMjQHofeYqr9/go-multiaddr"
+	ps "gx/ipfs/QmTTJcDL3gsnGDALjh2fDGg1onGRUdVgNL2hU2WEZcVrMX/go-libp2p-peerstore"
+
+	"github.com/OpenBazaar/wallet-interface"
+	"github.com/btcsuite/btcd/chaincfg/chainhash"
+	"github.com/golang/protobuf/ptypes"
+	google_protobuf "github.com/golang/protobuf/ptypes/timestamp"
+>>>>>>> 1eba569e5bc08b0e8756887aa5838fee26022b3c
 	"github.com/phoreproject/openbazaar-go/pb"
+	"github.com/phoreproject/openbazaar-go/repo"
 )
 
 // Hash with SHA-256 and encode as a multihash
@@ -26,7 +35,7 @@ func EncodeCID(b []byte) (*cid.Cid, error) {
 		return nil, err
 	}
 	id := cid.NewCidV1(cid.Raw, *multihash)
-	return id, err
+	return &id, err
 }
 
 // EncodeMultihash - sha256 encode
@@ -70,6 +79,10 @@ func FormatRFC3339PB(ts google_protobuf.Timestamp) string {
 func (n *OpenBazaarNode) BuildTransactionRecords(contract *pb.RicardianContract, records []*wallet.TransactionRecord, state pb.OrderState) ([]*pb.TransactionRecord, *pb.TransactionRecord, error) {
 	paymentRecords := []*pb.TransactionRecord{}
 	payments := make(map[string]*pb.TransactionRecord)
+	wal, err := n.Multiwallet.WalletForCurrencyCode(contract.BuyerOrder.Payment.Coin)
+	if err != nil {
+		return paymentRecords, nil, err
+	}
 
 	// Consolidate any transactions with multiple outputs into a single record
 	for _, r := range records {
@@ -90,7 +103,7 @@ func (n *OpenBazaarNode) BuildTransactionRecords(contract *pb.RicardianContract,
 			if err != nil {
 				return paymentRecords, nil, err
 			}
-			confirmations, height, err := n.Wallet.GetConfirmations(*ch)
+			confirmations, height, err := wal.GetConfirmations(*ch)
 			if err != nil {
 				return paymentRecords, nil, err
 			}
@@ -124,7 +137,7 @@ func (n *OpenBazaarNode) BuildTransactionRecords(contract *pb.RicardianContract,
 			if err != nil {
 				return paymentRecords, refundRecord, err
 			}
-			confirmations, height, err := n.Wallet.GetConfirmations(*ch)
+			confirmations, height, err := wal.GetConfirmations(*ch)
 			if err != nil {
 				return paymentRecords, refundRecord, nil
 			}
@@ -140,5 +153,23 @@ func (n *OpenBazaarNode) BuildTransactionRecords(contract *pb.RicardianContract,
 
 // NormalizeCurrencyCode standardizes the format for the given currency code
 func NormalizeCurrencyCode(currencyCode string) string {
-	return strings.ToUpper(currencyCode)
+	var c, err = repo.LoadCurrencyDefinitions().Lookup(currencyCode)
+	if err != nil {
+		log.Errorf("invalid currency code (%s): %s", currencyCode, err.Error())
+		return ""
+	}
+	return c.String()
+}
+
+func (n *OpenBazaarNode) ValidateMultiwalletHasPreferredCurrencies(data repo.SettingsData) error {
+	if data.PreferredCurrencies == nil {
+		return nil
+	}
+	for _, cc := range *data.PreferredCurrencies {
+		_, err := n.Multiwallet.WalletForCurrencyCode(cc)
+		if err != nil {
+			return fmt.Errorf("preferred coin %s not found in multiwallet", cc)
+		}
+	}
+	return nil
 }

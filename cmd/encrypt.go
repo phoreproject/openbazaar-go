@@ -9,10 +9,18 @@ import (
 	"strings"
 	"syscall"
 
+<<<<<<< HEAD
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
 	"github.com/phoreproject/openbazaar-go/repo"
 	"github.com/phoreproject/openbazaar-go/repo/db"
 	"github.com/phoreproject/wallet-interface"
+=======
+	"github.com/OpenBazaar/wallet-interface"
+	"github.com/ipfs/go-ipfs/repo/fsrepo"
+	"github.com/phoreproject/multiwallet/util"
+	"github.com/phoreproject/openbazaar-go/repo"
+	"github.com/phoreproject/openbazaar-go/repo/db"
+>>>>>>> 1eba569e5bc08b0e8756887aa5838fee26022b3c
 	"golang.org/x/crypto/ssh/terminal"
 )
 
@@ -73,6 +81,7 @@ func (x *EncryptDatabase) Execute(args []string) error {
 	var pw string
 	for {
 		fmt.Print("Enter a veerrrry strong password: ")
+		// nolint:unconvert
 		bytePassword, _ := terminal.ReadPassword(int(syscall.Stdin))
 		fmt.Println("")
 		resp := string(bytePassword)
@@ -87,6 +96,7 @@ func (x *EncryptDatabase) Execute(args []string) error {
 	}
 	for {
 		fmt.Print("Confirm your password: ")
+		// nolint:unconvert
 		bytePassword, _ := terminal.ReadPassword(int(syscall.Stdin))
 		fmt.Println("")
 		resp := string(bytePassword)
@@ -98,20 +108,20 @@ func (x *EncryptDatabase) Execute(args []string) error {
 	}
 	pw = strings.Replace(pw, "'", "''", -1)
 	tmpPath := path.Join(repoPath, "tmp")
-	sqlliteDB, err := db.Create(repoPath, "", testnet, wallet.Bitcoin)
+	sqlliteDB, err := db.Create(repoPath, "", testnet, util.ExtendCoinType(wallet.Bitcoin))
 	if err != nil {
 		log.Error(err)
 		fmt.Println(err)
 		return err
 	}
 	if sqlliteDB.Config().IsEncrypted() {
-		fmt.Println("The database is alredy encrypted")
+		fmt.Println("The database is already encrypted")
 		return nil
 	}
 	if err := os.MkdirAll(path.Join(repoPath, "tmp", "datastore"), os.ModePerm); err != nil {
 		return err
 	}
-	tmpDB, err := db.Create(tmpPath, pw, testnet, wallet.Bitcoin)
+	tmpDB, err := db.Create(tmpPath, pw, testnet, util.ExtendCoinType(wallet.Bitcoin))
 	if err != nil {
 		log.Error(err)
 		fmt.Println(err)

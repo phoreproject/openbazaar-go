@@ -4,16 +4,25 @@ import (
 	"bufio"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
+<<<<<<< HEAD
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
 	"github.com/phoreproject/openbazaar-go/repo"
 	"github.com/phoreproject/openbazaar-go/schema"
 	"golang.org/x/crypto/ssh/terminal"
+=======
+>>>>>>> 1eba569e5bc08b0e8756887aa5838fee26022b3c
 	"io/ioutil"
 	"os"
 	"path"
 	"strings"
 	"syscall"
+
+	"github.com/ipfs/go-ipfs/repo/fsrepo"
+	"github.com/phoreproject/openbazaar-go/repo"
+	"github.com/phoreproject/openbazaar-go/schema"
+	"golang.org/x/crypto/ssh/terminal"
 )
 
 type SetAPICreds struct {
@@ -30,15 +39,28 @@ func (x *SetAPICreds) Execute(args []string) error {
 	if x.DataDir != "" {
 		repoPath = x.DataDir
 	}
-	r, err := fsrepo.Open(repoPath)
-	if err != nil {
-		log.Error(err)
-		return err
-	}
-	configFile, err := ioutil.ReadFile(path.Join(repoPath, "config"))
+	cfgPath := path.Join(repoPath, "config")
+	configFile, err := ioutil.ReadFile(cfgPath)
 	if err != nil {
 		return err
 	}
+	_, err = fsrepo.Open(repoPath)
+	if _, ok := err.(fsrepo.NoRepoError); ok {
+		return fmt.Errorf(
+			"IPFS repo in the data directory '%s' has not been initialized."+
+				"\nRun openbazaar with the 'start' command to initialize.",
+			repoPath)
+	}
+	if err != nil {
+		return err
+	}
+
+	configJson := make(map[string]interface{})
+	err = json.Unmarshal(configFile, &configJson)
+	if err != nil {
+		return err
+	}
+
 	apiCfg, err := schema.GetAPIConfig(configFile)
 	if err != nil {
 		log.Error(err)
@@ -51,6 +73,7 @@ func (x *SetAPICreds) Execute(args []string) error {
 	var pw string
 	for {
 		fmt.Print("Enter a veerrrry strong password: ")
+		// nolint:unconvert
 		bytePassword, _ := terminal.ReadPassword(int(syscall.Stdin))
 		fmt.Println("")
 		resp := string(bytePassword)
@@ -65,6 +88,7 @@ func (x *SetAPICreds) Execute(args []string) error {
 	}
 	for {
 		fmt.Print("Confirm your password: ")
+		// nolint:unconvert
 		bytePassword, _ := terminal.ReadPassword(int(syscall.Stdin))
 		fmt.Println("")
 		resp := string(bytePassword)
@@ -87,7 +111,13 @@ func (x *SetAPICreds) Execute(args []string) error {
 		apiCfg.AllowedIPs = []string{}
 	}
 
-	err = r.SetConfigKey("JSON-API", apiCfg)
+	configJson["JSON-API"] = apiCfg
+
+	out, err := json.MarshalIndent(configJson, "", "    ")
+	if err != nil {
+		return err
+	}
+	err = ioutil.WriteFile(cfgPath, out, os.ModePerm)
 	if err != nil {
 		return err
 	}

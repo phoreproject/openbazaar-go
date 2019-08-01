@@ -5,15 +5,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	crypto "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
+	peer "gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
 	"io/ioutil"
 	"os"
 	"path"
 	"regexp"
 	"strings"
 	"testing"
-
-	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
-	"gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 
 	"github.com/OpenBazaar/jsonpb"
 	"github.com/golang/protobuf/proto"
@@ -286,7 +285,7 @@ func testMigration012_verifySignature(msg proto.Message, pk []byte, signature []
 		return err
 	}
 	if !valid {
-		return errors.New("Invalid signature")
+		return errors.New("invalid signature")
 	}
 	pid, err := peer.IDB58Decode(peerID)
 	if err != nil {
@@ -294,7 +293,7 @@ func testMigration012_verifySignature(msg proto.Message, pk []byte, signature []
 	}
 
 	if !pid.MatchesPublicKey(pubkey) {
-		return errors.New("Pubkey does not match peer ID")
+		return errors.New("pubkey does not match peer ID")
 	}
 	return nil
 }
@@ -323,7 +322,7 @@ func testMigration012_assertListingIndexMigratedCorrectly(t *testing.T) {
 	}
 
 	// Check that correct listing's hashes changed
-	listingsIndex := []*migrations.Migration012_ListingData{}
+	var listingsIndex []*migrations.Migration012_ListingData
 	err = json.Unmarshal(listingsIndexJSON, &listingsIndex)
 	if err != nil {
 		t.Fatal(err)
@@ -606,8 +605,8 @@ var testMigraion012_listingFixtures = []pb.SignedListing{
 }
 
 var testMigraion012_listingFixtureHashes = map[string]string{
-	"slug-4": "zb2rhYFPk5iVCTJYFoGR5gEpzKodhDWu5jESE2yzvWrCou54n",
-	"slug-5": "zb2rhbNjVXhbtKkSXbf6hpGUV2CujPTBx9jWsRJpvzKdgpwj9",
+	"slug-4": "QmXC26R4PNnArmVssrviaA4WGxP1zzmx8y2AiybF6hQpRM",
+	"slug-5": "QmaEUP6zWvZkrWAbVAvcxRiV5Fou8jQnHc4nmarAUVLoQr",
 }
 
 var testMigration012_configFixture = `{

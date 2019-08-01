@@ -3,11 +3,10 @@ package migrations
 import (
 	"context"
 	"encoding/json"
+	crypto "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
 	"io/ioutil"
 	"os"
 	"path"
-
-	"gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 
 	"github.com/OpenBazaar/jsonpb"
 	"github.com/golang/protobuf/proto"
@@ -88,13 +87,13 @@ func (Migration012) Up(repoPath, databasePassword string, testnetEnabled bool) e
 		return err
 	}
 
-	listingsIndex := []*Migration012_ListingData{}
+	var listingsIndex []*Migration012_ListingData
 	err = json.Unmarshal(listingsIndexJSONBytes, &listingsIndex)
 	if err != nil {
 		return err
 	}
 
-	cryptoListings := []*Migration012_ListingData{}
+	var cryptoListings []*Migration012_ListingData
 	for _, listingAbstract := range listingsIndex {
 		if listingAbstract.ContractType == "CRYPTOCURRENCY" {
 			cryptoListings = append(cryptoListings, listingAbstract)
@@ -107,7 +106,7 @@ func (Migration012) Up(repoPath, databasePassword string, testnetEnabled bool) e
 	}
 
 	// Check each crypto listing for markup
-	markupListings := []*pb.SignedListing{}
+	var markupListings []*pb.SignedListing
 	for _, listingAbstract := range cryptoListings {
 		listingJSONBytes, err := ioutil.ReadFile(migration012_listingFilePath(repoPath, listingAbstract.Slug))
 		if err != nil {
@@ -161,8 +160,7 @@ func (Migration012) Up(repoPath, databasePassword string, testnetEnabled bool) e
 		ExtraOpts: map[string]bool{
 			"mplex": true,
 		},
-		DNSResolver: nil,
-		Routing:     nil,
+		Routing: nil,
 	}
 
 	nd, err := ipfscore.NewNode(cctx, ncfg)

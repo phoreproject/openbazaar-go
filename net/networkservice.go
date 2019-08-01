@@ -2,24 +2,24 @@ package net
 
 import (
 	"context"
-	inet "gx/ipfs/QmXfkENeeBvh3zYA51MaSdGUdBjhQ99cP5WQe8zgr6wchG/go-libp2p-net"
-	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
-
 	"errors"
+
+	peer "gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
+	inet "gx/ipfs/QmXuRkCR7BNQa9uqfpTiFWsTQLzmTWYg91Ja1w95gnqb6u/go-libp2p-net"
 
 	"github.com/phoreproject/openbazaar-go/pb"
 )
 
 var (
-	OutOfOrderMessage error = errors.New("Message arrived out of order")
-	DuplicateMessage  error = errors.New("Duplicate Message")
+	OutOfOrderMessage = errors.New("message arrived out of order")
+	DuplicateMessage  = errors.New("duplicate message")
 )
 
 type NetworkService interface {
 	// Handle incoming streams
 	HandleNewStream(s inet.Stream)
 
-	// Get handler for mesage type
+	// Get handler for message type
 	HandlerForMsgType(t pb.Message_MessageType) func(peer.ID, *pb.Message, interface{}) (*pb.Message, error)
 
 	// Send request to a peer and wait for the response
@@ -30,4 +30,7 @@ type NetworkService interface {
 
 	// Disconnect from the given peer
 	DisconnectFromPeer(p peer.ID) error
+
+	// Block until the service is available
+	WaitForReady()
 }

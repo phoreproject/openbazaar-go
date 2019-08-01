@@ -1,6 +1,7 @@
 package mobile
 
 import (
+	"github.com/OpenBazaar/wallet-interface"
 	"github.com/op/go-logging"
 )
 
@@ -10,7 +11,7 @@ var stdoutLogFormat = logging.MustStringFormatter(
 
 var logger logging.Backend
 
-// NodeConfig type definition includes path for data directory, authentication token, Testnet flag, user-agent, and trusted peer for wallet
+// NodeConfig struct of the config parameters to be passed when creating a new node
 type NodeConfig struct {
 
 	// Path for the node's data directory
@@ -31,4 +32,7 @@ type NodeConfig struct {
 	// Processes to disable
 	DisableWallet        bool
 	DisableExchangerates bool
+
+	// The coin to use
+	CoinType wallet.CoinType
 }

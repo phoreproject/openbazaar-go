@@ -2,11 +2,10 @@ package core
 
 import (
 	"encoding/base64"
-	"image"
-	// load gif
+	"gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
+	"image" // load gif
 	_ "image/gif"
-	"image/jpeg"
-	// load png
+	"image/jpeg" // load png
 	_ "image/png"
 	"io/ioutil"
 	"net"
@@ -17,10 +16,10 @@ import (
 	"strings"
 	"time"
 
-	ipnspath "github.com/ipfs/go-ipfs/path"
-	"github.com/ipfs/go-ipfs/unixfs/io"
-	"github.com/nfnt/resize"
+	ipath "gx/ipfs/QmT3rzed1ppXefourpmoZ7tyVQfsGPQZ1pHDngLmCvXxd3/go-path"
+	"gx/ipfs/QmfB3oNXGGq9S4B2a9YeCajoATms3Zw2VvDm8fK7VeLSV8/go-unixfs/io"
 
+	"github.com/nfnt/resize"
 	"github.com/phoreproject/openbazaar-go/ipfs"
 	"github.com/phoreproject/openbazaar-go/pb"
 )
@@ -159,8 +158,8 @@ func (n *OpenBazaarNode) FetchHeader(peerID string, size string, useCache bool) 
 
 // FetchImage - fetch ipfs image
 func (n *OpenBazaarNode) FetchImage(peerID string, imageType string, size string, useCache bool) (io.DagReader, error) {
-	query := "/ipns/" + peerID + "/images/" + size + "/" + imageType
-	b, err := n.IPNSResolveThenCat(ipnspath.FromString(query), time.Minute, useCache)
+	query := "/" + peerID + "/images/" + size + "/" + imageType
+	b, err := n.IPNSResolveThenCat(ipath.FromString(query), time.Minute, useCache)
 	if err != nil {
 		return nil, err
 	}
@@ -190,4 +189,53 @@ func (n *OpenBazaarNode) GetBase64Image(url string) (base64ImageData, filename s
 	}
 	_, filename = path.Split(u.Path)
 	return img, filename, nil
+}
+
+// maybeMigrateImageHashes will iterate over the listing's images and migrate them
+// to a v0 cid if they are not already v0.
+func (n *OpenBazaarNode) maybeMigrateImageHashes(listing *pb.Listing) error {
+	if listing.Item == nil || len(listing.Item.Images) == 0 {
+		return nil
+	}
+
+	maybeMigrateImage := func(imgHash, size, filename string) (string, error) {
+		id, err := cid.Decode(imgHash)
+		if err != nil {
+			return "", err
+		}
+		if id.Version() > 0 {
+			newHash, err := ipfs.AddFile(n.IpfsNode, path.Join(n.RepoPath, "root", "images", size, filename))
+			if err != nil {
+				return "", err
+			}
+			return newHash, nil
+		}
+		return imgHash, nil
+	}
+
+	var err error
+	for i, image := range listing.Item.Images {
+		image.Large, err = maybeMigrateImage(image.Large, "large", image.Filename)
+		if err != nil {
+			return err
+		}
+		image.Medium, err = maybeMigrateImage(image.Medium, "medium", image.Filename)
+		if err != nil {
+			return err
+		}
+		image.Small, err = maybeMigrateImage(image.Small, "small", image.Filename)
+		if err != nil {
+			return err
+		}
+		image.Tiny, err = maybeMigrateImage(image.Tiny, "tiny", image.Filename)
+		if err != nil {
+			return err
+		}
+		image.Original, err = maybeMigrateImage(image.Original, "original", image.Filename)
+		if err != nil {
+			return err
+		}
+		listing.Item.Images[i] = image
+	}
+	return nil
 }

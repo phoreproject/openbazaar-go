@@ -39,6 +39,7 @@ const (
 	// End SQL Statements
 
 	// Configuration defaults
+<<<<<<< HEAD
 	DataPushNodeOne   = "QmWbi8z4uPkEdrWHtgxCkQGE5vxJnrStXAeEQnupmQnKRh"
 	DataPushNodeTwo   = "QmRh7fSZyFHesEL9aTmdxbrvMFxzyFxoaQGjYBotot6WLw"
 	DataPushNodeThree = "QmZLs6zVpVtkoR8oYyAbCxujvC6weU5CgUPTYx8zKMAtTf"
@@ -48,6 +49,24 @@ const (
 	BootstrapNodeDefaultThree             = "/ip4/54.175.193.226/tcp/5001/ipfs/QmZLs6zVpVtkoR8oYyAbCxujvC6weU5CgUPTYx8zKMAtTf"
 	BootstrapNodeDefault_LeMarcheSerpette = "/ip4/159.203.115.78/tcp/5001/ipfs/QmPJuP4Myo8pGL1k56b85Q4rpaoSnmn5L3wLjYHTzbBrk1"
 	BootstrapNodeDefault_BrixtonVillage   = "/ip4/104.131.19.44/tcp/5001/ipfs/QmRvbZttqh6CPFiMKWa1jPfRR9JxagYRv4wsvMAG4ADUTj"
+=======
+	EthereumRegistryAddressMainnet = "0x403d907982474cdd51687b09a8968346159378f3"
+	EthereumRegistryAddressRinkeby = "0x403d907982474cdd51687b09a8968346159378f3"
+	EthereumRegistryAddressRopsten = "0x403d907982474cdd51687b09a8968346159378f3"
+
+	DataPushNodeOne   = "QmWbi8z4uPkEdrWHtgxCkQGE5vxJnrStXAeEQnupmQnKRh"
+	DataPushNodeTwo   = "Qma2LRYB4xLaoxsMCL2kb93WKCW4EotUMhgvQUSqE6tCka"
+	DataPushNodeThree = "QmZLs6zVpVtkoR8oYyAbCxujvC6weU5CgUPTYx8zKMAtTf"
+	DataPushNodeFour  = "QmNSnS2K3TkSQjxJhaRBSZxotUQp1yxLss4zKDVbhRc9nv" 
+
+	BootstrapNodeDefaultOne               = "/ip4/54.227.172.110/tcp/5001/ipfs/QmWbi8z4uPkEdrWHtgxCkQGE5vxJnrStXAeEQnupmQnKRh"
+	BootstrapNodeDefaultTwo               = "/ip4/144.202.25.235/tcp/5001/ipfs/Qma2LRYB4xLaoxsMCL2kb93WKCW4EotUMhgvQUSqE6tCka"
+	BootstrapNodeDefaultThree             = "/ip4/54.175.193.226/tcp/5001/ipfs/QmZLs6zVpVtkoR8oYyAbCxujvC6weU5CgUPTYx8zKMAtTf"
+	BootstrapNodeDefaultFour              = "/ip4/34.239.133.237/tcp/5001/ipfs/QmNSnS2K3TkSQjxJhaRBSZxotUQp1yxLss4zKDVbhRc9nv"
+	BootstrapNodeDefault_LeMarcheSerpette = "/ip4/159.203.115.78/tcp/5001/ipfs/QmPJuP4Myo8pGL1k56b85Q4rpaoSnmn5L3wLjYHTzbBrk1"
+	BootstrapNodeDefault_BrixtonVillage   = "/ip4/104.131.19.44/tcp/5001/ipfs/QmRvbZttqh6CPFiMKWa1jPfRR9JxagYRv4wsvMAG4ADUTj"
+
+>>>>>>> 1eba569e5bc08b0e8756887aa5838fee26022b3c
 	// End Configuration defaults
 )
 
@@ -58,14 +77,66 @@ var (
 )
 
 var (
+<<<<<<< HEAD
 	DataPushNodes = []string{DataPushNodeOne, DataPushNodeTwo, DataPushNodeThree}
+=======
+	DataPushNodes = []string{DataPushNodeOne, DataPushNodeTwo, DataPushNodeThree, DataPushNodeFour}
+>>>>>>> 1eba569e5bc08b0e8756887aa5838fee26022b3c
 
 	BootstrapAddressesDefault = []string{
 		BootstrapNodeDefaultOne,
 		BootstrapNodeDefaultTwo,
 		BootstrapNodeDefaultThree,
+<<<<<<< HEAD
+=======
+		BootstrapNodeDefaultFour,
+>>>>>>> 1eba569e5bc08b0e8756887aa5838fee26022b3c
 		BootstrapNodeDefault_LeMarcheSerpette,
 		BootstrapNodeDefault_BrixtonVillage,
 	}
 	BootstrapAddressesTestnet = []string{}
+)
+
+func EthereumDefaultOptions() map[string]interface{} {
+	return map[string]interface{}{
+		"RegistryAddress":        EthereumRegistryAddressMainnet,
+		"RinkebyRegistryAddress": EthereumRegistryAddressRinkeby,
+		"RopstenRegistryAddress": EthereumRegistryAddressRopsten,
+	}
+}
+
+const (
+	WalletTypeAPI = "API"
+	WalletTypeSPV = "SPV"
+)
+
+const (
+	CoinAPIOpenBazaarPHR = "https://phr.blockbook.api.phore.io/api"
+	CoinAPIOpenBazaarBTC = "https://btc.blockbook.api.openbazaar.org/api"
+	CoinAPIOpenBazaarBCH = "https://bch.blockbook.api.openbazaar.org/api"
+	CoinAPIOpenBazaarLTC = "https://ltc.blockbook.api.openbazaar.org/api"
+	CoinAPIOpenBazaarZEC = "https://zec.blockbook.api.openbazaar.org/api"
+	CoinAPIOpenBazaarETH = "https://rinkeby.infura.io"
+
+	CoinAPIOpenBazaarTPHR = "https://tphr.blockbook.api.phore.io/api"
+	CoinAPIOpenBazaarTBTC = "https://tbtc.blockbook.api.openbazaar.org/api"
+	CoinAPIOpenBazaarTBCH = "https://tbch.blockbook.api.openbazaar.org/api"
+	CoinAPIOpenBazaarTLTC = "https://tltc.blockbook.api.openbazaar.org/api"
+	CoinAPIOpenBazaarTZEC = "https://tzec.blockbook.api.openbazaar.org/api"
+)
+
+var (
+	CoinPoolPHR = []string{CoinAPIOpenBazaarPHR}
+	CoinPoolBTC = []string{CoinAPIOpenBazaarBTC}
+	CoinPoolBCH = []string{CoinAPIOpenBazaarBCH}
+	CoinPoolLTC = []string{CoinAPIOpenBazaarLTC}
+	CoinPoolZEC = []string{CoinAPIOpenBazaarZEC}
+	CoinPoolETH = []string{CoinAPIOpenBazaarETH}
+
+	CoinPoolTPHR = []string{CoinAPIOpenBazaarTPHR}
+	CoinPoolTBTC = []string{CoinAPIOpenBazaarTBTC}
+	CoinPoolTBCH = []string{CoinAPIOpenBazaarTBCH}
+	CoinPoolTLTC = []string{CoinAPIOpenBazaarTLTC}
+	CoinPoolTZEC = []string{CoinAPIOpenBazaarTZEC}
+	CoinPoolTETH = []string{CoinAPIOpenBazaarETH}
 )

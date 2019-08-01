@@ -1,15 +1,32 @@
 package test
 
 import (
+<<<<<<< HEAD
 	"github.com/ipfs/go-ipfs/core/mock"
+=======
+	"context"
+	dht "gx/ipfs/QmPpYHPRGVpSJTkQDQDwTYZ1cYUR2NM4HS6M3iAXi8aoUa/go-libp2p-kad-dht"
+	crypto "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
+	peer "gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
+	"gx/ipfs/QmUDTcnDp2WssbmiDLC6aYurUeyt7QeRakHUQMxA2mZ5iB/go-libp2p"
+
+	wi "github.com/OpenBazaar/wallet-interface"
+	"github.com/btcsuite/btcd/chaincfg"
+	"github.com/btcsuite/btcutil/hdkeychain"
+	"github.com/phoreproject/multiwallet"
+	"github.com/phoreproject/multiwallet/config"
+>>>>>>> 1eba569e5bc08b0e8756887aa5838fee26022b3c
 	"github.com/phoreproject/openbazaar-go/core"
 	"github.com/phoreproject/openbazaar-go/ipfs"
 	"github.com/phoreproject/openbazaar-go/net"
 	"github.com/phoreproject/openbazaar-go/net/service"
+<<<<<<< HEAD
 	"github.com/phoreproject/openbazaar-go/phore/phored"
+=======
+
+	coremock "github.com/ipfs/go-ipfs/core/mock"
+>>>>>>> 1eba569e5bc08b0e8756887aa5838fee26022b3c
 	"github.com/tyler-smith/go-bip39"
-	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
-	"gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 )
 
 // NewNode creates a new *core.OpenBazaarNode prepared for testing
@@ -20,7 +37,7 @@ func NewNode() (*core.OpenBazaarNode, error) {
 		return nil, err
 	}
 
-	repository.Reset()
+	err = repository.Reset()
 	if err != nil {
 		return nil, err
 	}
@@ -54,18 +71,47 @@ func NewNode() (*core.OpenBazaarNode, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	wallet, err := phored.NewRPCWallet(mnemonic, repository.Path, repository.DB, "rpc2.phore.io")
+	mPrivKey, err := hdkeychain.NewMaster(seed, &chaincfg.RegressionNetParams)
 	if err != nil {
 		return nil, err
 	}
+
+	coins := make(map[wi.CoinType]bool)
+	coins[wi.Bitcoin] = true
+	coins[wi.BitcoinCash] = true
+	coins[wi.Zcash] = true
+	coins[wi.Litecoin] = true
+
+<<<<<<< HEAD
+	wallet, err := phored.NewRPCWallet(mnemonic, repository.Path, repository.DB, "rpc2.phore.io")
+=======
+	walletConf := config.NewDefaultConfig(coins, &chaincfg.RegressionNetParams)
+	walletConf.Mnemonic = mnemonic
+	walletConf.DisableExchangeRates = true
+	mw, err := multiwallet.NewMultiWallet(walletConf)
+>>>>>>> 1eba569e5bc08b0e8756887aa5838fee26022b3c
+	if err != nil {
+		return nil, err
+	}
+	host, err := libp2p.New(context.Background())
+	if err != nil {
+		return nil, err
+	}
+	routing, err := dht.New(context.Background(), host)
+	if err != nil {
+		return nil, err
+	}
+	close(routing.BootstrapChan)
+
 	// Put it all together in an OpenBazaarNode
 	node := &core.OpenBazaarNode{
-		RepoPath:   GetRepoPath(),
-		IpfsNode:   ipfsNode,
-		Datastore:  repository.DB,
-		Wallet:     wallet,
-		BanManager: net.NewBanManager([]peer.ID{}),
+		RepoPath:         GetRepoPath(),
+		IpfsNode:         ipfsNode,
+		Datastore:        repository.DB,
+		Multiwallet:      mw,
+		BanManager:       net.NewBanManager([]peer.ID{}),
+		MasterPrivateKey: mPrivKey,
+		DHT:              routing,
 	}
 
 	node.Service = service.New(node, repository.DB)

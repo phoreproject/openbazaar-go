@@ -5,16 +5,25 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"errors"
+
+	crypto "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
+	peer "gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
+
 	"io/ioutil"
 	"os"
 	"path"
 
+<<<<<<< HEAD
 	"github.com/golang/protobuf/proto"
 	"github.com/phoreproject/btcd/btcec"
 
 	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	crypto "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 
+=======
+	"github.com/btcsuite/btcd/btcec"
+	"github.com/golang/protobuf/proto"
+>>>>>>> 1eba569e5bc08b0e8756887aa5838fee26022b3c
 	"github.com/phoreproject/openbazaar-go/pb"
 )
 
@@ -54,7 +63,7 @@ func ValidateRating(rating *pb.Rating) (bool, error) {
 	}
 	valid, err = vendorKey.Verify(ser, rating.RatingData.VendorSig.Signature)
 	if !valid || err != nil {
-		return false, errors.New("invaid vendor signature")
+		return false, errors.New("invalid vendor signature")
 	}
 
 	// Validate vendor peerID matches pubkey
@@ -141,8 +150,8 @@ func (n *OpenBazaarNode) GetRatingCounts() (uint32, float32, error) {
 	var totalRating float32
 	for _, i := range index {
 		ratingCount += uint32(i.Count)
-		totalRating += (float32(i.Count) * i.Average)
+		totalRating += float32(i.Count) * i.Average
 	}
-	averageRating := (totalRating / float32(ratingCount))
+	averageRating := totalRating / float32(ratingCount)
 	return ratingCount, averageRating, nil
 }

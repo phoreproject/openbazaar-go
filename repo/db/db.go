@@ -4,14 +4,22 @@ import (
 	"database/sql"
 	"path"
 	"sync"
-
 	"time"
 
+<<<<<<< HEAD
 	_ "github.com/mutecomm/go-sqlcipher"
 	"github.com/op/go-logging"
 	"github.com/phoreproject/openbazaar-go/repo"
 	"github.com/phoreproject/openbazaar-go/schema"
 	"github.com/phoreproject/wallet-interface"
+=======
+	"github.com/OpenBazaar/wallet-interface"
+	_ "github.com/mutecomm/go-sqlcipher"
+	"github.com/op/go-logging"
+	"github.com/phoreproject/multiwallet/util"
+	"github.com/phoreproject/openbazaar-go/repo"
+	"github.com/phoreproject/openbazaar-go/schema"
+>>>>>>> 1eba569e5bc08b0e8756887aa5838fee26022b3c
 )
 
 var log = logging.MustGetLogger("db")
@@ -41,7 +49,7 @@ type SQLiteDatastore struct {
 	lock            *sync.Mutex
 }
 
-func Create(repoPath, password string, testnet bool, coinType wallet.CoinType) (*SQLiteDatastore, error) {
+func Create(repoPath, password string, testnet bool, coinType util.ExtCoinType) (*SQLiteDatastore, error) {
 	var dbPath string
 	if testnet {
 		dbPath = path.Join(repoPath, "datastore", "testnet.db")
@@ -60,7 +68,7 @@ func Create(repoPath, password string, testnet bool, coinType wallet.CoinType) (
 	return NewSQLiteDatastore(conn, l, coinType), nil
 }
 
-func NewSQLiteDatastore(db *sql.DB, l *sync.Mutex, coinType wallet.CoinType) *SQLiteDatastore {
+func NewSQLiteDatastore(db *sql.DB, l *sync.Mutex, coinType util.ExtCoinType) *SQLiteDatastore {
 	return &SQLiteDatastore{
 		config:          &ConfigDB{db: db, lock: l},
 		followers:       NewFollowerStore(db, l),
@@ -85,6 +93,15 @@ func NewSQLiteDatastore(db *sql.DB, l *sync.Mutex, coinType wallet.CoinType) *SQ
 		db:              db,
 		lock:            l,
 	}
+}
+
+type DB struct {
+	SqlDB *sql.DB
+	Lock  *sync.Mutex
+}
+
+func (d *SQLiteDatastore) DB() *DB {
+	return &DB{d.db, d.lock}
 }
 
 func (d *SQLiteDatastore) Ping() error {
@@ -315,8 +332,5 @@ func (c *ConfigDB) IsEncrypted() bool {
 	defer c.lock.Unlock()
 	pwdCheck := "select count(*) from sqlite_master;"
 	_, err := c.db.Exec(pwdCheck) // Fails if wrong password is entered
-	if err != nil {
-		return true
-	}
-	return false
+	return err != nil
 }

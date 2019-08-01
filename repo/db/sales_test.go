@@ -8,15 +8,25 @@ import (
 	"time"
 
 	"github.com/OpenBazaar/jsonpb"
+<<<<<<< HEAD
 	"github.com/golang/protobuf/ptypes"
 	"github.com/phoreproject/btcd/chaincfg"
 	"github.com/phoreproject/btcutil"
+=======
+	"github.com/OpenBazaar/wallet-interface"
+	"github.com/btcsuite/btcd/chaincfg"
+	"github.com/btcsuite/btcutil"
+	"github.com/golang/protobuf/ptypes"
+>>>>>>> 1eba569e5bc08b0e8756887aa5838fee26022b3c
 	"github.com/phoreproject/openbazaar-go/pb"
 	"github.com/phoreproject/openbazaar-go/repo"
 	"github.com/phoreproject/openbazaar-go/repo/db"
 	"github.com/phoreproject/openbazaar-go/schema"
 	"github.com/phoreproject/openbazaar-go/test/factory"
+<<<<<<< HEAD
 	"github.com/phoreproject/wallet-interface"
+=======
+>>>>>>> 1eba569e5bc08b0e8756887aa5838fee26022b3c
 )
 
 func buildNewSaleStore() (repo.SaleStore, func(), error) {
@@ -319,7 +329,7 @@ func TestSalesGetByPaymentAddress(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	addr, err = btcutil.DecodeAddress("PUxo8xZwGYYasHGmkdQo3YnE7ZTyZuwwzK", &chaincfg.MainNetParams)
+	addr, err = btcutil.DecodeAddress("19bsDJeYjH6JX1pvsCcA8Qt5LQmPYt7Mry", &chaincfg.MainNetParams)
 	if err != nil {
 		t.Error(err)
 	}
@@ -330,21 +340,32 @@ func TestSalesGetByPaymentAddress(t *testing.T) {
 }
 
 func TestSalesGetByOrderId(t *testing.T) {
-	var saldb, teardown, err = buildNewSaleStore()
+	var (
+		expectedCoin         = "BTC"
+		saldb, teardown, err = buildNewSaleStore()
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer teardown()
 
+	_, _, _, _, _, _, err = saldb.GetByOrderId("adsfads")
+	if err == nil {
+		t.Error("Get by unknown orderID failed to return error")
+	}
+
 	contract := factory.NewContract()
-	saldb.Put("orderID", *contract, 0, false)
-	_, _, _, _, _, err = saldb.GetByOrderId("orderID")
+	contract.BuyerOrder.Payment.Coin = expectedCoin
+	if err := saldb.Put("orderID", *contract, 0, false); err != nil {
+		t.Fatal(err)
+	}
+	_, _, _, _, _, actualCoin, err := saldb.GetByOrderId("orderID")
 	if err != nil {
 		t.Error(err)
 	}
-	_, _, _, _, _, err = saldb.GetByOrderId("adsfads")
-	if err == nil {
-		t.Error("Get by unknown orderID failed to return error")
+
+	if actualCoin == nil || expectedCoin != actualCoin.String() {
+		t.Errorf("expected paymentCoin to be returned")
 	}
 }
 
@@ -552,20 +573,20 @@ func TestGetSalesForDisputeTimeoutReturnsRelevantRecords(t *testing.T) {
 		neverNotifiedButUndisputeable = &repo.SaleRecord{
 			Contract:                     factory.NewUndisputeableContract(),
 			OrderID:                      "neverNotifiedButUndisputed",
-			OrderState:                   pb.OrderState(pb.OrderState_FULFILLED),
+			OrderState:                   pb.OrderState_FULFILLED,
 			Timestamp:                    timeStart,
 			LastDisputeTimeoutNotifiedAt: time.Unix(0, 0),
 		}
 		neverNotified = &repo.SaleRecord{
 			Contract:                     expectedContractOne,
 			OrderID:                      "neverNotified",
-			OrderState:                   pb.OrderState(pb.OrderState_FULFILLED),
+			OrderState:                   pb.OrderState_FULFILLED,
 			Timestamp:                    timeStart,
 			LastDisputeTimeoutNotifiedAt: time.Unix(0, 0),
 		}
 		finallyNotified = &repo.SaleRecord{
 			Contract:                     factory.NewContract(),
-			OrderState:                   pb.OrderState(pb.OrderState_FULFILLED),
+			OrderState:                   pb.OrderState_FULFILLED,
 			OrderID:                      "finalNotificationSent",
 			Timestamp:                    timeStart,
 			LastDisputeTimeoutNotifiedAt: time.Now(),
@@ -605,7 +626,7 @@ func TestGetSalesForDisputeTimeoutReturnsRelevantRecords(t *testing.T) {
 		switch s.OrderID {
 		case neverNotified.OrderID:
 			sawNeverNotifiedSale = true
-			if reflect.DeepEqual(s, neverNotified) != true {
+			if !reflect.DeepEqual(s, neverNotified) {
 				t.Error("Expected neverNotified to match, but did not")
 				t.Error("Expected:", neverNotified)
 				t.Error("Actual:", s)
@@ -619,13 +640,13 @@ func TestGetSalesForDisputeTimeoutReturnsRelevantRecords(t *testing.T) {
 		}
 	}
 
-	if sawNeverNotifiedSale == false {
+	if !sawNeverNotifiedSale {
 		t.Error("Expected to see sale which was never notified")
 	}
-	if sawFinallyNotifiedSale == true {
-		t.Error("Expected NOT to see sale which recieved it's final notification")
+	if sawFinallyNotifiedSale {
+		t.Error("Expected NOT to see sale which received it's final notification")
 	}
-	if sawNeverNotifiedButUndisputeable == true {
+	if sawNeverNotifiedButUndisputeable {
 		t.Error("Expected NOT to see sale which is undisputeable")
 	}
 }
@@ -702,11 +723,11 @@ func TestUpdateSaleLastDisputeTimeoutNotifiedAt(t *testing.T) {
 
 		switch orderID {
 		case saleOne.OrderID:
-			if time.Unix(lastDisputeTimeoutNotifiedAt, 0).Equal(saleOne.LastDisputeTimeoutNotifiedAt) != true {
+			if !time.Unix(lastDisputeTimeoutNotifiedAt, 0).Equal(saleOne.LastDisputeTimeoutNotifiedAt) {
 				t.Error("Expected saleOne.LastDisputeTimeoutNotifiedAt to be updated")
 			}
 		case saleTwo.OrderID:
-			if time.Unix(lastDisputeTimeoutNotifiedAt, 0).Equal(saleTwo.LastDisputeTimeoutNotifiedAt) != true {
+			if !time.Unix(lastDisputeTimeoutNotifiedAt, 0).Equal(saleTwo.LastDisputeTimeoutNotifiedAt) {
 				t.Error("Expected saleTwo.LastDisputeTimeoutNotifiedAt to be updated")
 			}
 		default:

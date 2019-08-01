@@ -1,14 +1,18 @@
 package net
 
 import (
+	dht "gx/ipfs/QmPpYHPRGVpSJTkQDQDwTYZ1cYUR2NM4HS6M3iAXi8aoUa/go-libp2p-kad-dht"
+	peer "gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
 	"time"
 
+<<<<<<< HEAD
 	"github.com/ipfs/go-ipfs/core"
+=======
+>>>>>>> 1eba569e5bc08b0e8756887aa5838fee26022b3c
 	"github.com/op/go-logging"
 	"github.com/phoreproject/openbazaar-go/ipfs"
 	"github.com/phoreproject/openbazaar-go/repo"
 	"golang.org/x/net/context"
-	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 )
 
 var log = logging.MustGetLogger("service")
@@ -17,15 +21,15 @@ const kRepointFrequency = time.Hour * 12
 const kPointerExpiration = time.Hour * 24 * 30
 
 type PointerRepublisher struct {
-	ipfsNode    *core.IpfsNode
+	routing     *dht.IpfsDHT
 	db          repo.Datastore
 	pushNodes   []peer.ID
 	isModerator func() bool
 }
 
-func NewPointerRepublisher(node *core.IpfsNode, database repo.Datastore, pushNodes []peer.ID, isModerator func() bool) *PointerRepublisher {
+func NewPointerRepublisher(dht *dht.IpfsDHT, database repo.Datastore, pushNodes []peer.ID, isModerator func() bool) *PointerRepublisher {
 	return &PointerRepublisher{
-		ipfsNode:    node,
+		routing:     dht,
 		db:          database,
 		pushNodes:   pushNodes,
 		isModerator: isModerator,
@@ -53,17 +57,17 @@ func (r *PointerRepublisher) Republish() {
 	for _, p := range pointers {
 		switch p.Purpose {
 		case ipfs.MESSAGE:
-			if time.Now().Sub(p.Timestamp) > kPointerExpiration {
+			if time.Since(p.Timestamp) > kPointerExpiration {
 				r.db.Pointers().Delete(p.Value.ID)
 			} else {
-				go ipfs.PublishPointer(r.ipfsNode, ctx, p)
+				go ipfs.PublishPointer(r.routing, ctx, p)
 				for _, peer := range r.pushNodes {
-					go ipfs.PutPointerToPeer(r.ipfsNode, context.Background(), peer, p)
+					go ipfs.PutPointerToPeer(r.routing, context.Background(), peer, p)
 				}
 			}
 		case ipfs.MODERATOR:
 			if republishModerator {
-				go ipfs.PublishPointer(r.ipfsNode, ctx, p)
+				go ipfs.PublishPointer(r.routing, ctx, p)
 			} else {
 				r.db.Pointers().Delete(p.Value.ID)
 			}

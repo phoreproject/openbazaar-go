@@ -2,7 +2,7 @@ Pi 3, running [Raspbian Stretch Lite 4.9 kernel](https://www.raspberrypi.org/dow
 
 ====================
 
-### Install dependencies
+### Install Git
 
 You need to have gcc and git installed to compile and run the daemon.
 ```
@@ -10,22 +10,30 @@ sudo apt-get update
 sudo apt-get install build-essential git -y
 ```
 
-### Install [Go](https://golang.org/) 1.9
+### Install Go
+
+These are some condensed steps which will get you started quickly, but we recommend following the installation steps at [https://golang.org/doc/install](https://golang.org/doc/install).
+
+Download Go 1.10 and extract executeables:
 ```
-wget https://storage.googleapis.com/golang/go1.9.linux-armv6l.tar.gz
-sudo tar -zxvf go1.9.linux-armv6l.tar.gz -C /usr/local/
+wget https://storage.googleapis.com/golang/go1.10.7.linux-armv6l.tar.gz
+sudo tar -zxvf go1.10.7.linux-armv6l.tar.gz -C /usr/local/
 ```
 
-### Setup [Go](https://golang.org/) 1.9
+Note: OpenBazaar has not been tested on v1.11 and may cause problems
+
+### Setup Go
 
 Create a directory to store all your Go projects (below we just put the directory in our home directory but you can use any directory you want).
+
 ```
-mkdir go
+mkdir $HOME/go
 ```
 
 Set that directory as your go path:
 
 Paste these lines at the command line, to append their quoted text to the end of `.profile` in your home directory (if you used a different go directory, make sure to change it below):
+
 ```
 echo "export GOPATH=$HOME/go" >> .profile
 echo "export PATH=$PATH:/usr/local/go/bin" >> .profile
@@ -38,35 +46,24 @@ source ~/.profile
 
 Go should now be installed.
 
-### Install openbazaar-go from master
+### Install openbazaar-go
 
+Checkout a copy of the source:
 ```
 go get github.com/phoreproject/openbazaar-go
 ```
 
-It will put the source code in $GOPATH/src/github.com/phoreproject/openbazaar-go
+It will use git to checkout the source code into `$GOPATH/src/github.com/phoreproject/openbazaar-go`
 
-During the few minutes it takes the process to complete without a progress indicator, then return to blank command line, [read about securing your node](https://github.com/phoreproject/openbazaar-go/blob/master/docs/security.md)
-
-### Install openbazaar-go from other branch
+Checkout a release version:
 ```
-cd $GOPATH/src/github.com/phoreproject
-git clone --recursive -b BRANCH_NAME git@github.com:phoreproject/openbazaar-go
+git checkout v0.12.4
 ```
 
-### To compile and run the source:
+Note: `go get` leaves the repo pointing at `master` which is a branch used for active development. Running OpenBazaar from `master` is NOT recommended. Check the [release versions](https://github.com/phoreproject/openbazaar-go/releases) for the available versions that you use iin checkout.
+
+To compile and run the source using the path above, WITHOUT encrypting the database:
 ```
 cd $GOPATH/src/github.com/phoreproject/openbazaar-go
 go run openbazaard.go start
 ```
-
-You will then see 
-```
-________                      __________
-\_____  \ ______   ____   ____\______   \_____  _____________  _____ _______
- /   |   \\____ \_/ __ \ /    \|    |  _/\__  \ \___   /\__  \ \__  \\_  __ \ 
-/    |    \  |_> >  ___/|   |  \    |   \ / __ \_/    /  / __ \_/ __ \|  | \/
-\_______  /   __/ \___  >___|  /______  /(____  /_____ \(____  (____  /__|
-        \/|__|        \/     \/       \/      \/      \/     \/     \/
-```
-and the rest of the startup messages to follow.

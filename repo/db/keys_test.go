@@ -5,11 +5,21 @@ import (
 	"crypto/rand"
 	"database/sql"
 	"encoding/hex"
+<<<<<<< HEAD
 	"github.com/phoreproject/btcd/btcec"
 	"github.com/phoreproject/openbazaar-go/repo"
 	"github.com/phoreproject/wallet-interface"
 	"sync"
 	"testing"
+=======
+	"sync"
+	"testing"
+
+	"github.com/OpenBazaar/wallet-interface"
+	"github.com/btcsuite/btcd/btcec"
+	"github.com/phoreproject/multiwallet/util"
+	"github.com/phoreproject/openbazaar-go/repo"
+>>>>>>> 1eba569e5bc08b0e8756887aa5838fee26022b3c
 )
 
 var kdb repo.KeyStore
@@ -17,7 +27,7 @@ var kdb repo.KeyStore
 func init() {
 	conn, _ := sql.Open("sqlite3", ":memory:")
 	initDatabaseTables(conn, "")
-	kdb = NewKeyStore(conn, new(sync.Mutex), wallet.Bitcoin)
+	kdb = NewKeyStore(conn, new(sync.Mutex), util.CoinTypePhore)
 }
 
 func TestGetAll(t *testing.T) {
@@ -177,12 +187,12 @@ func TestGetLastKeyIndex(t *testing.T) {
 		last = b
 	}
 	idx, used, err := kdb.GetLastKeyIndex(wallet.EXTERNAL)
-	if err != nil || idx != 99 || used != false {
+	if err != nil || idx != 99 || used {
 		t.Error("Failed to fetch correct last index")
 	}
 	kdb.MarkKeyAsUsed(last)
 	_, used, err = kdb.GetLastKeyIndex(wallet.EXTERNAL)
-	if err != nil || used != true {
+	if err != nil || !used {
 		t.Error("Failed to fetch correct last index")
 	}
 }

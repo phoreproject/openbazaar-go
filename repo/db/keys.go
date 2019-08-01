@@ -4,19 +4,27 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"errors"
+<<<<<<< HEAD
 	"github.com/phoreproject/btcd/btcec"
 	"github.com/phoreproject/openbazaar-go/repo"
 	"github.com/phoreproject/wallet-interface"
+=======
+>>>>>>> 1eba569e5bc08b0e8756887aa5838fee26022b3c
 	"strconv"
 	"sync"
+
+	"github.com/OpenBazaar/wallet-interface"
+	"github.com/btcsuite/btcd/btcec"
+	"github.com/phoreproject/multiwallet/util"
+	"github.com/phoreproject/openbazaar-go/repo"
 )
 
 type KeysDB struct {
 	modelStore
-	coinType wallet.CoinType
+	coinType util.ExtCoinType
 }
 
-func NewKeyStore(db *sql.DB, lock *sync.Mutex, coinType wallet.CoinType) repo.KeyStore {
+func NewKeyStore(db *sql.DB, lock *sync.Mutex, coinType util.ExtCoinType) repo.KeyStore {
 	return &KeysDB{modelStore{db, lock}, coinType}
 }
 
@@ -117,7 +125,7 @@ func (k *KeysDB) GetPathForKey(scriptAddress []byte) (wallet.KeyPath, error) {
 	var index int
 	err = stmt.QueryRow(hex.EncodeToString(scriptAddress), k.coinType.CurrencyCode()).Scan(&purpose, &index)
 	if err != nil {
-		return wallet.KeyPath{}, errors.New("Key not found")
+		return wallet.KeyPath{}, errors.New("key not found")
 	}
 	p := wallet.KeyPath{
 		Purpose: wallet.KeyPurpose(purpose),
@@ -138,7 +146,7 @@ func (k *KeysDB) GetKey(scriptAddress []byte) (*btcec.PrivateKey, error) {
 	var keyHex string
 	err = stmt.QueryRow(hex.EncodeToString(scriptAddress), k.coinType.CurrencyCode()).Scan(&keyHex)
 	if err != nil {
-		return nil, errors.New("Key not found")
+		return nil, errors.New("key not found")
 	}
 	keyBytes, err := hex.DecodeString(keyHex)
 	if err != nil {
