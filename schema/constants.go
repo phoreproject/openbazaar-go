@@ -46,7 +46,7 @@ const (
 	DataPushNodeOne   = "QmWbi8z4uPkEdrWHtgxCkQGE5vxJnrStXAeEQnupmQnKRh"
 	DataPushNodeTwo   = "Qma2LRYB4xLaoxsMCL2kb93WKCW4EotUMhgvQUSqE6tCka"
 	DataPushNodeThree = "QmZLs6zVpVtkoR8oYyAbCxujvC6weU5CgUPTYx8zKMAtTf"
-	DataPushNodeFour  = "QmNSnS2K3TkSQjxJhaRBSZxotUQp1yxLss4zKDVbhRc9nv" 
+	DataPushNodeFour  = "QmNSnS2K3TkSQjxJhaRBSZxotUQp1yxLss4zKDVbhRc9nv"
 
 	BootstrapNodeDefaultOne               = "/ip4/54.227.172.110/tcp/5001/ipfs/QmWbi8z4uPkEdrWHtgxCkQGE5vxJnrStXAeEQnupmQnKRh"
 	BootstrapNodeDefaultTwo               = "/ip4/144.202.25.235/tcp/5001/ipfs/Qma2LRYB4xLaoxsMCL2kb93WKCW4EotUMhgvQUSqE6tCka"
