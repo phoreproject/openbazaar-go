@@ -190,7 +190,7 @@ func addConfigExtensions(repoRoot string) error {
 		}
 		ie = schema.IpnsExtraConfig{
 			DHTQuorumSize: 1,
-			APIRouter:     "https://routing.api.openbazaar.org",
+			APIRouter:     schema.IPFSCachingRouterDefaultURI,
 		}
 
 		t = schema.TorConfig{}

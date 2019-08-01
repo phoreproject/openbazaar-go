@@ -18,13 +18,12 @@ import (
 	ctxio "github.com/jbenet/go-context/io"
 	"github.com/op/go-logging"
 	"github.com/phoreproject/openbazaar-go/core"
+	"github.com/phoreproject/openbazaar-go/ipfs"
 	"github.com/phoreproject/openbazaar-go/pb"
 	"github.com/phoreproject/openbazaar-go/repo"
 )
 
 var log = logging.MustGetLogger("service")
-
-var ProtocolOpenBazaar protocol.ID = "/openbazaar/app/1.0.0"
 
 type OpenBazaarService struct {
 	host      host.Host
@@ -49,8 +48,8 @@ func New(node *core.OpenBazaarNode, datastore repo.Datastore) *OpenBazaarService
 		node:      node,
 		sender:    make(map[peer.ID]*messageSender),
 	}
-	node.IpfsNode.PeerHost.SetStreamHandler(ProtocolOpenBazaar, service.HandleNewStream)
-	log.Infof("OpenBazaar service running at %s", ProtocolOpenBazaar)
+	node.IpfsNode.PeerHost.SetStreamHandler(protocol.ID(ipfs.IPFSProtocolAppMainnetOne), service.HandleNewStream)
+	log.Infof("OpenBazaar service running at %s", ipfs.IPFSProtocolAppMainnetOne)
 	return service
 }
 
