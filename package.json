@@ -1,12 +1,13 @@
 {
   "name": "openbazaar-go",
-  "author": "phore <admin@phore.io>",
-  "version": "0.13.1",
+  "author": "chris",
+  "version": "0.13.3",
   "releaseCmd": "git commit -a -m \"gx publish $VERSION\"",
   "language": "english",
   "license": "",
   "bugs": {
-    "url": "https://github.com/phoreproject/openbazaar-go"
+    "url": "https://github.com/OpenBazaar/openbazaar-go"
   },
   "gxVersion": "0.11.0"
 }
+
