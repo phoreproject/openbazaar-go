@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/OpenBazaar/openbazaar-go/ipfs"
+	"github.com/phoreproject/openbazaar-go/ipfs"
 
 	cid "gx/ipfs/QmTbxNB1NwDesLmKTscr4udL2tVP7MaxvXnD1D9yX7g3PN/go-cid"
 
