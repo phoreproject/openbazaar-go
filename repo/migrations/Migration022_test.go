@@ -18,7 +18,7 @@ const preMigration022Config = `{
 
 const postMigration022Config = `{
 	"IpnsExtra": {
-		"APIRouter": "https://routing.api.openbazaar.org",
+		"APIRouter": "https://routing.api.phore.io",
 		"DHTQuorumSize": 1
 
    	}

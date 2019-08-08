@@ -177,7 +177,7 @@ func TestGetIPNSExtraConfig(t *testing.T) {
 	if ipnsConfig.DHTQuorumSize != 1 {
 		t.Error("GetIPNSExtraConfig returned incorrect DHTQuorumSize")
 	}
-	if ipnsConfig.APIRouter != "https://routing.api.openbazaar.org" {
+	if ipnsConfig.APIRouter != "https://routing.api.phore.io" {
 		t.Error("GetIPNSExtraConfig returned incorrect APIRouter")
 	}
 }
@@ -294,7 +294,7 @@ func configFixture() []byte {
   },
   "IpnsExtra": {
     "DHTQuorumSize": 1,
-    "APIRouter": "https://routing.api.openbazaar.org"
+    "APIRouter": "https://routing.api.phore.io"
   },
   "JSON-API": {
     "AllowedIPs": [

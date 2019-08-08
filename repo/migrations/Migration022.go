@@ -35,7 +35,7 @@ func (Migration022) Up(repoPath, dbPassword string, testnet bool) error {
 		return fmt.Errorf("unmarshal config: error type asserting IpnsExtra")
 	}
 
-	ipnsExtra["APIRouter"] = "https://routing.api.openbazaar.org"
+	ipnsExtra["APIRouter"] = "https://routing.api.phore.io"
 	delete(ipnsExtra, "FallbackAPI")
 	configMap["IpnsExtra"] = ipnsExtra
 

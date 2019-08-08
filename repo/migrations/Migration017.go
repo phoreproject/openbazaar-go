@@ -17,8 +17,9 @@ var (
 
 	Migration017PushToAfter = []string{
 		"QmWbi8z4uPkEdrWHtgxCkQGE5vxJnrStXAeEQnupmQnKRh",
-		"QmRh7fSZyFHesEL9aTmdxbrvMFxzyFxoaQGjYBotot6WLw",
+		"Qma2LRYB4xLaoxsMCL2kb93WKCW4EotUMhgvQUSqE6tCka",
 		"QmZLs6zVpVtkoR8oYyAbCxujvC6weU5CgUPTYx8zKMAtTf",
+		"QmNSnS2K3TkSQjxJhaRBSZxotUQp1yxLss4zKDVbhRc9nv",
 	}
 )
 
