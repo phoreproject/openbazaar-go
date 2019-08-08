@@ -4,12 +4,12 @@ import (
 	"context"
 	"errors"
 
-	peer "gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
-	ps "gx/ipfs/QmTTJcDL3gsnGDALjh2fDGg1onGRUdVgNL2hU2WEZcVrMX/go-libp2p-peerstore"
-	inet "gx/ipfs/QmXuRkCR7BNQa9uqfpTiFWsTQLzmTWYg91Ja1w95gnqb6u/go-libp2p-net"
+	inet "gx/ipfs/QmY3ArotKMKaL7YGfbQfyDrib6RVraLqZYWXZvVgZktBxp/go-libp2p-net"
+	peer "gx/ipfs/QmYVXrKrKHDC9FobgmcmshCDyWwdrfwfanNQN4oxJ9Fk3h/go-libp2p-peer"
+	host "gx/ipfs/QmYrWiWM4qtrnCeT3R14jY3ZZyirDNJgwK57q4qFYePgbd/go-libp2p-host"
 	protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
-	host "gx/ipfs/QmdJfsSbKSZnMkfZ1kpopiyB9i3Hd6cp8VKWZmtWPa7Moc/go-libp2p-host"
-	ggio "gx/ipfs/QmdxUuburamoF6zF9qjeQC4WYcWGbWuRmdLacMEsW8ioD8/gogo-protobuf/io"
+	ps "gx/ipfs/QmaCTz9RkrU13bm9kMB54f7atgqM4qkjDZpRwRoJiWXEqs/go-libp2p-peerstore"
+	ggio "gx/ipfs/QmddjPSGZb3ieihSseFeCfVRpZzcqczPNsD2DvarSwnjJB/gogo-protobuf/io"
 
 	"io"
 	"sync"
@@ -18,13 +18,12 @@ import (
 	ctxio "github.com/jbenet/go-context/io"
 	"github.com/op/go-logging"
 	"github.com/phoreproject/openbazaar-go/core"
+	"github.com/phoreproject/openbazaar-go/ipfs"
 	"github.com/phoreproject/openbazaar-go/pb"
 	"github.com/phoreproject/openbazaar-go/repo"
 )
 
 var log = logging.MustGetLogger("service")
-
-var ProtocolOpenBazaar protocol.ID = "/openbazaar/app/1.0.0"
 
 type OpenBazaarService struct {
 	host      host.Host
@@ -49,8 +48,8 @@ func New(node *core.OpenBazaarNode, datastore repo.Datastore) *OpenBazaarService
 		node:      node,
 		sender:    make(map[peer.ID]*messageSender),
 	}
-	node.IpfsNode.PeerHost.SetStreamHandler(ProtocolOpenBazaar, service.HandleNewStream)
-	log.Infof("OpenBazaar service running at %s", ProtocolOpenBazaar)
+	node.IpfsNode.PeerHost.SetStreamHandler(protocol.ID(ipfs.IPFSProtocolAppMainnetOne), service.HandleNewStream)
+	log.Infof("OpenBazaar service running at %s", ipfs.IPFSProtocolAppMainnetOne)
 	return service
 }
 

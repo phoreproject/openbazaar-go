@@ -4,17 +4,17 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	dht "gx/ipfs/QmPpYHPRGVpSJTkQDQDwTYZ1cYUR2NM4HS6M3iAXi8aoUa/go-libp2p-kad-dht"
-	dhtopts "gx/ipfs/QmPpYHPRGVpSJTkQDQDwTYZ1cYUR2NM4HS6M3iAXi8aoUa/go-libp2p-kad-dht/opts"
-	ma "gx/ipfs/QmT4U94DnD8FRfqr21obWY32HLM5VExccPKMjQHofeYqr9/go-multiaddr"
-	peer "gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
-	routinghelpers "gx/ipfs/QmX3syBjwRd12qJGaKbFBWFfrBinKsaTC43ry3PsgiXCLK/go-libp2p-routing-helpers"
-	record "gx/ipfs/Qma9Eqp16mNHDX1EL73pcxhFfzbyXVcAYtaDd1xdmDRDtL/go-libp2p-record"
-	ds "gx/ipfs/QmaRb5yNXKonhbkpNxNawoydk4N6es6b4fPj19sjEKsh5D/go-datastore"
-	manet "gx/ipfs/Qmaabb1tJZ2CX5cp6MuuiGgns71NYoxdgQP6Xdid1dVceC/go-multiaddr-net"
-	routing "gx/ipfs/QmcQ81jSyWCp1jpkQ8CMbtpXT3jK7Wg6ZtYmoyWFgBoF9c/go-libp2p-routing"
-	p2phost "gx/ipfs/QmdJfsSbKSZnMkfZ1kpopiyB9i3Hd6cp8VKWZmtWPa7Moc/go-libp2p-host"
-	"gx/ipfs/QmdxUuburamoF6zF9qjeQC4WYcWGbWuRmdLacMEsW8ioD8/gogo-protobuf/proto"
+	"gx/ipfs/QmRCrPXk2oUwpK1Cj2FXrUotRpddUxz56setkny2gz13Cx/go-libp2p-routing-helpers"
+	"gx/ipfs/QmSY3nkMNLzh9GdbFKK5tT7YMfLpf52iUZ8ZRkr29MJaa5/go-libp2p-kad-dht"
+	"gx/ipfs/QmSY3nkMNLzh9GdbFKK5tT7YMfLpf52iUZ8ZRkr29MJaa5/go-libp2p-kad-dht/opts"
+	ma "gx/ipfs/QmTZBfrPJmjWsCvHEtX5FE6KimVJhsJg5sBbqEFYf4UZtL/go-multiaddr"
+	ds "gx/ipfs/QmUadX5EcvrBmxAV9sE7wUWtWSqxns5K84qKJBixmcT1w9/go-datastore"
+	"gx/ipfs/QmYVXrKrKHDC9FobgmcmshCDyWwdrfwfanNQN4oxJ9Fk3h/go-libp2p-peer"
+	p2phost "gx/ipfs/QmYrWiWM4qtrnCeT3R14jY3ZZyirDNJgwK57q4qFYePgbd/go-libp2p-host"
+	"gx/ipfs/QmYxUdYY9S6yg5tSPVin5GFTvtfsLauVcr7reHDD3dM8xf/go-libp2p-routing"
+	"gx/ipfs/QmbeHtaBy9nZsW4cHRcvgVY4CnDhXudE2Dr6qDxS7yg9rX/go-libp2p-record"
+	"gx/ipfs/Qmc85NSvmSG4Frn9Vb2cBc1rMyULH6D3TNVEfCzSKoUpip/go-multiaddr-net"
+	"gx/ipfs/QmddjPSGZb3ieihSseFeCfVRpZzcqczPNsD2DvarSwnjJB/gogo-protobuf/proto"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -22,9 +22,8 @@ import (
 	"path/filepath"
 	"time"
 
-	bitswap "gx/ipfs/QmNkxFCmPtr2RQxjZNRCNryLud4L9wMEiBJsLgF14MqTHj/go-bitswap/network"
-	ipfsconfig "gx/ipfs/QmPEpj17FDRpc7K1aArKZp3RsHtzRMKykeK9GVgn4WQGPR/go-ipfs-config"
-	ipnspb "gx/ipfs/QmaRFtZhVAwXBk4Z3zEsvjScH9fjsDZmhXfa1Gm8eMb9cg/go-ipns/pb"
+	ipfsconfig "gx/ipfs/QmUAuYuiafnJRZxDDX7MuruMNsicYNuyub5vUeAcupUBNs/go-ipfs-config"
+	ipnspb "gx/ipfs/QmUwMnKKjH3JwGKNVZ3TcP37W93xzqNA4ECFFiMo6sXkkc/go-ipns/pb"
 
 	wi "github.com/OpenBazaar/wallet-interface"
 	"github.com/btcsuite/btcd/chaincfg"
@@ -46,6 +45,7 @@ import (
 	"github.com/phoreproject/openbazaar-go/repo"
 	"github.com/phoreproject/openbazaar-go/repo/db"
 	"github.com/phoreproject/openbazaar-go/repo/migrations"
+	"github.com/phoreproject/openbazaar-go/schema"
 	apiSchema "github.com/phoreproject/openbazaar-go/schema"
 	"github.com/phoreproject/openbazaar-go/storage/selfhosted"
 	"github.com/phoreproject/openbazaar-go/wallet"
@@ -86,7 +86,6 @@ func NewNode(repoPath string, authenticationToken string, testnet bool, userAgen
 
 // NewNodeWithConfig create a new node using the configuration file from NewNode()
 func NewNodeWithConfig(config *NodeConfig, password string, mnemonic string) (*Node, error) {
-	ipfscore.DHTOption = constructClientDHTRouting
 	// Lockfile
 	repoLockFile := filepath.Join(config.RepoPath, fsrepo.LockFile)
 	os.Remove(repoLockFile)
@@ -160,27 +159,16 @@ func NewNodeWithConfig(config *NodeConfig, password string, mnemonic string) (*N
 
 	// Setup testnet
 	if config.Testnet {
+		// set testnet bootstrap addrs
 		testnetBootstrapAddrs, err := apiSchema.GetTestnetBootstrapAddrs(configFile)
 		if err != nil {
+			log.Error(err)
 			return nil, err
 		}
 		cfg.Bootstrap = testnetBootstrapAddrs
-		dhtopts.ProtocolDHT = "/openbazaar/kad/testnet/1.0.0"
-		bitswap.ProtocolBitswap = "/openbazaar/bitswap/testnet/1.1.0"
-		service.ProtocolOpenBazaar = "/openbazaar/app/testnet/1.0.0"
 
+		// don't use pushnodes on testnet
 		dataSharing.PushTo = []string{}
-	} else {
-		bitswap.ProtocolBitswap = "/openbazaar/bitswap/1.1.0"
-	}
-
-	ncfg := &ipfscore.BuildCfg{
-		Repo:   r,
-		Online: true,
-		ExtraOpts: map[string]bool{
-			"mplex":  true,
-			"ipnsps": true,
-		},
 	}
 
 	// Mnemonic
@@ -253,14 +241,34 @@ func NewNodeWithConfig(config *NodeConfig, password string, mnemonic string) (*N
 		RepoPath:                      config.RepoPath,
 		UserAgent:                     core.USERAGENT,
 		IPNSQuorumSize:                uint(ipnsExtraConfig.DHTQuorumSize),
-		IPNSBackupAPI:                 ipnsExtraConfig.FallbackAPI,
 	}
 
 	if len(cfg.Addresses.Gateway) <= 0 {
 		return nil, errors.New("no gateway addresses configured")
 	}
 
+	// override with mobile routing config
+	ignoredURI := ""
+	ncfg := ipfs.PrepareIPFSConfig(r, ignoredURI, config.Testnet, config.Testnet)
+	ncfg.Routing = constructMobileRouting
+
 	return &Node{OpenBazaarNode: core.Node, config: *config, ipfsConfig: ncfg, apiConfig: apiConfig}, nil
+}
+
+func constructMobileRouting(ctx context.Context, host p2phost.Host, dstore ds.Batching, validator record.Validator) (routing.IpfsRouting, error) {
+	dhtRouting, err := dht.New(
+		ctx, host,
+		dhtopts.Client(true),
+		dhtopts.Datastore(dstore),
+		dhtopts.Validator(validator),
+	)
+	if err != nil {
+		return nil, err
+	}
+	apiRouter := ipfs.NewAPIRouter(schema.IPFSCachingRouterDefaultURI, dhtRouting.Validator)
+	apiRouter.Start(nil)
+	cachingRouter := ipfs.NewCachingRouter(dhtRouting, &apiRouter)
+	return cachingRouter, nil
 }
 
 // startIPFSNode start the node
@@ -299,8 +307,11 @@ func (n *Node) Start() error {
 	}
 	var dhtRouting *dht.IpfsDHT
 	for _, router := range tiered.Routers {
-		if _, ok := router.(*dht.IpfsDHT); ok {
-			dhtRouting = router.(*dht.IpfsDHT)
+		if r, ok := router.(*ipfs.CachingRouter); ok {
+			dhtRouting, err = r.DHT()
+			if err != nil {
+				return err
+			}
 		}
 	}
 	if dhtRouting == nil {
@@ -472,14 +483,4 @@ func newHTTPGateway(node *core.OpenBazaarNode, ctx commands.Context, authCookie 
 
 	// Create and return an API gateway
 	return api.NewGateway(node, authCookie, manet.NetListener(gwLis), config, logger, opts...)
-}
-
-// constructClientDHTRouting create DHT routing
-func constructClientDHTRouting(ctx context.Context, host p2phost.Host, dstore ds.Batching, validator record.Validator) (routing.IpfsRouting, error) {
-	return dht.New(
-		ctx, host,
-		dhtopts.Client(true),
-		dhtopts.Datastore(dstore),
-		dhtopts.Validator(validator),
-	)
 }
