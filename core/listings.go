@@ -463,7 +463,6 @@ func setCryptocurrencyListingDefaults(listing *pb.Listing) {
 	listing.Coupons = []*pb.Listing_Coupon{}
 	listing.Item.Options = []*pb.Listing_Item_Option{}
 	listing.ShippingOptions = []*pb.Listing_ShippingOption{}
-	listing.Metadata.Format = pb.Listing_Metadata_MARKET_PRICE
 }
 
 func (n *OpenBazaarNode) extractListingData(listing *pb.SignedListing) (ListingData, error) {
