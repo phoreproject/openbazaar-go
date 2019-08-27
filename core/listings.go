@@ -88,6 +88,7 @@ type ListingData struct {
 	Categories         []string  `json:"categories"`
 	NSFW               bool      `json:"nsfw"`
 	ContractType       string    `json:"contractType"`
+	Format             string    `json:"format"`
 	Description        string    `json:"description"`
 	Thumbnail          thumbnail `json:"thumbnail"`
 	Price              price     `json:"price"`
@@ -512,6 +513,7 @@ func (n *OpenBazaarNode) extractListingData(listing *pb.SignedListing) (ListingD
 		CoinType:         listing.Listing.Metadata.CoinType,
 		CoinDivisibility: listing.Listing.Metadata.CoinDivisibility,
 		ContractType:     listing.Listing.Metadata.ContractType.String(),
+		Format:           listing.Listing.Metadata.Format.String(),
 		Description:      listing.Listing.Item.Description[:descriptionLength],
 		Thumbnail:        thumbnail{listing.Listing.Item.Images[0].Tiny, listing.Listing.Item.Images[0].Small, listing.Listing.Item.Images[0].Medium},
 		Price: price{
