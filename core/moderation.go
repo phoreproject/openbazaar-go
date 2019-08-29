@@ -151,6 +151,7 @@ func (n *OpenBazaarNode) GetModeratorFee(transactionTotal uint64, paymentCoin, c
 			}
 			return profile.ModeratorInfo.Fee.FixedFee.Amount, nil
 		}
+		// TODO check for CRYPTO + FIX PRICE
 		fee, err := n.getPriceInSatoshi(paymentCoin, profile.ModeratorInfo.Fee.FixedFee.CurrencyCode, profile.ModeratorInfo.Fee.FixedFee.Amount)
 		if err != nil {
 			return 0, err
@@ -164,6 +165,7 @@ func (n *OpenBazaarNode) GetModeratorFee(transactionTotal uint64, paymentCoin, c
 		if NormalizeCurrencyCode(profile.ModeratorInfo.Fee.FixedFee.CurrencyCode) == NormalizeCurrencyCode(currencyCode) {
 			fixed = profile.ModeratorInfo.Fee.FixedFee.Amount
 		} else {
+			// TODO check for CRYPTO + FIX PRICE
 			fixed, err = n.getPriceInSatoshi(paymentCoin, profile.ModeratorInfo.Fee.FixedFee.CurrencyCode, profile.ModeratorInfo.Fee.FixedFee.Amount)
 			if err != nil {
 				return 0, err

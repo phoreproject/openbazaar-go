@@ -866,11 +866,14 @@ func (n *OpenBazaarNode) CalculateOrderTotal(contract *pb.RicardianContract) (ui
 			physicalGoods[item.ListingHash] = l
 		}
 
-		if l.Metadata.Format == pb.Listing_Metadata_MARKET_PRICE {
+		if l.Metadata.Format == pb.Listing_Metadata_MARKET_PRICE { // MARKET + CRYPTO
 			satoshis, err = n.getMarketPriceInSatoshis(contract.BuyerOrder.Payment.Coin, l.Metadata.CoinType, itemQuantity)
 			satoshis += uint64(float32(satoshis) * l.Metadata.PriceModifier / 100.0)
 			itemQuantity = 1
-		} else {
+		} else if l.Metadata.ContractType == pb.Listing_Metadata_CRYPTOCURRENCY { // FIXED + CRYPTO
+		    satoshis = l.Item.Price
+		    itemQuantity = 1
+		} else { // FIXED + NO CRYPTO
 			satoshis, err = n.getPriceInSatoshi(contract.BuyerOrder.Payment.Coin, l.Metadata.PricingCurrency, l.Item.Price)
 		}
 		if err != nil {
@@ -915,6 +918,7 @@ func (n *OpenBazaarNode) CalculateOrderTotal(contract *pb.RicardianContract) (ui
 				}
 				if id.B58String() == vendorCoupon.GetHash() {
 					if discount := vendorCoupon.GetPriceDiscount(); discount > 0 {
+						// TODO check for CRYPTO + FIX PRICE
 						satoshis, err := n.getPriceInSatoshi(contract.BuyerOrder.Payment.Coin, l.Metadata.PricingCurrency, discount)
 						if err != nil {
 							return 0, err
