@@ -368,6 +368,17 @@ func TestCryptoListingsPriceModifier(t *testing.T) {
 	runAPITest(t, apiTest{
 		"POST", "/ob/listing", jsonFor(t, listing), 500, errorResponseJSON(outOfRangeErr),
 	})
+
+	listing.Item.Price = 1
+	var f core.ErrMarketPriceListingIllegalField = "item.price"
+	runAPITest(t, apiTest{
+		"POST", "/ob/listing", jsonFor(t, listing), 500, errorResponseJSON(f),
+	})
+
+	listing.Metadata.Format = pb.Listing_Metadata_FIXED_PRICE
+	runAPITest(t, apiTest{
+		"POST", "/ob/listing", jsonFor(t, listing), 200, `{"slug": "crypto"}`,
+	})
 }
 
 func TestListingsQuantity(t *testing.T) {

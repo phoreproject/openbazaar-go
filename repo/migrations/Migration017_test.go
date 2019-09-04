@@ -28,8 +28,9 @@ const postMigration017Config = `{
 		"AcceptStoreRequests": false,
 		"PushTo": [
 			"QmWbi8z4uPkEdrWHtgxCkQGE5vxJnrStXAeEQnupmQnKRh",
-			"QmRh7fSZyFHesEL9aTmdxbrvMFxzyFxoaQGjYBotot6WLw",
-			"QmZLs6zVpVtkoR8oYyAbCxujvC6weU5CgUPTYx8zKMAtTf"
+			"Qma2LRYB4xLaoxsMCL2kb93WKCW4EotUMhgvQUSqE6tCka",
+			"QmZLs6zVpVtkoR8oYyAbCxujvC6weU5CgUPTYx8zKMAtTf",
+			"QmNSnS2K3TkSQjxJhaRBSZxotUQp1yxLss4zKDVbhRc9nv"
 		]
 	},
 	"OtherConfigProperty1": [1, 2, 3],
@@ -75,7 +76,8 @@ func TestMigration017(t *testing.T) {
 
 	var re = regexp.MustCompile(`\s`)
 	if re.ReplaceAllString(string(configBytes), "") != re.ReplaceAllString(string(postMigration017Config), "") {
-		t.Logf("actual: %s", re.ReplaceAllString(string(configBytes), ""))
+		t.Logf("actual:   %s", re.ReplaceAllString(string(configBytes), ""))
+		t.Logf("expected: %s", re.ReplaceAllString(string(postMigration017Config), ""))
 		t.Fatal("incorrect post-migration config")
 	}
 
@@ -92,8 +94,9 @@ func TestMigration017(t *testing.T) {
 	}
 
 	if re.ReplaceAllString(string(configBytes), "") != re.ReplaceAllString(string(preMigration017Config), "") {
-		t.Logf("actual: %s", re.ReplaceAllString(string(configBytes), ""))
-		t.Fatal("incorrect post-migration config")
+		t.Logf("actual:   %s", re.ReplaceAllString(string(configBytes), ""))
+		t.Logf("expected: %s", re.ReplaceAllString(string(preMigration017Config), ""))
+		t.Fatal("incorrect pre-migration config")
 	}
 
 	assertCorrectRepoVer(t, repoverPath, "17")
