@@ -871,8 +871,8 @@ func (n *OpenBazaarNode) CalculateOrderTotal(contract *pb.RicardianContract) (ui
 			satoshis += uint64(float32(satoshis) * l.Metadata.PriceModifier / 100.0)
 			itemQuantity = 1
 		} else if l.Metadata.ContractType == pb.Listing_Metadata_CRYPTOCURRENCY { // FIXED + CRYPTO
-		    satoshis += l.Item.Price * uint64(float64(itemQuantity) / float64(l.Metadata.CoinDivisibility))
-		    itemQuantity = 1
+			satoshis += l.Item.Price * uint64(float64(itemQuantity) / float64(l.Metadata.CoinDivisibility))
+			itemQuantity = 1
 		} else { // FIXED + NO CRYPTO
 			satoshis, err = n.getPriceInSatoshi(contract.BuyerOrder.Payment.Coin, l.Metadata.PricingCurrency, l.Item.Price)
 		}
