@@ -1057,7 +1057,7 @@ func (w *RPCWallet) Broadcast(tx *wire.MsgTx) error {
 }
 
 // LookAheadDistance is the number of addresses to look for transactions before assuming the rest are unused
-var LookAheadDistance = 5
+var LookAheadDistance = 20
 
 type ReceivedTx struct {
 	tx          wire.MsgTx
@@ -1077,7 +1077,7 @@ func (w *RPCWallet) RetrieveTransactions() error {
 	w.txstore.addrMutex.Unlock()
 
 	// receive transactions for P2PKH and P2PK
-	transactions := w.receiveTransactions(addrs, false)
+	transactions := w.receiveTransactions(addrs, true)
 
 	// receive transactions for P2SH
 	log.Debugf("extracting P2SH script addresses")
@@ -1094,7 +1094,7 @@ func (w *RPCWallet) RetrieveTransactions() error {
 		scriptAddresses[idx] = localScriptAddress[0]
 	}
 
-	transactions = append(transactions, w.receiveTransactions(scriptAddresses, false)...)
+	transactions = append(transactions, w.receiveTransactions(scriptAddresses, true)...)
 	sort.SliceStable(transactions, func(i, j int) bool {
 		return transactions[i].blockHeight < transactions[j].blockHeight ||
 			(transactions[i].blockHeight == transactions[j].blockHeight && transactions[i].blockIndex < transactions[j].blockIndex)
@@ -1133,6 +1133,8 @@ func (w *RPCWallet) receiveTransactions(addrs []btc.Address, lookAhead bool) []R
 		if lookAhead {
 			if len(txs) == 0 {
 				numEmptyAddrs++
+			} else {
+				numEmptyAddrs = 0
 			}
 
 			if numEmptyAddrs >= LookAheadDistance {
