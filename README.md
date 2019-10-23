@@ -6,7 +6,7 @@ OpenBazaar Server Daemon in Go
 [![Coverage Status](https://coveralls.io/repos/github/OpenBazaar/openbazaar-go/badge.svg?branch=master)](https://coveralls.io/github/OpenBazaar/openbazaar-go?branch=master)
 [![Go Report Card](https://goreportcard.com/badge/github.com/phoreproject/openbazaar-go)](https://goreportcard.com/report/github.com/phoreproject/openbazaar-go)
 
-This repository contains the OpenBazaar server daemon which handles the heavy lifting for the [OpenBazaar](https://openbazaar.org/) desktop application. The server combines several technologies: A modified [IPFS](https://ipfs.io) node, which itself combines ideas from Git, BitTorrent, and Kademlia. A lightweight SPV Bitcoin wallet for interacting with the Bitcoin network. And a JSON API which can be used by a user interface to control the node and browse the network. If you are looking for the OpenBazaar user interface code see [here](https://github.com/phoreproject/openbazaar-desktop).
+This repository contains the Phore Marketplace server daemon which handles the heavy lifting for the [Phore Marketplace](https://phore.io/) desktop application. The server combines several technologies: A modified [IPFS](https://ipfs.io) node, which itself combines ideas from Git, BitTorrent, and Kademlia. A lightweight SPV Bitcoin wallet for interacting with the Bitcoin network. And a JSON API which can be used by a user interface to control the node and browse the network. If you are looking for the OpenBazaar user interface code see [here](https://github.com/phoreproject/openbazaar-desktop).
 
 ## Table of Contents
 

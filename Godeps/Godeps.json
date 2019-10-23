@@ -33,83 +33,83 @@
 		},
 		{
 			"ImportPath": "github.com/phoreproject/multiwallet",
-			"Rev": "4f80258fbe23c797ecf108cf4d3c146ab0d42362"
+			"Rev": "5358f307f4b1a9d33a12052c3915b701bc00c337"
 		},
 		{
 			"ImportPath": "github.com/phoreproject/multiwallet/bitcoin",
-			"Rev": "4f80258fbe23c797ecf108cf4d3c146ab0d42362"
+			"Rev": "5358f307f4b1a9d33a12052c3915b701bc00c337"
 		},
 		{
 			"ImportPath": "github.com/phoreproject/multiwallet/bitcoincash",
-			"Rev": "4f80258fbe23c797ecf108cf4d3c146ab0d42362"
+			"Rev": "5358f307f4b1a9d33a12052c3915b701bc00c337"
 		},
 		{
 			"ImportPath": "github.com/phoreproject/multiwallet/cache",
-			"Rev": "4f80258fbe23c797ecf108cf4d3c146ab0d42362"
+			"Rev": "5358f307f4b1a9d33a12052c3915b701bc00c337"
 		},
 		{
 			"ImportPath": "github.com/phoreproject/multiwallet/client",
-			"Rev": "4f80258fbe23c797ecf108cf4d3c146ab0d42362"
+			"Rev": "5358f307f4b1a9d33a12052c3915b701bc00c337"
 		},
 		{
 			"ImportPath": "github.com/phoreproject/multiwallet/client/blockbook",
-			"Rev": "4f80258fbe23c797ecf108cf4d3c146ab0d42362"
+			"Rev": "5358f307f4b1a9d33a12052c3915b701bc00c337"
 		},
 		{
 			"ImportPath": "github.com/phoreproject/multiwallet/client/insight",
-			"Rev": "4f80258fbe23c797ecf108cf4d3c146ab0d42362"
+			"Rev": "5358f307f4b1a9d33a12052c3915b701bc00c337"
 		},
 		{
 			"ImportPath": "github.com/phoreproject/multiwallet/client/transport",
-			"Rev": "4f80258fbe23c797ecf108cf4d3c146ab0d42362"
+			"Rev": "5358f307f4b1a9d33a12052c3915b701bc00c337"
 		},
 		{
 			"ImportPath": "github.com/phoreproject/multiwallet/config",
-			"Rev": "4f80258fbe23c797ecf108cf4d3c146ab0d42362"
+			"Rev": "5358f307f4b1a9d33a12052c3915b701bc00c337"
 		},
 		{
 			"ImportPath": "github.com/phoreproject/multiwallet/datastore",
-			"Rev": "4f80258fbe23c797ecf108cf4d3c146ab0d42362"
+			"Rev": "5358f307f4b1a9d33a12052c3915b701bc00c337"
 		},
 		{
 			"ImportPath": "github.com/phoreproject/multiwallet/keys",
-			"Rev": "4f80258fbe23c797ecf108cf4d3c146ab0d42362"
+			"Rev": "5358f307f4b1a9d33a12052c3915b701bc00c337"
 		},
 		{
 			"ImportPath": "github.com/phoreproject/multiwallet/litecoin",
-			"Rev": "4f80258fbe23c797ecf108cf4d3c146ab0d42362"
+			"Rev": "5358f307f4b1a9d33a12052c3915b701bc00c337"
 		},
 		{
 			"ImportPath": "github.com/phoreproject/multiwallet/litecoin/address",
-			"Rev": "4f80258fbe23c797ecf108cf4d3c146ab0d42362"
+			"Rev": "5358f307f4b1a9d33a12052c3915b701bc00c337"
 		},
 		{
 			"ImportPath": "github.com/phoreproject/multiwallet/litecoin/params",
-			"Rev": "4f80258fbe23c797ecf108cf4d3c146ab0d42362"
+			"Rev": "5358f307f4b1a9d33a12052c3915b701bc00c337"
 		},
 		{
 			"ImportPath": "github.com/phoreproject/multiwallet/model",
-			"Rev": "4f80258fbe23c797ecf108cf4d3c146ab0d42362"
+			"Rev": "5358f307f4b1a9d33a12052c3915b701bc00c337"
 		},
 		{
 			"ImportPath": "github.com/phoreproject/multiwallet/service",
-			"Rev": "4f80258fbe23c797ecf108cf4d3c146ab0d42362"
+			"Rev": "5358f307f4b1a9d33a12052c3915b701bc00c337"
 		},
 		{
 			"ImportPath": "github.com/phoreproject/multiwallet/util",
-			"Rev": "4f80258fbe23c797ecf108cf4d3c146ab0d42362"
+			"Rev": "5358f307f4b1a9d33a12052c3915b701bc00c337"
 		},
 		{
 			"ImportPath": "github.com/phoreproject/multiwallet/zcash",
-			"Rev": "4f80258fbe23c797ecf108cf4d3c146ab0d42362"
+			"Rev": "5358f307f4b1a9d33a12052c3915b701bc00c337"
 		},
 		{
 			"ImportPath": "github.com/phoreproject/multiwallet/zcash/address",
-			"Rev": "4f80258fbe23c797ecf108cf4d3c146ab0d42362"
+			"Rev": "5358f307f4b1a9d33a12052c3915b701bc00c337"
 		},
 		{
 			"ImportPath": "github.com/phoreproject/multiwallet/phore",
-			"Rev": "4f80258fbe23c797ecf108cf4d3c146ab0d42362"
+			"Rev": "5358f307f4b1a9d33a12052c3915b701bc00c337"
 		},
 		{
 			"ImportPath": "github.com/OpenBazaar/spvwallet",
