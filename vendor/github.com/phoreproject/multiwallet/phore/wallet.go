@@ -146,12 +146,22 @@ func (w *RPCWallet) Start() {
 		return
 	}
 
-	w.notifications.updateFilterAndSend()
-
-	unbroadcastedTransactions, err := w.txstore.GetPendingInv()
+	err = w.rebroadcast()
 	if err != nil {
 		log.Error(err)
 		return
+	}
+
+	w.notifications.updateFilterAndSend()
+
+	log.Info("Connected to phored")
+	w.started = true
+}
+
+func (w *RPCWallet) rebroadcast() error {
+	unbroadcastedTransactions, err := w.txstore.GetPendingInv()
+	if err != nil {
+		return err
 	}
 
 	for tx := range unbroadcastedTransactions.InvList {
@@ -159,7 +169,7 @@ func (w *RPCWallet) Start() {
 		log.Debugf("Found transaction unbroadcasted: %s", hash.String())
 		txn, err := w.txstore.Txns().Get(hash)
 		if err != nil {
-			log.Error(err)
+			log.Warning(err)
 			continue
 		}
 
@@ -172,13 +182,13 @@ func (w *RPCWallet) Start() {
 				// transaction is already in the blockchain, so go retrieve it
 				res, err := w.rpcClient.GetRawTransactionVerbose(&hash)
 				if err != nil {
-					log.Error(err)
+					log.Warning(err)
 					continue
 				}
 
 				blockHash, err := chainhash.NewHashFromStr(res.BlockHash)
 				if err != nil {
-					log.Error(err)
+					log.Warning(err)
 					continue
 				}
 
@@ -187,20 +197,20 @@ func (w *RPCWallet) Start() {
 				w.rpcLock.Unlock()
 
 				if err != nil {
-					log.Error(err)
+					log.Warning(err)
 					continue
 				}
 
 				transactionBytes, err := hex.DecodeString(res.Hex)
 				if err != nil {
-					log.Error(err)
+					log.Warning(err)
 					continue
 				}
 
 				transaction := wire.MsgTx{}
 				err = transaction.BtcDecode(bytes.NewReader(transactionBytes), 1, wire.BaseEncoding)
 				if err != nil {
-					log.Error(err)
+					log.Warning(err)
 					continue
 				}
 
@@ -209,13 +219,12 @@ func (w *RPCWallet) Start() {
 				// transaction is spending inputs already spent, so we should just remove it
 				w.txstore.Txns().Delete(&hash)
 			} else {
-				log.Error(err)
+				log.Warning(err)
 			}
 		}
 	}
 
-	log.Info("Connected to phored")
-	w.started = true
+	return nil
 }
 
 func (w *RPCWallet) Params() *chaincfg.Params {
@@ -993,8 +1002,16 @@ func (w *RPCWallet) ReSyncBlockchain(fromDate time.Time) {
 		}
 		w.txstore.txidsMutex.Unlock()
 
+		txstore, err := NewTxStore(w.params, w.txstore.Datastore, w.km)
+		if err != nil {
+			log.Warning(err)
+		} else {
+			w.txstore = txstore
+		}
+
 		w.txstore.PopulateAdrs()
 		w.RetrieveTransactions()
+		w.rebroadcast()
 		w.notifications.updateFilterAndSend()
 	}
 }
