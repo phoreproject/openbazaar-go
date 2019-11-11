@@ -984,8 +984,8 @@ func (w *RPCWallet) AddTransactionListener(callback func(wallet.TransactionCallb
 // ReSyncBlockchain resyncs the addresses used by the SPV wallet
 func (w *RPCWallet) ReSyncBlockchain(fromDate time.Time) {
 	if w.started {
-		txns, _ := w.txstore.Txns().GetAll(true)
 		w.txstore.txidsMutex.Lock()
+		txns, _ := w.txstore.Txns().GetAll(true)
 		for _, t := range txns {
 			transaction := wire.MsgTx{}
 			err := transaction.BtcDecode(bytes.NewReader(t.Bytes), 1, wire.BaseEncoding)
@@ -999,6 +999,16 @@ func (w *RPCWallet) ReSyncBlockchain(fromDate time.Time) {
 				log.Error(err)
 				continue
 			}
+		}
+
+		utxos, _ := w.txstore.Utxos().GetAll()
+		for _, utxo := range utxos {
+			w.txstore.Utxos().Delete(utxo)
+		}
+
+		stxos, _ := w.txstore.Stxos().GetAll()
+		for _, stxo := range stxos {
+			w.txstore.Stxos().Delete(stxo)
 		}
 		w.txstore.txidsMutex.Unlock()
 
