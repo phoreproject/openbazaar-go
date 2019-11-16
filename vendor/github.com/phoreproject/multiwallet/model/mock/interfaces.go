@@ -7,9 +7,9 @@ import (
 	"sync"
 
 	gosocketio "github.com/OpenBazaar/golang-socketio"
+	"github.com/btcsuite/btcutil"
 	"github.com/phoreproject/multiwallet/client"
 	"github.com/phoreproject/multiwallet/model"
-	"github.com/btcsuite/btcutil"
 )
 
 type MockAPIClient struct {
@@ -180,9 +180,7 @@ func (m *MockSocketClient) Emit(method string, args []interface{}) error {
 		if !ok {
 			return fmt.Errorf("second emit arg is not address value, was %+v", args[1])
 		}
-		for _, addr := range addrs {
-			m.listeningAddresses = append(m.listeningAddresses, addr)
-		}
+		m.listeningAddresses = append(m.listeningAddresses, addrs...)
 	}
 	return nil
 }

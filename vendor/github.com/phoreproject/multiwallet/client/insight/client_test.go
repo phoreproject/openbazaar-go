@@ -8,12 +8,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/btcsuite/btcd/chaincfg"
+	"github.com/btcsuite/btcutil"
 	"github.com/phoreproject/multiwallet/client/insight"
 	"github.com/phoreproject/multiwallet/model"
 	"github.com/phoreproject/multiwallet/model/mock"
 	"github.com/phoreproject/multiwallet/test"
-	"github.com/btcsuite/btcd/chaincfg"
-	"github.com/btcsuite/btcutil"
 	httpmock "gopkg.in/jarcoal/httpmock.v1"
 )
 

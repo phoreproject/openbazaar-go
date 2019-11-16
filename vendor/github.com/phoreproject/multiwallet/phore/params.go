@@ -21,7 +21,7 @@ var (
 
 const (
 	// MainNet represents the main bitcoin network.
-	MainPhoreNet wire.BitcoinNet = 0x504852 // PHR
+	MainPhoreNet     wire.BitcoinNet = 0x504852   // PHR
 	MainPhoreTestNet wire.BitcoinNet = 0x54504852 // TPHR
 )
 
@@ -35,15 +35,15 @@ var PhoreMainNetParams = chaincfg.Params{
 	},
 
 	// Chain parameters
-	GenesisBlock:             nil, // unused
-	GenesisHash:              nil, // unused
-	PowLimit:                 mainPowLimit,
-	PowLimitBits:             0x207fffff,
-	BIP0034Height:            0, // unused
-	BIP0065Height:            0, // unused
-	BIP0066Height:            0, // unused
-	CoinbaseMaturity:         50,
-	TargetTimespan:           time.Minute, // 1 minute
+	GenesisBlock:     nil, // unused
+	GenesisHash:      nil, // unused
+	PowLimit:         mainPowLimit,
+	PowLimitBits:     0x207fffff,
+	BIP0034Height:    0, // unused
+	BIP0065Height:    0, // unused
+	BIP0066Height:    0, // unused
+	CoinbaseMaturity: 50,
+	TargetTimespan:   time.Minute, // 1 minute
 	//PoSTargetTimespan:        time.Minute * 40,
 	TargetTimePerBlock:       time.Minute, // 1 minutes
 	RetargetAdjustmentFactor: 4,           // 25% less, 400% more

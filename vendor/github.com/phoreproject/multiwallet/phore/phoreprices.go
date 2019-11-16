@@ -3,6 +3,7 @@ package phore
 import (
 	"encoding/json"
 	"errors"
+	"github.com/op/go-logging"
 	"net"
 	"net/http"
 	"sync"
@@ -13,6 +14,8 @@ import (
 )
 
 const SatoshiPerPHR = 100000000
+
+var log = logging.MustGetLogger("PhoreExchangeRates")
 
 type ExchangeRateProvider struct {
 	fetchUrl string

@@ -6,9 +6,9 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/jessevdk/go-flags"
 	"github.com/phoreproject/multiwallet/api"
 	"github.com/phoreproject/multiwallet/api/pb"
-	"github.com/jessevdk/go-flags"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 )
@@ -232,11 +232,11 @@ func (x *DumpTables) Execute(args []string) error {
 	for {
 		row, err := resp.Recv()
 		if err != nil {
+			// errors when no more rows and exits
 			return err
 		}
 		fmt.Println(row.Data)
 	}
-	return nil
 }
 
 type Spend struct{}

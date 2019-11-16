@@ -4,10 +4,19 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"github.com/ltcsuite/ltcutil"
 	"io"
+	"strings"
 	"time"
 
+	wi "github.com/OpenBazaar/wallet-interface"
+	"github.com/btcsuite/btcd/chaincfg"
+	"github.com/btcsuite/btcd/chaincfg/chainhash"
+	"github.com/btcsuite/btcd/wire"
+	"github.com/btcsuite/btcutil"
+	hd "github.com/btcsuite/btcutil/hdkeychain"
+	"github.com/ltcsuite/ltcutil"
+	"github.com/ltcsuite/ltcwallet/wallet/txrules"
+	"github.com/op/go-logging"
 	"github.com/phoreproject/multiwallet/cache"
 	"github.com/phoreproject/multiwallet/client"
 	"github.com/phoreproject/multiwallet/config"
@@ -16,13 +25,6 @@ import (
 	"github.com/phoreproject/multiwallet/model"
 	"github.com/phoreproject/multiwallet/service"
 	"github.com/phoreproject/multiwallet/util"
-	wi "github.com/OpenBazaar/wallet-interface"
-	"github.com/btcsuite/btcd/chaincfg"
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
-	"github.com/btcsuite/btcd/wire"
-	"github.com/btcsuite/btcutil"
-	hd "github.com/btcsuite/btcutil/hdkeychain"
-	"github.com/ltcsuite/ltcwallet/wallet/txrules"
 	"github.com/tyler-smith/go-bip39"
 	"golang.org/x/net/proxy"
 )
@@ -39,6 +41,7 @@ type LitecoinWallet struct {
 	mPubKey  *hd.ExtendedKey
 
 	exchangeRates wi.ExchangeRates
+	log           *logging.Logger
 }
 
 func NewLitecoinWallet(cfg config.CoinConfig, mnemonic string, params *chaincfg.Params, proxy proxy.Dialer, cache cache.Cacher, disableExchangeRates bool) (*LitecoinWallet, error) {
@@ -71,9 +74,20 @@ func NewLitecoinWallet(cfg config.CoinConfig, mnemonic string, params *chaincfg.
 		er = NewLitecoinPriceFetcher(proxy)
 	}
 
-	fp := util.NewFeeDefaultProvider(cfg.MaxFee, cfg.HighFee, cfg.MediumFee, cfg.LowFee)
+	fp := util.NewFeeProvider(cfg.MaxFee, cfg.HighFee, cfg.MediumFee, cfg.LowFee, er)
 
-	return &LitecoinWallet{cfg.DB, km, params, c, wm, fp, mPrivKey, mPubKey, er}, nil
+	return &LitecoinWallet{
+		db:            cfg.DB,
+		km:            km,
+		params:        params,
+		client:        c,
+		ws:            wm,
+		fp:            fp,
+		mPrivKey:      mPrivKey,
+		mPubKey:       mPubKey,
+		exchangeRates: er,
+		log:           logging.MustGetLogger("litecoin-wallet"),
+	}, nil
 }
 
 func litecoinAddress(key *hd.ExtendedKey, params *chaincfg.Params) (btcutil.Address, error) {
@@ -132,16 +146,34 @@ func (w *LitecoinWallet) ChildKey(keyBytes []byte, chaincode []byte, isPrivateKe
 }
 
 func (w *LitecoinWallet) CurrentAddress(purpose wi.KeyPurpose) btcutil.Address {
-	key, _ := w.km.GetCurrentKey(purpose)
-	addr, _ := litecoinAddress(key, w.params)
+	var addr btcutil.Address
+	for {
+		key, _ := w.km.GetCurrentKey(purpose)
+		addr, _ = litecoinAddress(key, w.params)
+
+		if !strings.HasPrefix(strings.ToLower(addr.String()), "ltc1") {
+			break
+		}
+		if err := w.db.Keys().MarkKeyAsUsed(addr.ScriptAddress()); err != nil {
+			w.log.Errorf("Error marking key as used: %s", err)
+		}
+	}
 	return btcutil.Address(addr)
 }
 
 func (w *LitecoinWallet) NewAddress(purpose wi.KeyPurpose) btcutil.Address {
-	i, _ := w.db.Keys().GetUnused(purpose)
-	key, _ := w.km.GenerateChildKey(purpose, uint32(i[1]))
-	addr, _ := litecoinAddress(key, w.params)
-	w.db.Keys().MarkKeyAsUsed(addr.ScriptAddress())
+	var addr btcutil.Address
+	for {
+		i, _ := w.db.Keys().GetUnused(purpose)
+		key, _ := w.km.GenerateChildKey(purpose, uint32(i[1]))
+		addr, _ = litecoinAddress(key, w.params)
+		if err := w.db.Keys().MarkKeyAsUsed(addr.ScriptAddress()); err != nil {
+			w.log.Error("Error marking key as used: %s", err)
+		}
+		if !strings.HasPrefix(strings.ToLower(addr.String()), "ltc1") {
+			break
+		}
+	}
 	return btcutil.Address(addr)
 }
 
@@ -159,10 +191,7 @@ func (w *LitecoinWallet) AddressToScript(addr btcutil.Address) ([]byte, error) {
 
 func (w *LitecoinWallet) HasKey(addr btcutil.Address) bool {
 	_, err := w.km.GetKeyForScript(addr.ScriptAddress())
-	if err != nil {
-		return false
-	}
-	return true
+	return err == nil
 }
 
 func (w *LitecoinWallet) Balance() (confirmed, unconfirmed int64) {
@@ -207,6 +236,28 @@ func (w *LitecoinWallet) Transactions() ([]wi.Txn, error) {
 
 func (w *LitecoinWallet) GetTransaction(txid chainhash.Hash) (wi.Txn, error) {
 	txn, err := w.db.Txns().Get(txid)
+	if err == nil {
+		tx := wire.NewMsgTx(1)
+		rbuf := bytes.NewReader(txn.Bytes)
+		err := tx.BtcDecode(rbuf, wire.ProtocolVersion, wire.WitnessEncoding)
+		if err != nil {
+			return txn, err
+		}
+		outs := []wi.TransactionOutput{}
+		for i, out := range tx.TxOut {
+			addr, err := laddr.ExtractPkScriptAddrs(out.PkScript, w.params)
+			if err != nil {
+				w.log.Errorf("error extracting address from txn pkscript: %v\n", err)
+			}
+			tout := wi.TransactionOutput{
+				Address: addr,
+				Value:   out.Value,
+				Index:   uint32(i),
+			}
+			outs = append(outs, tout)
+		}
+		txn.Outputs = outs
+	}
 	return txn, err
 }
 
@@ -435,4 +486,9 @@ func (w *LitecoinWallet) Broadcast(tx *wire.MsgTx) error {
 	}
 	w.ws.ProcessIncomingTransaction(cTxn)
 	return nil
+}
+
+// AssociateTransactionWithOrder used for ORDER_PAYMENT message
+func (w *LitecoinWallet) AssociateTransactionWithOrder(cb wi.TransactionCallback) {
+	w.ws.InvokeTransactionListeners(cb)
 }

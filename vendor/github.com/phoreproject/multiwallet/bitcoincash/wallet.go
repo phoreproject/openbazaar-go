@@ -5,15 +5,9 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
+	"log"
 	"time"
 
-	"github.com/phoreproject/multiwallet/cache"
-	"github.com/phoreproject/multiwallet/client"
-	"github.com/phoreproject/multiwallet/config"
-	"github.com/phoreproject/multiwallet/keys"
-	"github.com/phoreproject/multiwallet/model"
-	"github.com/phoreproject/multiwallet/service"
-	"github.com/phoreproject/multiwallet/util"
 	wi "github.com/OpenBazaar/wallet-interface"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
@@ -21,9 +15,14 @@ import (
 	"github.com/btcsuite/btcutil"
 	hd "github.com/btcsuite/btcutil/hdkeychain"
 	"github.com/btcsuite/btcwallet/wallet/txrules"
-	bcw "github.com/cpacia/BitcoinCash-Wallet"
-	er "github.com/cpacia/BitcoinCash-Wallet/exchangerates"
 	"github.com/cpacia/bchutil"
+	"github.com/phoreproject/multiwallet/cache"
+	"github.com/phoreproject/multiwallet/client"
+	"github.com/phoreproject/multiwallet/config"
+	"github.com/phoreproject/multiwallet/keys"
+	"github.com/phoreproject/multiwallet/model"
+	"github.com/phoreproject/multiwallet/service"
+	"github.com/phoreproject/multiwallet/util"
 	"github.com/tyler-smith/go-bip39"
 	"golang.org/x/net/proxy"
 )
@@ -34,7 +33,7 @@ type BitcoinCashWallet struct {
 	params *chaincfg.Params
 	client model.APIClient
 	ws     *service.WalletService
-	fp     *bcw.FeeProvider
+	fp     *util.FeeProvider
 
 	mPrivKey *hd.ExtendedKey
 	mPubKey  *hd.ExtendedKey
@@ -67,12 +66,12 @@ func NewBitcoinCashWallet(cfg config.CoinConfig, mnemonic string, params *chainc
 	if err != nil {
 		return nil, err
 	}
-	exchangeRates := er.NewBitcoinCashPriceFetcher(proxy)
+	exchangeRates := NewBitcoinCashPriceFetcher(proxy)
 	if !disableExchangeRates {
 		go exchangeRates.Run()
 	}
 
-	fp := bcw.NewFeeProvider(cfg.MaxFee, cfg.HighFee, cfg.MediumFee, cfg.LowFee, exchangeRates)
+	fp := util.NewFeeProvider(cfg.MaxFee, cfg.HighFee, cfg.MediumFee, cfg.LowFee, exchangeRates)
 
 	return &BitcoinCashWallet{cfg.DB, km, params, c, wm, fp, mPrivKey, mPubKey, exchangeRates}, nil
 }
@@ -209,6 +208,28 @@ func (w *BitcoinCashWallet) Transactions() ([]wi.Txn, error) {
 
 func (w *BitcoinCashWallet) GetTransaction(txid chainhash.Hash) (wi.Txn, error) {
 	txn, err := w.db.Txns().Get(txid)
+	if err == nil {
+		tx := wire.NewMsgTx(1)
+		rbuf := bytes.NewReader(txn.Bytes)
+		err := tx.BtcDecode(rbuf, wire.ProtocolVersion, wire.WitnessEncoding)
+		if err != nil {
+			return txn, err
+		}
+		outs := []wi.TransactionOutput{}
+		for i, out := range tx.TxOut {
+			addr, err := bchutil.ExtractPkScriptAddrs(out.PkScript, w.params)
+			if err != nil {
+				log.Printf("error extracting address from txn pkscript: %v\n", err)
+			}
+			tout := wi.TransactionOutput{
+				Address: addr,
+				Value:   out.Value,
+				Index:   uint32(i),
+			}
+			outs = append(outs, tout)
+		}
+		txn.Outputs = outs
+	}
 	return txn, err
 }
 
@@ -415,4 +436,9 @@ func (w *BitcoinCashWallet) Broadcast(tx *wire.MsgTx) error {
 	}
 	w.ws.ProcessIncomingTransaction(cTxn)
 	return nil
+}
+
+// AssociateTransactionWithOrder used for ORDER_PAYMENT message
+func (w *BitcoinCashWallet) AssociateTransactionWithOrder(cb wi.TransactionCallback) {
+	w.ws.InvokeTransactionListeners(cb)
 }

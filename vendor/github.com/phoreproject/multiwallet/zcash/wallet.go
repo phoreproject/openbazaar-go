@@ -6,6 +6,14 @@ import (
 	"io"
 	"time"
 
+	wi "github.com/OpenBazaar/wallet-interface"
+	"github.com/btcsuite/btcd/chaincfg"
+	"github.com/btcsuite/btcd/chaincfg/chainhash"
+	"github.com/btcsuite/btcd/wire"
+	"github.com/btcsuite/btcutil"
+	hd "github.com/btcsuite/btcutil/hdkeychain"
+	"github.com/btcsuite/btcwallet/wallet/txrules"
+	"github.com/op/go-logging"
 	"github.com/phoreproject/multiwallet/cache"
 	"github.com/phoreproject/multiwallet/client"
 	"github.com/phoreproject/multiwallet/config"
@@ -14,13 +22,6 @@ import (
 	"github.com/phoreproject/multiwallet/service"
 	"github.com/phoreproject/multiwallet/util"
 	zaddr "github.com/phoreproject/multiwallet/zcash/address"
-	wi "github.com/OpenBazaar/wallet-interface"
-	"github.com/btcsuite/btcd/chaincfg"
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
-	"github.com/btcsuite/btcd/wire"
-	"github.com/btcsuite/btcutil"
-	hd "github.com/btcsuite/btcutil/hdkeychain"
-	"github.com/btcsuite/btcwallet/wallet/txrules"
 	"github.com/tyler-smith/go-bip39"
 	"golang.org/x/net/proxy"
 )
@@ -37,6 +38,7 @@ type ZCashWallet struct {
 	mPubKey  *hd.ExtendedKey
 
 	exchangeRates wi.ExchangeRates
+	log           *logging.Logger
 }
 
 func NewZCashWallet(cfg config.CoinConfig, mnemonic string, params *chaincfg.Params, proxy proxy.Dialer, cache cache.Cacher, disableExchangeRates bool) (*ZCashWallet, error) {
@@ -50,7 +52,7 @@ func NewZCashWallet(cfg config.CoinConfig, mnemonic string, params *chaincfg.Par
 	if err != nil {
 		return nil, err
 	}
-	km, err := keys.NewKeyManager(cfg.DB.Keys(), params, mPrivKey, util.ExtendCoinType(wi.Zcash), zcashCashAddress)
+	km, err := keys.NewKeyManager(cfg.DB.Keys(), params, mPrivKey, wi.Zcash, zcashCashAddress)
 	if err != nil {
 		return nil, err
 	}
@@ -60,7 +62,7 @@ func NewZCashWallet(cfg config.CoinConfig, mnemonic string, params *chaincfg.Par
 		return nil, err
 	}
 
-	wm, err := service.NewWalletService(cfg.DB, km, c, params, util.ExtendCoinType(wi.Zcash), cache)
+	wm, err := service.NewWalletService(cfg.DB, km, c, params, wi.Zcash, cache)
 	if err != nil {
 		return nil, err
 	}
@@ -70,9 +72,20 @@ func NewZCashWallet(cfg config.CoinConfig, mnemonic string, params *chaincfg.Par
 		er = NewZcashPriceFetcher(proxy)
 	}
 
-	fp := util.NewFeeDefaultProvider(cfg.MaxFee, cfg.HighFee, cfg.MediumFee, cfg.LowFee)
+	fp := util.NewFeeProvider(cfg.MaxFee, cfg.HighFee, cfg.MediumFee, cfg.LowFee, er)
 
-	return &ZCashWallet{cfg.DB, km, params, c, wm, fp, mPrivKey, mPubKey, er}, nil
+	return &ZCashWallet{
+		db:            cfg.DB,
+		km:            km,
+		params:        params,
+		client:        c,
+		ws:            wm,
+		fp:            fp,
+		mPrivKey:      mPrivKey,
+		mPubKey:       mPubKey,
+		exchangeRates: er,
+		log:           logging.MustGetLogger("zcash-wallet"),
+	}, nil
 }
 
 func zcashCashAddress(key *hd.ExtendedKey, params *chaincfg.Params) (btcutil.Address, error) {

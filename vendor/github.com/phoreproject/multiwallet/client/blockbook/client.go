@@ -18,14 +18,14 @@ import (
 
 	gosocketio "github.com/OpenBazaar/golang-socketio"
 	"github.com/OpenBazaar/golang-socketio/protocol"
-	clientErr "github.com/phoreproject/multiwallet/client/errors"
-	"github.com/phoreproject/multiwallet/client/transport"
-	"github.com/phoreproject/multiwallet/model"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcutil"
 	"github.com/cpacia/bchutil"
 	"github.com/op/go-logging"
+	clientErr "github.com/phoreproject/multiwallet/client/errors"
+	"github.com/phoreproject/multiwallet/client/transport"
+	"github.com/phoreproject/multiwallet/model"
 	"golang.org/x/net/proxy"
 )
 

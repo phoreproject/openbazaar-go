@@ -8,11 +8,11 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/btcsuite/btcutil"
+	"github.com/op/go-logging"
 	"github.com/phoreproject/multiwallet/client/blockbook"
 	clientErr "github.com/phoreproject/multiwallet/client/errors"
 	"github.com/phoreproject/multiwallet/model"
-	"github.com/btcsuite/btcutil"
-	"github.com/op/go-logging"
 	"golang.org/x/net/proxy"
 )
 

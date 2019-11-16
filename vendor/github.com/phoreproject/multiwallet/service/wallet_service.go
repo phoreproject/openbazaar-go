@@ -10,12 +10,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/phoreproject/multiwallet/cache"
-	"github.com/phoreproject/multiwallet/keys"
-	laddr "github.com/phoreproject/multiwallet/litecoin/address"
-	"github.com/phoreproject/multiwallet/model"
-	"github.com/phoreproject/multiwallet/util"
-	zaddr "github.com/phoreproject/multiwallet/zcash/address"
 	"github.com/OpenBazaar/wallet-interface"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
@@ -24,6 +18,12 @@ import (
 	"github.com/btcsuite/btcutil"
 	"github.com/cpacia/bchutil"
 	"github.com/op/go-logging"
+	"github.com/phoreproject/multiwallet/cache"
+	"github.com/phoreproject/multiwallet/keys"
+	laddr "github.com/phoreproject/multiwallet/litecoin/address"
+	"github.com/phoreproject/multiwallet/model"
+	"github.com/phoreproject/multiwallet/util"
+	zaddr "github.com/phoreproject/multiwallet/zcash/address"
 )
 
 var Log = logging.MustGetLogger("WalletService")
@@ -104,11 +104,18 @@ func (ws *WalletService) ChainTip() (uint32, chainhash.Hash) {
 	if err != nil {
 		Log.Errorf("producing BestBlock hash: %s", err.Error())
 	}
-	return uint32(ws.chainHeight), *ch
+	return ws.chainHeight, *ch
 }
 
 func (ws *WalletService) AddTransactionListener(callback func(callback wallet.TransactionCallback)) {
 	ws.listeners = append(ws.listeners, callback)
+}
+
+// InvokeTransactionListeners will invoke the transaction listeners for the updation of order state
+func (ws *WalletService) InvokeTransactionListeners(callback wallet.TransactionCallback) {
+	for _, l := range ws.listeners {
+		go l(callback)
+	}
 }
 
 func (ws *WalletService) listen() {
@@ -153,7 +160,7 @@ func (ws *WalletService) ProcessIncomingTransaction(tx model.Transaction) {
 					utxo := model.Utxo{
 						Txid:          tx.Txid,
 						ScriptPubKey:  out.ScriptPubKey.Hex,
-						Satoshis:      int64(math.Round(out.Value * float64(util.SatoshisPerCoin(ws.coinType.ToCoinType())))),
+						Satoshis:      int64(math.Round(out.Value * util.SatoshisPerCoin(ws.coinType.ToCoinType()))),
 						Vout:          out.N,
 						Address:       addr,
 						Confirmations: 0,

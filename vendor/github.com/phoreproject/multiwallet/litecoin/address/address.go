@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"strings"
 
-	lparams "github.com/phoreproject/multiwallet/litecoin/params"
 	"github.com/btcsuite/btcd/btcec"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/txscript"
@@ -16,6 +15,7 @@ import (
 	"github.com/btcsuite/golangcrypto/ripemd160"
 	ltcparams "github.com/ltcsuite/ltcd/chaincfg"
 	"github.com/ltcsuite/ltcutil/base58"
+	lparams "github.com/phoreproject/multiwallet/litecoin/params"
 )
 
 // UnsupportedWitnessVerError describes an error where a segwit address being

@@ -6,16 +6,16 @@ import (
 	"testing"
 	"time"
 
-	"github.com/phoreproject/multiwallet/cache"
-	"github.com/phoreproject/multiwallet/datastore"
-	"github.com/phoreproject/multiwallet/keys"
-	"github.com/phoreproject/multiwallet/model/mock"
 	"github.com/OpenBazaar/wallet-interface"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcutil"
 	"github.com/btcsuite/btcutil/hdkeychain"
 	"github.com/ltcsuite/ltcd/chaincfg/chainhash"
+	"github.com/phoreproject/multiwallet/cache"
+	"github.com/phoreproject/multiwallet/datastore"
+	"github.com/phoreproject/multiwallet/keys"
+	"github.com/phoreproject/multiwallet/model/mock"
 )
 
 func mockWalletService() (*WalletService, error) {

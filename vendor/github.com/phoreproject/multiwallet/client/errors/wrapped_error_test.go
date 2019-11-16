@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	clientErr "github.com/OpenBazaar/multiwallet/client/errors"
+	clientErr "github.com/phoreproject/multiwallet/client/errors"
 )
 
 func TestWrappedErrorsAreComposable(t *testing.T) {

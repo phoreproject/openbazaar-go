@@ -3,15 +3,9 @@ package bitcoin
 import (
 	"bytes"
 	"encoding/hex"
-	"github.com/OpenBazaar/multiwallet/util"
 	"testing"
 	"time"
 
-	"github.com/phoreproject/multiwallet/cache"
-	"github.com/phoreproject/multiwallet/datastore"
-	"github.com/phoreproject/multiwallet/keys"
-	"github.com/phoreproject/multiwallet/model/mock"
-	"github.com/phoreproject/multiwallet/service"
 	"github.com/OpenBazaar/spvwallet"
 	"github.com/OpenBazaar/wallet-interface"
 	"github.com/btcsuite/btcd/chaincfg"
@@ -20,6 +14,12 @@ import (
 	"github.com/btcsuite/btcd/wire"
 	"github.com/btcsuite/btcutil"
 	"github.com/btcsuite/btcutil/hdkeychain"
+	"github.com/phoreproject/multiwallet/cache"
+	"github.com/phoreproject/multiwallet/datastore"
+	"github.com/phoreproject/multiwallet/keys"
+	"github.com/phoreproject/multiwallet/model/mock"
+	"github.com/phoreproject/multiwallet/service"
+	"github.com/phoreproject/multiwallet/util"
 )
 
 type FeeResponse struct {
@@ -273,6 +273,9 @@ func TestBitcoinWallet_GenerateMultisigScript(t *testing.T) {
 		"53" + // OP_3
 		"ae" // OP_CHECKMULTISIG
 	rsBytes, err := hex.DecodeString(rs)
+	if err != nil {
+		t.Error(err)
+	}
 	if !bytes.Equal(rsBytes, redeemScript) {
 		t.Error("Returned invalid redeem script")
 	}
@@ -310,6 +313,9 @@ func TestBitcoinWallet_GenerateMultisigScript(t *testing.T) {
 		"ac" + // OP_CHECKSIG
 		"68" // OP_ENDIF
 	rsBytes, err = hex.DecodeString(rs)
+	if err != nil {
+		t.Error(err)
+	}
 	if !bytes.Equal(rsBytes, redeemScript) {
 		t.Error("Returned invalid redeem script")
 	}
@@ -626,7 +632,7 @@ func TestBitcoinWallet_estimateSpendFee(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if fee <= 0 {
+	if fee == 0 {
 		t.Error("Returned incorrect fee")
 	}
 }

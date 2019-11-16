@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	clientErrs "github.com/OpenBazaar/multiwallet/client/errors"
+	clientErrs "github.com/phoreproject/multiwallet/client/errors"
 )
 
 func TestIsFatal(t *testing.T) {
