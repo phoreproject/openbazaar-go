@@ -619,8 +619,16 @@ func (ws *WalletService) getStoredAddresses() map[string]storedAddress {
 			}
 			addr = ltcAddr
 		case util.CoinTypePhore:
-			//TODO impl
-			Log.Warningf("Not implemented yet for Phore!!")
+			_, addrSlice, _, err := txscript.ExtractPkScriptAddrs(script, ws.params)
+			if err != nil {
+				Log.Warningf("error serializing %s script: %s", ws.coinType.String(), err.Error())
+				continue
+			}
+			if len(addrs) == 0 {
+				Log.Warningf("error serializing %s script: %s", ws.coinType.String(), "Unknown script")
+				continue
+			}
+			addr = addrSlice[0]
 		}
 		addrs[addr.String()] = storedAddress{addr, true}
 	}
