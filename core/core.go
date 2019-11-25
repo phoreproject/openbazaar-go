@@ -34,7 +34,7 @@ import (
 
 const (
 	// VERSION - current version
-	VERSION = "2.2.1-dev3"
+	VERSION = "2.3.0-dev"
 	// USERAGENT - user-agent header string
 	USERAGENT = "/Phore-Marketplace-go:" + VERSION + "/"
 )
