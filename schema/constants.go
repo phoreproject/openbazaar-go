@@ -94,31 +94,16 @@ const (
 
 const (
 	CoinAPIOpenBazaarPHR = "https://phr.blockbook.api.phore.io/api"
-	CoinAPIOpenBazaarBTC = "https://btc.blockbook.api.openbazaar.org/api"
-	CoinAPIOpenBazaarBCH = "https://bch.blockbook.api.openbazaar.org/api"
-	CoinAPIOpenBazaarLTC = "https://ltc.blockbook.api.openbazaar.org/api"
-	CoinAPIOpenBazaarZEC = "https://zec.blockbook.api.openbazaar.org/api"
-	CoinAPIOpenBazaarETH = "https://rinkeby.infura.io"
+	CoinAPIOpenBazaarBTC = "https://btc.blockbook.api.phore.io/api"
 
 	CoinAPIOpenBazaarTPHR = "https://tphr.blockbook.api.phore.io/api"
-	CoinAPIOpenBazaarTBTC = "https://tbtc.blockbook.api.openbazaar.org/api"
-	CoinAPIOpenBazaarTBCH = "https://tbch.blockbook.api.openbazaar.org/api"
-	CoinAPIOpenBazaarTLTC = "https://tltc.blockbook.api.openbazaar.org/api"
-	CoinAPIOpenBazaarTZEC = "https://tzec.blockbook.api.openbazaar.org/api"
+	CoinAPIOpenBazaarTBTC = "https://tbtc.blockbook.api.phore.io/api"
 )
 
 var (
 	CoinPoolPHR = []string{CoinAPIOpenBazaarPHR}
 	CoinPoolBTC = []string{CoinAPIOpenBazaarBTC}
-	CoinPoolBCH = []string{CoinAPIOpenBazaarBCH}
-	CoinPoolLTC = []string{CoinAPIOpenBazaarLTC}
-	CoinPoolZEC = []string{CoinAPIOpenBazaarZEC}
-	CoinPoolETH = []string{CoinAPIOpenBazaarETH}
 
 	CoinPoolTPHR = []string{CoinAPIOpenBazaarTPHR}
 	CoinPoolTBTC = []string{CoinAPIOpenBazaarTBTC}
-	CoinPoolTBCH = []string{CoinAPIOpenBazaarTBCH}
-	CoinPoolTLTC = []string{CoinAPIOpenBazaarTLTC}
-	CoinPoolTZEC = []string{CoinAPIOpenBazaarTZEC}
-	CoinPoolTETH = []string{CoinAPIOpenBazaarETH}
 )
