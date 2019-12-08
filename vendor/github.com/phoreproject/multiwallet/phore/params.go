@@ -21,8 +21,8 @@ var (
 
 const (
 	// MainNet represents the main bitcoin network.
-	MainPhoreNet     wire.BitcoinNet = 0x504852   // PHR
-	MainPhoreTestNet wire.BitcoinNet = 0x54504852 // TPHR
+	MainPhoreNet wire.BitcoinNet = 0x504852   // PHR
+	TestPhoreNet wire.BitcoinNet = 0x545048   // TP
 )
 
 var PhoreMainNetParams = chaincfg.Params{
@@ -81,4 +81,38 @@ var PhoreMainNetParams = chaincfg.Params{
 	HDCoinType: 0x800001bc,
 }
 
-var PhoreTestNetParams = PhoreMainNetParams
+var PhoreTestNetParams = chaincfg.Params{
+	Name:        "testnetPhore",
+	Net:         TestPhoreNet,
+	DefaultPort: "11773",
+	DNSSeeds: []chaincfg.DNSSeed{
+	},
+
+	// Chain parameters
+	GenesisBlock:     nil, // unused
+	GenesisHash:      nil, // unused
+	PowLimit:         mainPowLimit,
+	PowLimitBits:     0x207fffff,
+	BIP0034Height:    0, // unused
+	BIP0065Height:    0, // unused
+	BIP0066Height:    0, // unused
+	CoinbaseMaturity: 50,
+	TargetTimespan:   time.Minute, // 1 minute
+	TargetTimePerBlock:       time.Minute, // 1 minutes
+	RetargetAdjustmentFactor: 4,           // 25% less, 400% more
+	ReduceMinDifficulty:      false,
+	MinDiffReductionTime:     0,
+	GenerateSupported:        true,
+	Checkpoints: []chaincfg.Checkpoint{},
+	RelayNonStdTxs: false,
+	Bech32HRPSegwit: "tp",
+
+	PubKeyHashAddrID: 0x8B, // starts with x or y
+	ScriptHashAddrID: 0x13, // starts with 8 or 9
+	PrivateKeyID:     0xEF, // starts with '9' or 'c' (Bitcoin defaults)
+
+	HDPrivateKeyID: [4]byte{0x3a, 0x80, 0x61, 0xa0},
+	HDPublicKeyID:  [4]byte{0x3a, 0x80, 0x58, 0x37},
+
+	HDCoinType: 0x80000001,
+}
