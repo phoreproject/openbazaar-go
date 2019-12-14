@@ -393,7 +393,7 @@ func (p *Buffer) Bytes() []byte { return p.buf }
 // than relying on this API.
 //
 // If deterministic serialization is requested, map entries will be sorted
-// by keys in lexographical order. This is an implementation detail and
+// by keys in lexicographical order. This is an implementation detail and
 // subject to change.
 func (p *Buffer) SetDeterministic(deterministic bool) {
 	p.deterministic = deterministic
@@ -940,13 +940,19 @@ func isProto3Zero(v reflect.Value) bool {
 	return false
 }
 
-// ProtoPackageIsVersion2 is referenced from generated protocol buffer files
-// to assert that that code is compatible with this version of the proto package.
-const ProtoPackageIsVersion2 = true
+const (
+	// ProtoPackageIsVersion3 is referenced from generated protocol buffer files
+	// to assert that that code is compatible with this version of the proto package.
+	ProtoPackageIsVersion3 = true
 
-// ProtoPackageIsVersion1 is referenced from generated protocol buffer files
-// to assert that that code is compatible with this version of the proto package.
-const ProtoPackageIsVersion1 = true
+	// ProtoPackageIsVersion2 is referenced from generated protocol buffer files
+	// to assert that that code is compatible with this version of the proto package.
+	ProtoPackageIsVersion2 = true
+
+	// ProtoPackageIsVersion1 is referenced from generated protocol buffer files
+	// to assert that that code is compatible with this version of the proto package.
+	ProtoPackageIsVersion1 = true
+)
 
 // InternalMessageInfo is a type used internally by generated .pb.go files.
 // This type is not intended to be used by non-generated code.
