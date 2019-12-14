@@ -82,6 +82,7 @@ listingLoop:
 			listing.Metadata = metadata
 			listing.Item = item
 			listing.ShippingOptions = shipping
+			listing.Testnet = n.TestnetEnable
 
 			pos, ok := fields["contract_type"]
 			if ok {

@@ -5,8 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-
-	cid "gx/ipfs/QmTbxNB1NwDesLmKTscr4udL2tVP7MaxvXnD1D9yX7g3PN/go-cid"
+	"gx/ipfs/QmTbxNB1NwDesLmKTscr4udL2tVP7MaxvXnD1D9yX7g3PN/go-cid"
 	mh "gx/ipfs/QmerPMzPk1mJVowm8KgmoknWa4yCYvvugMPsgWmDNUvDLW/go-multihash"
 	"io/ioutil"
 	"os"
@@ -101,6 +100,7 @@ type ListingData struct {
 	AcceptedCurrencies []string  `json:"acceptedCurrencies"`
 	CoinType           string    `json:"coinType"`
 	CoinDivisibility   uint32    `json:"coinDivisibility"`
+	Testnet            bool      `json:"testnet"`
 }
 
 var (
@@ -526,6 +526,7 @@ func (n *OpenBazaarNode) extractListingData(listing *pb.SignedListing) (ListingD
 		Language:           listing.Listing.Metadata.Language,
 		ModeratorIDs:       listing.Listing.Moderators,
 		AcceptedCurrencies: listing.Listing.Metadata.AcceptedCurrencies,
+		Testnet:			listing.Listing.Testnet,
 	}
 	return ld, nil
 }
