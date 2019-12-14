@@ -374,6 +374,8 @@ func prepListingForPublish(n *OpenBazaarNode, listing *pb.Listing) error {
 		return err
 	}
 
+	listing.Testnet = n.TestnetEnable
+
 	signedListing, err := n.SignListing(listing)
 	if err != nil {
 		return err
