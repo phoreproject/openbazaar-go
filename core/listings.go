@@ -528,7 +528,7 @@ func (n *OpenBazaarNode) extractListingData(listing *pb.SignedListing) (ListingD
 		Language:           listing.Listing.Metadata.Language,
 		ModeratorIDs:       listing.Listing.Moderators,
 		AcceptedCurrencies: listing.Listing.Metadata.AcceptedCurrencies,
-		Testnet:			listing.Listing.Testnet,
+		Testnet:            listing.Listing.Testnet,
 	}
 	return ld, nil
 }
