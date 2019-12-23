@@ -303,6 +303,34 @@ func (c *ConfigDB) GetMnemonic() (string, bool, error) {
 	return mnemonic, false, err
 }
 
+func (c *ConfigDB) UpdateMnemonic(mnemonic string, isEncrypted bool) error {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
+	tx, err := c.db.Begin()
+	if err != nil {
+		return err
+	}
+	stmt, err := tx.Prepare("insert into config(key, value) values(?,?) on duplicate key update key=?, value=?")
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+
+	_, err = stmt.Exec("mnemonic", mnemonic, "mnemonic", mnemonic)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	_, err = stmt.Exec("isMnemonicEncrypted", isEncrypted, "isMnemonicEncrypted", isEncrypted)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
 func (c *ConfigDB) GetIdentityKey() ([]byte, error) {
 	c.lock.Lock()
 	defer c.lock.Unlock()

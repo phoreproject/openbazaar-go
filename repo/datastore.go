@@ -49,6 +49,9 @@ type Config interface {
 	// Return the mnemonic string
 	GetMnemonic() (string, bool, error)
 
+	// Update mnemonic in database - used to encrypt / decrypt it
+	UpdateMnemonic(string, bool) error
+
 	// Return the identity key
 	GetIdentityKey() ([]byte, error)
 
