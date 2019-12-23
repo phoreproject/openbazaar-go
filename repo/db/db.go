@@ -297,7 +297,7 @@ func (c *ConfigDB) GetMnemonic() (string, bool, error) {
 	if isMnemonicEncrypted.Valid {
 		return mnemonic, isMnemonicEncrypted.String == "1", nil
 	} else if err == sql.ErrNoRows {
-		return "", false, nil
+		return mnemonic, false, nil
 	}
 
 	return mnemonic, false, err
