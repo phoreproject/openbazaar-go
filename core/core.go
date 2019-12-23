@@ -117,6 +117,9 @@ type OpenBazaarNode struct {
 	// the slower the query but the less likely we will get an old record.
 	IPNSQuorumSize uint
 
+	// Get mnemoniec password from user - used in case of encrypted mnemonic
+	MnemonicPassword chan string
+
 	TestnetEnable        bool
 	RegressionTestEnable bool
 }

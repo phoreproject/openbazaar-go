@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"crypto/rand"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -594,7 +595,7 @@ func (x *Start) Execute(args []string) error {
 		DisableExchangeRates: x.DisableExchangeRates,
 	}
 
-	err = CreateOpenBazaarNode(ctx, obPartialNode, multiwalletConfig, params, authCookie, apiConfig)
+	err = createOpenBazaarNode(ctx, obPartialNode, multiwalletConfig, params, authCookie, apiConfig)
 	if err != nil {
 		log.Error(err)
 		return err
@@ -762,7 +763,7 @@ func (d *DummyListener) Close() error {
 	return nil
 }
 
-func CreateOpenBazaarNode(ctx commands.Context, node *core.OpenBazaarNode, multiwalletConfig *wallet.WalletConfig,
+func createOpenBazaarNode(ctx commands.Context, node *core.OpenBazaarNode, multiwalletConfig *wallet.WalletConfig,
 	params chaincfg.Params, authCookie http.Cookie, apiConfig *schema.APIConfig) error {
 
 	mnemonic, isEncrypted, err := node.Datastore.Config().GetMnemonic()
@@ -771,7 +772,6 @@ func CreateOpenBazaarNode(ctx commands.Context, node *core.OpenBazaarNode, multi
 		return err
 	}
 
-	var password = ""
 	if isEncrypted {
 		log.Warning("mnemonic is encrypted")
 
@@ -782,13 +782,7 @@ func CreateOpenBazaarNode(ctx commands.Context, node *core.OpenBazaarNode, multi
 			return err
 		}
 
-		password, err = WaitFroMnemonicPassword(node, authGateway)
-		err = authGateway.Serve()
-		if err != nil {
-			log.Error(err)
-			return err
-		}
-
+		mnemonic, err = waitForMnemonicPassword(node, authGateway, mnemonic)
 	}
 
 	multiwalletConfig.Mnemonic = mnemonic
@@ -798,7 +792,7 @@ func CreateOpenBazaarNode(ctx commands.Context, node *core.OpenBazaarNode, multi
 	}
 
 	// Master key setup
-	seed := bip39.NewSeed(mnemonic, password)
+	seed := bip39.NewSeed(mnemonic, "")
 	node.MasterPrivateKey, err = hdkeychain.NewMaster(seed, &params)
 	if err != nil {
 		log.Error(err)
@@ -808,8 +802,40 @@ func CreateOpenBazaarNode(ctx commands.Context, node *core.OpenBazaarNode, multi
 	return nil
 }
 
-func WaitFroMnemonicPassword(node *core.OpenBazaarNode, authGateway *api.Gateway) (string, error) {
-	return "", nil
+func waitForMnemonicPassword(node *core.OpenBazaarNode, authGateway *api.Gateway, encryptedMnemonic string) (string, error) {
+	node.MnemonicPassword = make(chan string)
+
+	var err error
+	go func() {
+		err = authGateway.Serve()
+		if err != nil {
+			log.Error(err)
+		}
+	}()
+
+	for {
+		password := <- node.MnemonicPassword
+
+		mnemonicBytes, err := hex.DecodeString(encryptedMnemonic)
+		decryptedMnemonic, err := core.DecryptMnemonic(mnemonicBytes, password)
+		if err != nil {
+			return "", nil
+		}
+
+		if !bip39.IsMnemonicValid(decryptedMnemonic) {
+			node.MnemonicPassword <- "Mnemonic is not correct"
+			continue
+		}
+
+		node.MnemonicPassword <- ""
+
+		err = authGateway.Close()
+		if err != nil {
+			return "", err
+		}
+
+		return decryptedMnemonic, nil
+	}
 }
 
 // Collects options, creates listener, prints status message and starts serving requests
