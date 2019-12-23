@@ -307,6 +307,18 @@ func (n *OpenBazaarNode) IPFSIdentityString() string {
 	return n.IpfsNode.Identity.Pretty()
 }
 
+func (n *OpenBazaarNode) IsWalletLocked() bool {
+	return false
+}
+
+func (n *OpenBazaarNode) UnlockWallet(unlockWallet ManageWalletRequest) error {
+	return nil
+}
+
+func (n *OpenBazaarNode) LockWallet(lockWallet ManageWalletRequest) error {
+	return nil
+}
+
 // createSlugFor Create a slug from a multi-lang string
 func createSlugFor(slugName string) string {
 	l := SentenceMaxCharacters - SlugBuffer

@@ -24,9 +24,9 @@ import (
 	"time"
 
 	ipnspath "gx/ipfs/QmQAgv6Gaoe2tQpcabqwKXKChp2MZ7i3UXv9DqTTaxCaTR/go-path"
-	cid "gx/ipfs/QmTbxNB1NwDesLmKTscr4udL2tVP7MaxvXnD1D9yX7g3PN/go-cid"
-	datastore "gx/ipfs/QmUadX5EcvrBmxAV9sE7wUWtWSqxns5K84qKJBixmcT1w9/go-datastore"
-	peer "gx/ipfs/QmYVXrKrKHDC9FobgmcmshCDyWwdrfwfanNQN4oxJ9Fk3h/go-libp2p-peer"
+	"gx/ipfs/QmTbxNB1NwDesLmKTscr4udL2tVP7MaxvXnD1D9yX7g3PN/go-cid"
+	"gx/ipfs/QmUadX5EcvrBmxAV9sE7wUWtWSqxns5K84qKJBixmcT1w9/go-datastore"
+	"gx/ipfs/QmYVXrKrKHDC9FobgmcmshCDyWwdrfwfanNQN4oxJ9Fk3h/go-libp2p-peer"
 	ps "gx/ipfs/QmaCTz9RkrU13bm9kMB54f7atgqM4qkjDZpRwRoJiWXEqs/go-libp2p-peerstore"
 	mh "gx/ipfs/QmerPMzPk1mJVowm8KgmoknWa4yCYvvugMPsgWmDNUvDLW/go-multihash"
 
@@ -692,12 +692,16 @@ func (i *jsonAPIHandler) GETAddress(w http.ResponseWriter, r *http.Request) {
 }
 
 func (i *jsonAPIHandler) GETMnemonic(w http.ResponseWriter, r *http.Request) {
-	mn, err := i.node.Datastore.Config().GetMnemonic()
+	mnemonic, isEncrypted, err := i.node.Datastore.Config().GetMnemonic()
 	if err != nil {
 		ErrorResponse(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	SanitizedResponse(w, fmt.Sprintf(`{"mnemonic": "%s"}`, mn))
+	encryptedStr := "false"
+	if isEncrypted {
+		encryptedStr = "true"
+	}
+	SanitizedResponse(w, fmt.Sprintf(`{"mnemonic": "%s", "isEncrypted": "%s"}`, mnemonic, encryptedStr))
 }
 
 func (i *jsonAPIHandler) GETBalance(w http.ResponseWriter, r *http.Request) {
@@ -3872,6 +3876,56 @@ func (i *jsonAPIHandler) POSTBulkUpdateCurrency(w http.ResponseWriter, r *http.R
 	SanitizedResponse(w, `{"success": "true"}`)
 }
 
+func (i *jsonAPIHandler) POSTUnlockWallet(w http.ResponseWriter, r *http.Request) {
+	decoder := json.NewDecoder(r.Body)
+	var data core.ManageWalletRequest
+
+	err := decoder.Decode(&data)
+	if err != nil {
+		ErrorResponse(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	err = i.node.UnlockWallet(data)
+	if err != nil {
+		ErrorResponse(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if i.node.IsWalletLocked() {
+		// shouldn't be
+		ErrorResponse(w, http.StatusBadRequest, `{"success": "false", "reason":"Unknown error - wallet was not able to unlock'"}`)
+		return
+	}
+
+	SanitizedResponse(w, `{"isLocked": "false"}`)
+}
+
+func (i *jsonAPIHandler) POSTLockWallet(w http.ResponseWriter, r *http.Request) {
+	decoder := json.NewDecoder(r.Body)
+	var data core.ManageWalletRequest
+
+	err := decoder.Decode(&data)
+	if err != nil {
+		ErrorResponse(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	err = i.node.LockWallet(data)
+	if err != nil {
+		ErrorResponse(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if !i.node.IsWalletLocked() {
+		ErrorResponse(w, http.StatusBadRequest, `{"success": "false", "reason":"Unknown error - wallet was not able to lock'"}`)
+		return
+	}
+
+	SanitizedResponse(w, `{"isLocked": "true"}`)
+}
+
+
 // POSTS
 
 // Post a post
@@ -4149,4 +4203,16 @@ func (i *jsonAPIHandler) GETPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	SanitizedResponseM(w, out, new(pb.SignedPost))
+}
+
+
+func (i *jsonAPIHandler) GETIsWalletLocked(w http.ResponseWriter, r *http.Request) {
+	var isLocked string
+	if i.node.IsWalletLocked() {
+		isLocked = "true"
+	} else {
+		isLocked = "false"
+	}
+
+	SanitizedResponse(w, fmt.Sprintf(`{"isLocked": "%s"}`, isLocked))
 }

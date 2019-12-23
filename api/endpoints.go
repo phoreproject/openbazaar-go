@@ -113,6 +113,10 @@ func post(i *jsonAPIHandler, path string, w http.ResponseWriter, r *http.Request
 		i.POSTPost(w, r)
 	case strings.HasPrefix(path, "/ob/bulkupdatecurrency"):
 		i.POSTBulkUpdateCurrency(w, r)
+	case strings.HasPrefix(path, "/manage/unlockwallet"):
+		i.POSTUnlockWallet(w, r)
+	case strings.HasPrefix(path, "/manage/lockwallet"):
+		i.POSTUnlockWallet(w, r)
 	default:
 		ErrorResponse(w, http.StatusNotFound, "Not Found")
 	}
@@ -201,6 +205,8 @@ func get(i *jsonAPIHandler, path string, w http.ResponseWriter, r *http.Request)
 		i.GETPosts(w, r)
 	case strings.HasPrefix(path, "/ob/post"):
 		i.GETPost(w, r)
+	case strings.HasPrefix(path, "/manage/iswalletlocked"):
+		i.GETIsWalletLocked(w, r)
 	default:
 		ErrorResponse(w, http.StatusNotFound, "Not Found")
 	}
