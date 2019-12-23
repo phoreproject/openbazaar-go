@@ -31,8 +31,34 @@ func NewGateway(n *core.OpenBazaarNode, authCookie http.Cookie, l net.Listener, 
 
 	topMux.Handle("/ob/", jsonAPI)
 	topMux.Handle("/wallet/", jsonAPI)
+	topMux.Handle("/manage/", jsonAPI)
 	topMux.Handle("/ws", wsAPI)
 
+	var (
+		err error
+		mux = topMux
+	)
+	for _, option := range options {
+		mux, err = option(n.IpfsNode, l, mux)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return &Gateway{
+		listener: l,
+		handler:  topMux,
+		config:   config,
+	}, nil
+}
+
+func NewAuthGateway(n *core.OpenBazaarNode, authCookie http.Cookie, l net.Listener, config schema.APIConfig, logger logging.Backend, options ...corehttp.ServeOption) (*Gateway, error) {
+	log.SetBackend(logging.AddModuleLevel(logger))
+	topMux := http.NewServeMux()
+
+	jsonAPI := newJSONAPIHandler(n, authCookie, config)
+
+	topMux.Handle("/manage/", jsonAPI)
 	var (
 		err error
 		mux = topMux

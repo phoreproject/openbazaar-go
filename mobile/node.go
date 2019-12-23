@@ -172,7 +172,7 @@ func NewNodeWithConfig(config *NodeConfig, password string, mnemonic string) (*N
 	}
 
 	// Mnemonic
-	mn, err := sqliteDB.Config().GetMnemonic()
+	mn, _, err := sqliteDB.Config().GetMnemonic()
 	if err != nil {
 		return nil, err
 	}

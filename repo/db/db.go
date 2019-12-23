@@ -270,20 +270,37 @@ func (c *ConfigDB) Init(mnemonic string, identityKey []byte, password string, cr
 	return nil
 }
 
-func (c *ConfigDB) GetMnemonic() (string, error) {
+func (c *ConfigDB) GetMnemonic() (string, bool, error) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	stmt, err := c.db.Prepare("select value from config where key=?")
+	selectMnemonicStmt, err := c.db.Prepare("select value from config where key=?")
 	if err != nil {
 		log.Fatal(err)
+		return "", false, err
 	}
-	defer stmt.Close()
+	defer selectMnemonicStmt.Close()
 	var mnemonic string
-	err = stmt.QueryRow("mnemonic").Scan(&mnemonic)
+	err = selectMnemonicStmt.QueryRow("mnemonic").Scan(&mnemonic)
 	if err != nil {
-		log.Fatal(err)
+		return "", false, err
 	}
-	return mnemonic, nil
+
+	// is mnemonic locked
+	isMnemonicEncryptedStmt, err := c.db.Prepare("select value from config where key=?")
+	if err != nil {
+		return "", false, err
+	}
+	defer isMnemonicEncryptedStmt.Close()
+	var isMnemonicEncrypted sql.NullString
+	err = isMnemonicEncryptedStmt.QueryRow("isMnemonicEncrypted").Scan(&isMnemonicEncrypted)
+
+	if isMnemonicEncrypted.Valid {
+		return mnemonic, isMnemonicEncrypted.String == "1", nil
+	} else if err == sql.ErrNoRows {
+		return "", false, nil
+	}
+
+	return mnemonic, false, err
 }
 
 func (c *ConfigDB) GetIdentityKey() ([]byte, error) {

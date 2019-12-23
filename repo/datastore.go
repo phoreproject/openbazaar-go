@@ -47,7 +47,7 @@ type Config interface {
 	Init(mnemonic string, identityKey []byte, password string, creationDate time.Time) error
 
 	// Return the mnemonic string
-	GetMnemonic() (string, error)
+	GetMnemonic() (string, bool, error)
 
 	// Return the identity key
 	GetIdentityKey() ([]byte, error)

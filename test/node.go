@@ -59,7 +59,7 @@ func NewNode() (*core.OpenBazaarNode, error) {
 	ipfsNode.Identity = id
 
 	// Create test wallet
-	mnemonic, err := repository.DB.Config().GetMnemonic()
+	mnemonic, _, err := repository.DB.Config().GetMnemonic()
 	if err != nil {
 		return nil, err
 	}
