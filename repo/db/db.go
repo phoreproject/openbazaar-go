@@ -311,18 +311,19 @@ func (c *ConfigDB) UpdateMnemonic(mnemonic string, isEncrypted bool) error {
 	if err != nil {
 		return err
 	}
-	stmt, err := tx.Prepare("insert into config(key, value) values(?,?) on duplicate key update key=?, value=?")
+
+	stmt, err := tx.Prepare("insert or replace into config(key, value) values(?,?)")
 	if err != nil {
 		return err
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec("mnemonic", mnemonic, "mnemonic", mnemonic)
+	_, err = stmt.Exec("mnemonic", mnemonic)
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
-	_, err = stmt.Exec("isMnemonicEncrypted", isEncrypted, "isMnemonicEncrypted", isEncrypted)
+	_, err = stmt.Exec("isMnemonicEncrypted", isEncrypted)
 	if err != nil {
 		tx.Rollback()
 		return err
