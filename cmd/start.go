@@ -3,7 +3,6 @@ package cmd
 import (
 	"context"
 	"crypto/rand"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -567,7 +566,6 @@ func (x *Start) Execute(args []string) error {
 	}
 	core.PublishLock.Lock()
 
-
 	//Multiwallet setup
 	var walletLogWriter io.Writer
 	if x.NoLogFiles {
@@ -776,7 +774,7 @@ func createOpenBazaarNode(ctx commands.Context, node *core.OpenBazaarNode, multi
 		log.Warning("mnemonic is encrypted")
 
 		//Start user auth gateway
-		authGateway, err := newHTTPGateway(core.Node, ctx, authCookie, *apiConfig, false, true)
+		authGateway, err := newHTTPGateway(node, ctx, authCookie, *apiConfig, false, true)
 		if err != nil {
 			log.Error(err)
 			return err
@@ -814,20 +812,18 @@ func waitForMnemonicPassword(node *core.OpenBazaarNode, authGateway *api.Gateway
 	}()
 
 	for {
-		password := <- node.MnemonicPassword
+		log.Warning("Waiting for mnemonic password")
+		password := <-node.MnemonicPassword
 
-		mnemonicBytes, err := hex.DecodeString(encryptedMnemonic)
-		decryptedMnemonic, err := core.DecryptMnemonic(mnemonicBytes, password)
+		decryptedMnemonic, err := core.DecryptMnemonic(encryptedMnemonic, password)
 		if err != nil {
 			return "", nil
 		}
 
 		if !bip39.IsMnemonicValid(decryptedMnemonic) {
-			node.MnemonicPassword <- "Mnemonic is not correct"
+			log.Warning("Mnemonic not correct")
 			continue
 		}
-
-		node.MnemonicPassword <- ""
 
 		err = authGateway.Close()
 		if err != nil {

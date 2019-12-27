@@ -5,7 +5,6 @@ import (
 	"crypto/cipher"
 	"crypto/rand"
 	"crypto/sha256"
-	"encoding/hex"
 	"errors"
 	"io"
 
@@ -15,18 +14,13 @@ import (
 // Lock / Unlock wallet request
 type ManageWalletRequest struct {
 	WalletPassword  string `json:"password"`
-	UnlockTimestamp int    `json:"unlockTimestamp"`
+	UnlockTimestamp int    `json:"unlockTimestamp,omitempty"`
 }
 
 func hashPassword(password string) ([]byte, error) {
-	passwordBytes, err := hex.DecodeString(password)
-	if err != nil {
-		return nil, err
-	}
-
-	hkdfReader := hkdf.New(sha256.New, passwordBytes, []byte("Mnemonic Encryption Salt"), nil)
+	hkdfReader := hkdf.New(sha256.New, []byte(password), []byte("Mnemonic Encryption Salt"), nil)
 	aesKey := make([]byte, 32)
-	_, err = io.ReadFull(hkdfReader, aesKey)
+	_, err := io.ReadFull(hkdfReader, aesKey)
 	if err != nil {
 		return nil, err
 	}
@@ -56,10 +50,10 @@ func EncryptMnemonic(mnemonic string, password string) (string, error) {
 	}
 
 	encryptedMnemonic := gcm.Seal(nonce, nonce, []byte(mnemonic), nil)
-	return hex.EncodeToString(encryptedMnemonic), nil
+	return string(encryptedMnemonic), nil
 }
 
-func DecryptMnemonic(mnemonic []byte, password string) (string, error) {
+func DecryptMnemonic(mnemonic string, password string) (string, error) {
 	aesKey, err := hashPassword(password)
 	if err != nil {
 		return "", err
@@ -79,14 +73,16 @@ func DecryptMnemonic(mnemonic []byte, password string) (string, error) {
 		return "", errors.New("malformed ciphertext")
 	}
 
+	mnemonicBytes := []byte(mnemonic)
+
 	decrypted, err := gcm.Open(nil,
-		mnemonic[:gcm.NonceSize()],
-		mnemonic[gcm.NonceSize():],
+		mnemonicBytes[:gcm.NonceSize()],
+		mnemonicBytes[gcm.NonceSize():],
 		nil,
 	)
 	if err != nil {
 		return "", err
 	}
 
-	return hex.EncodeToString(decrypted), nil
+	return string(decrypted), nil
 }
