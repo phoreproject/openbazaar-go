@@ -311,14 +311,60 @@ func (n *OpenBazaarNode) IPFSIdentityString() string {
 }
 
 func (n *OpenBazaarNode) IsWalletLocked() bool {
-	return false
+	_, isLocked, err := n.Datastore.Config().GetMnemonic()
+	if err != nil {
+		log.Error(err)
+	}
+	return isLocked
 }
 
 func (n *OpenBazaarNode) UnlockWallet(unlockWallet ManageWalletRequest) error {
+	mnemonic, isLocked, err := n.Datastore.Config().GetMnemonic()
+	if err != nil {
+		return err
+	}
+
+	if !isLocked {
+		return nil
+	}
+
+	if n.MnemonicPassword != nil {
+		n.MnemonicPassword <- unlockWallet.WalletPassword
+	}
+
+	decryptedMnemonic, err := DecryptMnemonic(mnemonic, unlockWallet.WalletPassword)
+	if err != nil {
+		return err
+	}
+
+	err = n.Datastore.Config().UpdateMnemonic(decryptedMnemonic, false)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
 func (n *OpenBazaarNode) LockWallet(lockWallet ManageWalletRequest) error {
+	mnemonic, isLocked, err := n.Datastore.Config().GetMnemonic()
+	if err != nil {
+		return err
+	}
+
+	if isLocked {
+		return nil
+	}
+
+	encryptedMnemonic, err := EncryptMnemonic(mnemonic, lockWallet.WalletPassword)
+	if err != nil {
+		return err
+	}
+
+	err = n.Datastore.Config().UpdateMnemonic(encryptedMnemonic, true)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
