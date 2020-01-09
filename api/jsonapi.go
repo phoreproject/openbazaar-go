@@ -700,6 +700,7 @@ func (i *jsonAPIHandler) GETMnemonic(w http.ResponseWriter, r *http.Request) {
 	encryptedStr := "false"
 	if isEncrypted {
 		encryptedStr = "true"
+		mnemonic = hex.EncodeToString([]byte(mnemonic))
 	}
 	SanitizedResponse(w, fmt.Sprintf(`{"mnemonic": "%s", "isEncrypted": "%s"}`, mnemonic, encryptedStr))
 }
@@ -3925,7 +3926,6 @@ func (i *jsonAPIHandler) POSTLockWallet(w http.ResponseWriter, r *http.Request) 
 	SanitizedResponse(w, `{"isLocked": "true"}`)
 }
 
-
 // POSTS
 
 // Post a post
@@ -4204,7 +4204,6 @@ func (i *jsonAPIHandler) GETPost(w http.ResponseWriter, r *http.Request) {
 	}
 	SanitizedResponseM(w, out, new(pb.SignedPost))
 }
-
 
 func (i *jsonAPIHandler) GETIsWalletLocked(w http.ResponseWriter, r *http.Request) {
 	var isLocked string
