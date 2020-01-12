@@ -2,7 +2,6 @@ package core
 
 import (
 	"errors"
-	"github.com/phoreproject/openbazaar-go/api"
 
 	"gx/ipfs/QmSY3nkMNLzh9GdbFKK5tT7YMfLpf52iUZ8ZRkr29MJaa5/go-libp2p-kad-dht"
 	libp2p "gx/ipfs/QmTW4SdgBWq9GjsBsHeUx8WuGxzhgzAf88UMH2w62PC8yK/go-libp2p-crypto"
@@ -31,6 +30,8 @@ import (
 	logging "github.com/op/go-logging"
 	"golang.org/x/net/context"
 	"golang.org/x/net/proxy"
+
+	//"github.com/phoreproject/openbazaar-go/api"
 )
 
 const (
@@ -120,10 +121,6 @@ type OpenBazaarNode struct {
 
 	// Get mnemoniec password from user - used in case of encrypted mnemonic
 	MnemonicPassword chan string
-
-	// Gateway which serves http / ws api
-	Gateway        *api.Gateway
-	gatewayRunning chan error
 
 	TestnetEnable        bool
 	RegressionTestEnable bool
@@ -368,26 +365,6 @@ func (n *OpenBazaarNode) LockWallet(lockWallet ManageWalletRequest) error {
 	err = n.Datastore.Config().UpdateMnemonic(encryptedMnemonic, true)
 	if err != nil {
 		return err
-	}
-
-	return nil
-}
-
-func (n *OpenBazaarNode) StartGateway(blocking bool) error {
-	if n.gatewayRunning == nil {
-		go func() {
-			n.gatewayRunning = make(chan error)
-			err := n.Gateway.Serve()
-			if err != nil {
-				n.gatewayRunning <- err
-			} else {
-				n.gatewayRunning <- nil
-			}
-		}()
-	}
-
-	if blocking {
-		return <-n.gatewayRunning
 	}
 
 	return nil

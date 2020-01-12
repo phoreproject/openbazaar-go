@@ -593,7 +593,18 @@ func (x *Start) Execute(args []string) error {
 		DisableExchangeRates: x.DisableExchangeRates,
 	}
 
-	err = createOpenBazaarNode(ctx, obPartialNode, multiwalletConfig, params, authCookie, apiConfig)
+	gateway, err := newHTTPGateway(obPartialNode, ctx, authCookie, *apiConfig, false)
+	if err != nil {
+		log.Error(err)
+		return err
+	}
+
+	err = gateway.Serve(false)
+	if err != nil {
+		return err
+	}
+
+	err = createOpenBazaarNode(obPartialNode, multiwalletConfig, params)
 	if err != nil {
 		log.Error(err)
 		return err
@@ -670,7 +681,7 @@ func (x *Start) Execute(args []string) error {
 		}
 		core.Node.Service = service.New(core.Node, sqliteDB)
 		core.Node.Service.WaitForReady()
-		log.Info("OpenBazaar Service Ready")
+		log.Info("Marketplace Service Ready")
 
 		core.Node.StartMessageRetriever()
 		core.Node.StartPointerRepublisher()
@@ -691,7 +702,7 @@ func (x *Start) Execute(args []string) error {
 	}()
 
 	// Start gateway
-	err  = core.Node.StartGateway(true)
+	err = gateway.Serve(true)
 	if err != nil {
 		log.Error(err)
 	}
@@ -755,23 +766,12 @@ func (d *DummyListener) Close() error {
 	return nil
 }
 
-func createOpenBazaarNode(ctx commands.Context, node *core.OpenBazaarNode, multiwalletConfig *wallet.WalletConfig,
-	params chaincfg.Params, authCookie http.Cookie, apiConfig *schema.APIConfig) error {
+func createOpenBazaarNode(node *core.OpenBazaarNode, multiwalletConfig *wallet.WalletConfig,
+	params chaincfg.Params) error {
 
 	mnemonic, isEncrypted, err := node.Datastore.Config().GetMnemonic()
 	if err != nil {
 		log.Error("get config mnemonic:", err)
-		return err
-	}
-
-	node.Gateway, err = newHTTPGateway(node, ctx, authCookie, *apiConfig, false)
-	if err != nil {
-		log.Error(err)
-		return err
-	}
-
-	err = node.StartGateway(false)
-	if err != nil {
 		return err
 	}
 

@@ -17,6 +17,7 @@ type Gateway struct {
 	listener net.Listener
 	handler  http.Handler
 	config   schema.APIConfig
+	gatewayRunning chan error
 }
 
 // NewGateway instantiates a new `Gateway`
@@ -59,7 +60,7 @@ func (g *Gateway) Close() error {
 }
 
 // Serve begins listening on the configured address
-func (g *Gateway) Serve() error {
+func (g *Gateway) serve() error {
 	var err error
 	if g.config.SSL {
 		err = http.ListenAndServeTLS(g.listener.Addr().String(), g.config.SSLCert, g.config.SSLKey, g.handler)
@@ -67,4 +68,24 @@ func (g *Gateway) Serve() error {
 		err = http.Serve(g.listener, g.handler)
 	}
 	return err
+}
+
+func (g *Gateway) Serve(blocking bool) error {
+	if g.gatewayRunning == nil {
+		g.gatewayRunning = make(chan error)
+		go func() {
+			err := g.serve()
+			if err != nil {
+				g.gatewayRunning <- err
+			} else {
+				g.gatewayRunning <- nil
+			}
+		}()
+	}
+
+	if blocking {
+		return <-g.gatewayRunning
+	}
+
+	return nil
 }
