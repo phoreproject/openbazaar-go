@@ -20,15 +20,17 @@ var routerCacheURI string
 // UpdateIPFSGlobalProtocolVars is a hack to manage custom protocol strings
 // which do not yet have an API to manage their configuration
 func UpdateIPFSGlobalProtocolVars(testnetEnable bool) {
-	if testnetEnable {
-		bitswap.ProtocolBitswap = IPFSProtocolBitswapTestnetOneDotOne
-		bitswap.ProtocolBitswapOne = IPFSProtocolBitswapTestnetOne
-		bitswap.ProtocolBitswapNoVers = IPFSProtocolBitswapTestnetNoVers
-	} else {
-		bitswap.ProtocolBitswap = IPFSProtocolBitswapMainnetOneDotOne
-		bitswap.ProtocolBitswapOne = IPFSProtocolBitswapMainnetOne
-		bitswap.ProtocolBitswapNoVers = IPFSProtocolBitswapMainnetNoVers
-	}
+	bitswap.ProtocolBitswap = IPFSProtocolBitswapMainnetOneDotOne
+	bitswap.ProtocolBitswapOne = IPFSProtocolBitswapMainnetOne
+	bitswap.ProtocolBitswapNoVers = IPFSProtocolBitswapMainnetNoVers
+	//
+	//if testnetEnable {
+	//	bitswap.ProtocolBitswap = IPFSProtocolBitswapTestnetOneDotOne
+	//	bitswap.ProtocolBitswapOne = IPFSProtocolBitswapTestnetOne
+	//	bitswap.ProtocolBitswapNoVers = IPFSProtocolBitswapTestnetNoVers
+	//} else {
+	//
+	//}
 }
 
 // PrepareIPFSConfig builds the configuration options for the internal
@@ -62,6 +64,8 @@ func constructRouting(ctx context.Context, host p2phost.Host, dstore ds.Batching
 		dhtopts.Protocols(
 			IPFSProtocolKademliaMainnetOne,
 			IPFSProtocolDHTMainnetLegacy,
+			IPFSProtocolKademliaTestnetOne,
+			IPFSProtocolDHTTestnetLegacy,
 		),
 	)
 	if err != nil {
@@ -80,6 +84,8 @@ func constructRegtestRouting(ctx context.Context, host p2phost.Host, dstore ds.B
 		dhtopts.Protocols(
 			IPFSProtocolKademliaMainnetOne,
 			IPFSProtocolDHTMainnetLegacy,
+			IPFSProtocolKademliaTestnetOne,
+			IPFSProtocolDHTTestnetLegacy,
 		),
 	)
 }

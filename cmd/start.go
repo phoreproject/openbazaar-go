@@ -637,12 +637,6 @@ func (x *Start) Execute(args []string) error {
 		return errors.New("SSL cert and key files must be set when SSL is enabled")
 	}
 
-	gateway, err := newHTTPGateway(core.Node, ctx, authCookie, *apiConfig, x.NoLogFiles, false)
-	if err != nil {
-		log.Error(err)
-		return err
-	}
-
 	if len(cfg.Addresses.API) > 0 && cfg.Addresses.API[0] != "" {
 		if _, err := serveHTTPApi(&ctx); err != nil {
 			log.Error(err)
@@ -697,7 +691,7 @@ func (x *Start) Execute(args []string) error {
 	}()
 
 	// Start gateway
-	err = gateway.Serve()
+	err  = core.Node.StartGateway(true)
 	if err != nil {
 		log.Error(err)
 	}
@@ -770,17 +764,20 @@ func createOpenBazaarNode(ctx commands.Context, node *core.OpenBazaarNode, multi
 		return err
 	}
 
+	node.Gateway, err = newHTTPGateway(node, ctx, authCookie, *apiConfig, false)
+	if err != nil {
+		log.Error(err)
+		return err
+	}
+
+	err = node.StartGateway(false)
+	if err != nil {
+		return err
+	}
+
 	if isEncrypted {
 		log.Warning("mnemonic is encrypted")
-
-		//Start user auth gateway
-		authGateway, err := newHTTPGateway(node, ctx, authCookie, *apiConfig, false, true)
-		if err != nil {
-			log.Error(err)
-			return err
-		}
-
-		mnemonic, err = waitForMnemonicPassword(node, authGateway, mnemonic)
+		mnemonic, err = waitForMnemonicPassword(node, mnemonic)
 	}
 
 	multiwalletConfig.Mnemonic = mnemonic
@@ -800,16 +797,8 @@ func createOpenBazaarNode(ctx commands.Context, node *core.OpenBazaarNode, multi
 	return nil
 }
 
-func waitForMnemonicPassword(node *core.OpenBazaarNode, authGateway *api.Gateway, encryptedMnemonic string) (string, error) {
+func waitForMnemonicPassword(node *core.OpenBazaarNode, encryptedMnemonic string) (string, error) {
 	node.MnemonicPassword = make(chan string)
-
-	var err error
-	go func() {
-		err = authGateway.Serve()
-		if err != nil {
-			log.Error(err)
-		}
-	}()
 
 	for {
 		log.Warning("Waiting for mnemonic password")
@@ -825,17 +814,12 @@ func waitForMnemonicPassword(node *core.OpenBazaarNode, authGateway *api.Gateway
 			continue
 		}
 
-		err = authGateway.Close()
-		if err != nil {
-			return "", err
-		}
-
 		return decryptedMnemonic, nil
 	}
 }
 
 // Collects options, creates listener, prints status message and starts serving requests
-func newHTTPGateway(node *core.OpenBazaarNode, ctx commands.Context, authCookie http.Cookie, config schema.APIConfig, noLogFiles bool, isAuthOnlyGateway bool) (*api.Gateway, error) {
+func newHTTPGateway(node *core.OpenBazaarNode, ctx commands.Context, authCookie http.Cookie, config schema.APIConfig, noLogFiles bool) (*api.Gateway, error) {
 	// Get API configuration
 	cfg, err := ctx.GetConfig()
 	if err != nil {
@@ -900,10 +884,6 @@ func newHTTPGateway(node *core.OpenBazaarNode, ctx commands.Context, authCookie 
 	apiFile := logging.NewLogBackend(w4, "", 0)
 	apiFileFormatter := logging.NewBackendFormatter(apiFile, fileLogFormat)
 	ml := logging.MultiLogger(apiFileFormatter)
-
-	if isAuthOnlyGateway {
-		return api.NewAuthGateway(node, authCookie, manet.NetListener(gwLis), config, ml, opts...)
-	}
 	return api.NewGateway(node, authCookie, manet.NetListener(gwLis), config, ml, opts...)
 }
 
