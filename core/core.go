@@ -30,8 +30,6 @@ import (
 	logging "github.com/op/go-logging"
 	"golang.org/x/net/context"
 	"golang.org/x/net/proxy"
-
-	//"github.com/phoreproject/openbazaar-go/api"
 )
 
 const (
