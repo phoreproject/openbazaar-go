@@ -3893,7 +3893,7 @@ func (i *jsonAPIHandler) POSTUnlockWallet(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	if i.node.IsWalletLocked() {
+	if i.node.IsWalletLocked()  && !data.TemporaryUnlock {
 		// shouldn't be
 		ErrorResponse(w, http.StatusBadRequest, `{"success": "false", "reason":"Unknown error - wallet was not able to unlock'"}`)
 		return

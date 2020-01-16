@@ -332,17 +332,22 @@ func (n *OpenBazaarNode) UnlockWallet(unlockWallet ManageWalletRequest) error {
 		select {
 		case n.MnemonicPasswordChan <- unlockWallet.WalletPassword:
 		default:
+			if unlockWallet.TemporaryUnlock {
+				log.Warning("User is asking to unlock wallet for current run only, but no service is waiting for password to unlock.")
+			}
 		}
 	}
 
-	decryptedMnemonic, err := DecryptMnemonic(mnemonic, unlockWallet.WalletPassword)
-	if err != nil {
-		return err
-	}
+	if !unlockWallet.TemporaryUnlock {
+		decryptedMnemonic, err := DecryptMnemonic(mnemonic, unlockWallet.WalletPassword)
+		if err != nil {
+			return err
+		}
 
-	err = n.Datastore.Config().UpdateMnemonic(decryptedMnemonic, false)
-	if err != nil {
-		return err
+		err = n.Datastore.Config().UpdateMnemonic(decryptedMnemonic, false)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

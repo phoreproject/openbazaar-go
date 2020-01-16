@@ -15,6 +15,7 @@ import (
 type ManageWalletRequest struct {
 	WalletPassword  string `json:"password"`
 	UnlockTimestamp int    `json:"unlockTimestamp,omitempty"`
+	TemporaryUnlock bool   `json:"temporary,omitempty"`
 }
 
 func hashPassword(password string) ([]byte, error) {
