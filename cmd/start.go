@@ -798,11 +798,11 @@ func createOpenBazaarNode(node *core.OpenBazaarNode, multiwalletConfig *wallet.W
 }
 
 func waitForMnemonicPassword(node *core.OpenBazaarNode, encryptedMnemonic string) (string, error) {
-	node.MnemonicPassword = make(chan string)
+	node.MnemonicPasswordChan = make(chan string)
 
 	for {
 		log.Warning("Waiting for mnemonic password")
-		password := <-node.MnemonicPassword
+		password := <-node.MnemonicPasswordChan
 
 		decryptedMnemonic, err := core.DecryptMnemonic(encryptedMnemonic, password)
 		if err != nil {

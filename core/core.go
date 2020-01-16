@@ -118,7 +118,7 @@ type OpenBazaarNode struct {
 	IPNSQuorumSize uint
 
 	// Get mnemoniec password from user - used in case of encrypted mnemonic
-	MnemonicPassword chan string
+	MnemonicPasswordChan chan string
 
 	TestnetEnable        bool
 	RegressionTestEnable bool
@@ -328,8 +328,11 @@ func (n *OpenBazaarNode) UnlockWallet(unlockWallet ManageWalletRequest) error {
 		return nil
 	}
 
-	if n.MnemonicPassword != nil {
-		n.MnemonicPassword <- unlockWallet.WalletPassword
+	if n.MnemonicPasswordChan != nil {
+		select {
+		case n.MnemonicPasswordChan <- unlockWallet.WalletPassword:
+		default:
+		}
 	}
 
 	decryptedMnemonic, err := DecryptMnemonic(mnemonic, unlockWallet.WalletPassword)
