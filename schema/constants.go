@@ -56,6 +56,10 @@ const (
 	BootstrapNodeDefault_BrixtonVillage   = "/ip4/104.131.19.44/tcp/5001/ipfs/QmRvbZttqh6CPFiMKWa1jPfRR9JxagYRv4wsvMAG4ADUTj"
 
 	IPFSCachingRouterDefaultURI = "https://routing.api.phore.io"
+
+	// Testnet defaults
+	DataPushNodeTestnetOne  = "QmYJ42wLrkZE119DoDEd4TASuWFTEdwY9A9MpYS2okvfvJ"
+	BootstrapNodeTestnetOne = "/ip4/3.89.75.185/tcp/5001/ipfs/QmYJ42wLrkZE119DoDEd4TASuWFTEdwY9A9MpYS2okvfvJ"
 	// End Configuration defaults
 )
 
@@ -76,7 +80,9 @@ var (
 		BootstrapNodeDefault_LeMarcheSerpette,
 		BootstrapNodeDefault_BrixtonVillage,
 	}
-	BootstrapAddressesTestnet = []string{}
+	BootstrapAddressesTestnet = []string{
+		BootstrapNodeTestnetOne,
+	}
 )
 
 func EthereumDefaultOptions() map[string]interface{} {

@@ -298,6 +298,8 @@ func (x *Start) Execute(args []string) error {
 			return err
 		}
 		cfg.Bootstrap = testnetBootstrapAddrs
+
+		dataSharing.PushTo = append(dataSharing.PushTo, schema.DataPushNodeTestnetOne)
 	}
 
 	onionAddr, err := obnet.MaybeCreateHiddenServiceKey(repoPath)
