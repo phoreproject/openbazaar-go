@@ -298,9 +298,6 @@ func (x *Start) Execute(args []string) error {
 			return err
 		}
 		cfg.Bootstrap = testnetBootstrapAddrs
-
-		// don't use pushnodes on testnet
-		dataSharing.PushTo = []string{}
 	}
 
 	onionAddr, err := obnet.MaybeCreateHiddenServiceKey(repoPath)
