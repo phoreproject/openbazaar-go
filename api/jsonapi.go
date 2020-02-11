@@ -165,6 +165,13 @@ func (i *jsonAPIHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
+	if strings.HasPrefix(u.String(), "/wallet/") && i.node.IsWalletLocked() {
+		log.Errorf("Request to %s 403", u.String())
+		w.WriteHeader(http.StatusForbidden)
+		fmt.Fprint(w, "403 - Forbidden, unlock wallet first.")
+		return
+	}
+
 	w.Header().Add("Content-Type", "application/json")
 	switch r.Method {
 	case "GET":
@@ -3893,7 +3900,7 @@ func (i *jsonAPIHandler) POSTUnlockWallet(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	if i.node.IsWalletLocked()  && !data.TemporaryUnlock {
+	if i.node.IsWalletLocked() && !data.OmitDecryption {
 		// shouldn't be
 		ErrorResponse(w, http.StatusBadRequest, `{"success": "false", "reason":"Unknown error - wallet was not able to unlock'"}`)
 		return

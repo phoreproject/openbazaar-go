@@ -774,6 +774,7 @@ func createOpenBazaarNode(node *core.OpenBazaarNode, multiwalletConfig *wallet.W
 		log.Error("get config mnemonic:", err)
 		return err
 	}
+	node.WalletLocked = isEncrypted
 
 	if isEncrypted {
 		log.Warning("mnemonic is encrypted")

@@ -120,6 +120,12 @@ type OpenBazaarNode struct {
 	// Get mnemoniec password from user - used in case of encrypted mnemonic
 	MnemonicPasswordChan chan string
 
+	// Boolean variable which says if /wallet/ REST requests are locked.
+	WalletLocked bool
+
+	// UnlockTimer, on time
+	UnlockTimer *time.Timer
+
 	TestnetEnable        bool
 	RegressionTestEnable bool
 }
@@ -315,7 +321,12 @@ func (n *OpenBazaarNode) IsWalletLocked() bool {
 	if err != nil {
 		log.Error(err)
 	}
-	return isLocked
+
+	if !isLocked {
+		return false
+	}
+
+	return n.WalletLocked
 }
 
 func (n *OpenBazaarNode) UnlockWallet(unlockWallet ManageWalletRequest) error {
@@ -324,7 +335,23 @@ func (n *OpenBazaarNode) UnlockWallet(unlockWallet ManageWalletRequest) error {
 		return err
 	}
 
+	// Also checks password
+	decryptedMnemonic, err := DecryptMnemonic(mnemonic, unlockWallet.WalletPassword)
+	if err != nil {
+		return err
+	}
+
+	if unlockWallet.UnlockTimestamp != 0 {
+		if n.UnlockTimer != nil {
+			n.UnlockTimer.Stop()
+		}
+		n.UnlockTimer = time.AfterFunc(time.Second * time.Duration(unlockWallet.UnlockTimestamp), func(){
+			n.WalletLocked = true
+		})
+	}
+
 	if !isLocked {
+		n.WalletLocked = false
 		return nil
 	}
 
@@ -332,24 +359,20 @@ func (n *OpenBazaarNode) UnlockWallet(unlockWallet ManageWalletRequest) error {
 		select {
 		case n.MnemonicPasswordChan <- unlockWallet.WalletPassword:
 		default:
-			if unlockWallet.TemporaryUnlock {
+			if unlockWallet.OmitDecryption {
 				log.Warning("User is asking to unlock wallet for current run only, but no service is waiting for password to unlock.")
 			}
 		}
 	}
 
-	if !unlockWallet.TemporaryUnlock {
-		decryptedMnemonic, err := DecryptMnemonic(mnemonic, unlockWallet.WalletPassword)
-		if err != nil {
-			return err
-		}
-
+	if !unlockWallet.OmitDecryption {
 		err = n.Datastore.Config().UpdateMnemonic(decryptedMnemonic, false)
 		if err != nil {
 			return err
 		}
 	}
 
+	n.WalletLocked = false
 	return nil
 }
 
@@ -360,6 +383,7 @@ func (n *OpenBazaarNode) LockWallet(lockWallet ManageWalletRequest) error {
 	}
 
 	if isLocked {
+		n.WalletLocked = true
 		return nil
 	}
 
@@ -373,6 +397,7 @@ func (n *OpenBazaarNode) LockWallet(lockWallet ManageWalletRequest) error {
 		return err
 	}
 
+	n.WalletLocked = true
 	return nil
 }
 
