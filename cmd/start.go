@@ -563,6 +563,7 @@ func (x *Start) Execute(args []string) error {
 		TorDialer:                     torDialer,
 		UserAgent:                     core.USERAGENT,
 		IPNSQuorumSize:                uint(ipnsExtraConfig.DHTQuorumSize),
+		WalletLocked:                  true,
 	}
 	core.PublishLock.Lock()
 
@@ -778,7 +779,7 @@ func createOpenBazaarNode(node *core.OpenBazaarNode, multiwalletConfig *wallet.W
 
 	if isEncrypted {
 		log.Warning("mnemonic is encrypted")
-		mnemonic, err = waitForMnemonicPassword(node, mnemonic)
+		mnemonic, err = waitForDecryptedMnemonic(node)
 	}
 
 	multiwalletConfig.Mnemonic = mnemonic
@@ -798,17 +799,12 @@ func createOpenBazaarNode(node *core.OpenBazaarNode, multiwalletConfig *wallet.W
 	return nil
 }
 
-func waitForMnemonicPassword(node *core.OpenBazaarNode, encryptedMnemonic string) (string, error) {
-	node.MnemonicPasswordChan = make(chan string)
+func waitForDecryptedMnemonic(node *core.OpenBazaarNode) (string, error) {
+	node.MnemonicChan = make(chan string)
 
 	for {
 		log.Warning("Waiting for mnemonic password")
-		password := <-node.MnemonicPasswordChan
-
-		decryptedMnemonic, err := core.DecryptMnemonic(encryptedMnemonic, password)
-		if err != nil {
-			return "", nil
-		}
+		decryptedMnemonic := <-node.MnemonicChan
 
 		if !bip39.IsMnemonicValid(decryptedMnemonic) {
 			log.Warning("Mnemonic not correct")

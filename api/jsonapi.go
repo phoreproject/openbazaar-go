@@ -165,13 +165,6 @@ func (i *jsonAPIHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
-	if strings.HasPrefix(u.String(), "/wallet/") && i.node.IsWalletLocked() {
-		log.Errorf("Request to %s 403", u.String())
-		w.WriteHeader(http.StatusForbidden)
-		fmt.Fprint(w, "403 - Forbidden, unlock wallet first.")
-		return
-	}
-
 	w.Header().Add("Content-Type", "application/json")
 	switch r.Method {
 	case "GET":
@@ -704,12 +697,10 @@ func (i *jsonAPIHandler) GETMnemonic(w http.ResponseWriter, r *http.Request) {
 		ErrorResponse(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	encryptedStr := "false"
 	if isEncrypted {
-		encryptedStr = "true"
 		mnemonic = hex.EncodeToString([]byte(mnemonic))
 	}
-	SanitizedResponse(w, fmt.Sprintf(`{"mnemonic": "%s", "isEncrypted": "%s"}`, mnemonic, encryptedStr))
+	SanitizedResponse(w, fmt.Sprintf(`{"mnemonic": "%s", "isEncrypted": "%s"}`, mnemonic, strconv.FormatBool(isEncrypted)))
 }
 
 func (i *jsonAPIHandler) GETBalance(w http.ResponseWriter, r *http.Request) {
@@ -3884,6 +3875,25 @@ func (i *jsonAPIHandler) POSTBulkUpdateCurrency(w http.ResponseWriter, r *http.R
 	SanitizedResponse(w, `{"success": "true"}`)
 }
 
+func (i *jsonAPIHandler) POSTInitWallet(w http.ResponseWriter, r *http.Request) {
+	decoder := json.NewDecoder(r.Body)
+	var data core.ManageWalletRequest
+
+	err := decoder.Decode(&data)
+	if err != nil {
+		ErrorResponse(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	err = i.node.UnlockMnemonic(data)
+	if err != nil {
+		ErrorResponse(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	SanitizedResponse(w, `{"isLocked": "false"}`)
+}
+
 func (i *jsonAPIHandler) POSTUnlockWallet(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
 	var data core.ManageWalletRequest
@@ -4213,12 +4223,6 @@ func (i *jsonAPIHandler) GETPost(w http.ResponseWriter, r *http.Request) {
 }
 
 func (i *jsonAPIHandler) GETIsWalletLocked(w http.ResponseWriter, r *http.Request) {
-	var isLocked string
-	if i.node.IsWalletLocked() {
-		isLocked = "true"
-	} else {
-		isLocked = "false"
-	}
-
-	SanitizedResponse(w, fmt.Sprintf(`{"isLocked": "%s"}`, isLocked))
+	SanitizedResponse(w, fmt.Sprintf(`{"isLocked": "%s", "isInitialized": "%s"}`,
+		strconv.FormatBool(i.node.IsWalletLocked()), strconv.FormatBool(i.node.Multiwallet != nil)))
 }
