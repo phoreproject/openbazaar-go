@@ -8,10 +8,14 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"errors"
+	"fmt"
+	libp2p "gx/ipfs/QmTW4SdgBWq9GjsBsHeUx8WuGxzhgzAf88UMH2w62PC8yK/go-libp2p-crypto"
+	"io"
+
+	extra "github.com/agl/ed25519/extra25519"
+
 	"golang.org/x/crypto/hkdf"
 	"golang.org/x/crypto/nacl/box"
-	libp2p "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
-	"io"
 )
 
 const (
@@ -45,13 +49,13 @@ const (
 
 var (
 	// The ciphertext cannot be shorter than CiphertextVersionBytes + EncryptedSecretKeyBytes + aes.BlockSize + MacKeyBytes
-	ErrShortCiphertext = errors.New("Ciphertext is too short")
+	ErrShortCiphertext = errors.New("ciphertext is too short")
 
 	// The HMAC included in the ciphertext is invalid
-	ErrInvalidHmac = errors.New("Invalid Hmac")
+	ErrInvalidHmac = errors.New("invalid Hmac")
 
 	// Nacl box decryption failed
-	BoxDecryptionError = errors.New("Failed to decrypt curve25519")
+	BoxDecryptionError = errors.New("failed to decrypt curve25519")
 
 	// Satic salt used in the hdkf
 	Salt = []byte("OpenBazaar Encryption Algorithm")
@@ -66,7 +70,7 @@ func Encrypt(pubKey libp2p.PubKey, plaintext []byte) ([]byte, error) {
 	if ok {
 		return encryptCurve25519(ed25519Pubkey, plaintext)
 	}
-	return nil, errors.New("Could not determine key type")
+	return nil, errors.New("could not determine key type")
 }
 
 func encryptCurve25519(pubKey *libp2p.Ed25519PublicKey, plaintext []byte) ([]byte, error) {
@@ -76,7 +80,13 @@ func encryptCurve25519(pubKey *libp2p.Ed25519PublicKey, plaintext []byte) ([]byt
 		return nil, err
 	}
 	// Convert recipient's key into curve25519
-	pk, err := pubKey.ToCurve25519()
+	rawBytes, err := pubKey.Raw()
+	if err != nil {
+		return nil, err
+	}
+	var raw [32]byte
+	copy(raw[:], rawBytes)
+	pk, err := pubkeyToCurve25519(raw)
 	if err != nil {
 		return nil, err
 	}
@@ -89,9 +99,7 @@ func encryptCurve25519(pubKey *libp2p.Ed25519PublicKey, plaintext []byte) ([]byt
 	if err != nil {
 		return nil, err
 	}
-	for i := 0; i < 24; i++ {
-		nonce[i] = n[i]
-	}
+	copy(nonce[:], n)
 	ciphertext = box.Seal(ciphertext, plaintext, &nonce, pk, ephemPriv)
 
 	// Prepend the ephemeral public key
@@ -115,15 +123,15 @@ func encryptRSA(pubKey *libp2p.RsaPublicKey, plaintext []byte) ([]byte, error) {
 	// Derive MAC and AES keys from the secret key using hkdf
 	hash := sha256.New
 
-	hkdf := hkdf.New(hash, secretKey, Salt, nil)
+	hkdfReader := hkdf.New(hash, secretKey, Salt, nil)
 
 	aesKey := make([]byte, AESKeyBytes)
-	_, err = io.ReadFull(hkdf, aesKey)
+	_, err = io.ReadFull(hkdfReader, aesKey)
 	if err != nil {
 		return nil, err
 	}
 	macKey := make([]byte, MacKeyBytes)
-	_, err = io.ReadFull(hkdf, macKey)
+	_, err = io.ReadFull(hkdfReader, macKey)
 	if err != nil {
 		return nil, err
 	}
@@ -172,11 +180,17 @@ func Decrypt(privKey libp2p.PrivKey, ciphertext []byte) ([]byte, error) {
 	if ok {
 		return decryptCurve25519(ed25519Privkey, ciphertext)
 	}
-	return nil, errors.New("Could not determine key type")
+	return nil, errors.New("could not determine key type")
 }
 
 func decryptCurve25519(privKey *libp2p.Ed25519PrivateKey, ciphertext []byte) ([]byte, error) {
-	curve25519Privkey := privKey.ToCurve25519()
+	rawBytes, err := privKey.Raw()
+	if err != nil {
+		return nil, err
+	}
+	var raw [64]byte
+	copy(raw[:], rawBytes)
+	curve25519Privkey := privkeyToCurve25519(raw)
 	var plaintext []byte
 
 	n := ciphertext[:NonceBytes]
@@ -184,14 +198,10 @@ func decryptCurve25519(privKey *libp2p.Ed25519PrivateKey, ciphertext []byte) ([]
 	ct := ciphertext[NonceBytes+EphemeralPublicKeyBytes:]
 
 	var ephemPubkey [32]byte
-	for i := 0; i < 32; i++ {
-		ephemPubkey[i] = ephemPubkeyBytes[i]
-	}
+	copy(ephemPubkey[:], ephemPubkeyBytes)
 
 	var nonce [24]byte
-	for i := 0; i < 24; i++ {
-		nonce[i] = n[i]
-	}
+	copy(nonce[:], n)
 
 	plaintext, success := box.Open(plaintext, ct, &nonce, &ephemPubkey, curve25519Privkey)
 	if !success {
@@ -214,15 +224,15 @@ func decryptRSA(privKey *libp2p.RsaPrivateKey, ciphertext []byte) ([]byte, error
 	// Derive the AES and MAC keys from the secret key using hdkf
 	hash := sha256.New
 
-	hkdf := hkdf.New(hash, secretKey, Salt, nil)
+	hkdfReader := hkdf.New(hash, secretKey, Salt, nil)
 
 	aesKey := make([]byte, AESKeyBytes)
-	_, err = io.ReadFull(hkdf, aesKey)
+	_, err = io.ReadFull(hkdfReader, aesKey)
 	if err != nil {
 		return nil, err
 	}
 	macKey := make([]byte, MacKeyBytes)
-	_, err = io.ReadFull(hkdf, macKey)
+	_, err = io.ReadFull(hkdfReader, macKey)
 	if err != nil {
 		return nil, err
 	}
@@ -253,4 +263,19 @@ func decryptRSA(privKey *libp2p.RsaPrivateKey, ciphertext []byte) ([]byte, error
 	stream.XORKeyStream(ciphertext, ciphertext)
 	plaintext := ciphertext
 	return plaintext, nil
+}
+
+func privkeyToCurve25519(sk [64]byte) *[32]byte {
+	var skNew [32]byte
+	extra.PrivateKeyToCurve25519(&skNew, &sk)
+	return &skNew
+}
+
+func pubkeyToCurve25519(pk [32]byte) (*[32]byte, error) {
+	var pkNew [32]byte
+	success := extra.PublicKeyToCurve25519(&pkNew, &pk)
+	if !success {
+		return nil, fmt.Errorf("error converting ed25519 pubkey to curve25519 pubkey")
+	}
+	return &pkNew, nil
 }

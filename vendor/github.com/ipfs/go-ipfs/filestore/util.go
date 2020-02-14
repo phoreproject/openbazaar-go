@@ -6,11 +6,11 @@ import (
 
 	pb "github.com/ipfs/go-ipfs/filestore/pb"
 
-	dshelp "gx/ipfs/QmTmqJGRQfuH8eKWD1FjThwPRipt1QhqJQNZ8MpzmfAAxo/go-ipfs-ds-help"
-	ds "gx/ipfs/QmXRKBQA4wXP7xWbFiZsR1GP4HV6wMDQ1aWFxZZ4uBcPX9/go-datastore"
-	dsq "gx/ipfs/QmXRKBQA4wXP7xWbFiZsR1GP4HV6wMDQ1aWFxZZ4uBcPX9/go-datastore/query"
-	blockstore "gx/ipfs/QmaG4DZ4JaqEfvPWt5nPPgoTzhc1tr1T3f4Nu9Jpdm8ymY/go-ipfs-blockstore"
-	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
+	cid "gx/ipfs/QmTbxNB1NwDesLmKTscr4udL2tVP7MaxvXnD1D9yX7g3PN/go-cid"
+	ds "gx/ipfs/QmUadX5EcvrBmxAV9sE7wUWtWSqxns5K84qKJBixmcT1w9/go-datastore"
+	dsq "gx/ipfs/QmUadX5EcvrBmxAV9sE7wUWtWSqxns5K84qKJBixmcT1w9/go-datastore/query"
+	dshelp "gx/ipfs/QmXSEqXLCzpCByJU4wqbJ37TcBEj77FKMUWUP1qLh56847/go-ipfs-ds-help"
+	blockstore "gx/ipfs/QmXjKkjMDTtXAiLBwstVexofB8LeruZmE2eBd85GwGFFLA/go-ipfs-blockstore"
 )
 
 // Status is used to identify the state of the block data referenced
@@ -60,21 +60,24 @@ func (s Status) Format() string {
 type ListRes struct {
 	Status   Status
 	ErrorMsg string
-	Key      *cid.Cid
+	Key      cid.Cid
 	FilePath string
 	Offset   uint64
 	Size     uint64
 }
 
-// FormatLong returns a human readable string for a ListRes object.
-func (r *ListRes) FormatLong() string {
+// FormatLong returns a human readable string for a ListRes object
+func (r *ListRes) FormatLong(enc func(cid.Cid) string) string {
+	if enc == nil {
+		enc = (cid.Cid).String
+	}
 	switch {
-	case r.Key == nil:
+	case !r.Key.Defined():
 		return "<corrupt key>"
 	case r.FilePath == "":
 		return r.Key.String()
 	default:
-		return fmt.Sprintf("%-50s %6d %s %d", r.Key, r.Size, r.FilePath, r.Offset)
+		return fmt.Sprintf("%-50s %6d %s %d", enc(r.Key), r.Size, r.FilePath, r.Offset)
 	}
 }
 
@@ -82,7 +85,7 @@ func (r *ListRes) FormatLong() string {
 // of the given Filestore and returns a ListRes object with the information.
 // List does not verify that the reference is valid or whether the
 // raw data is accesible. See Verify().
-func List(fs *Filestore, key *cid.Cid) *ListRes {
+func List(fs *Filestore, key cid.Cid) *ListRes {
 	return list(fs, false, key)
 }
 
@@ -101,7 +104,7 @@ func ListAll(fs *Filestore, fileOrder bool) (func() *ListRes, error) {
 // of the given Filestore and returns a ListRes object with the information.
 // Verify makes sure that the reference is valid and the block data can be
 // read.
-func Verify(fs *Filestore, key *cid.Cid) *ListRes {
+func Verify(fs *Filestore, key cid.Cid) *ListRes {
 	return list(fs, true, key)
 }
 
@@ -116,7 +119,7 @@ func VerifyAll(fs *Filestore, fileOrder bool) (func() *ListRes, error) {
 	return listAll(fs, true)
 }
 
-func list(fs *Filestore, verify bool, key *cid.Cid) *ListRes {
+func list(fs *Filestore, verify bool, key cid.Cid) *ListRes {
 	dobj, err := fs.fm.getDataObj(key)
 	if err != nil {
 		return mkListRes(key, nil, err)
@@ -145,16 +148,16 @@ func listAll(fs *Filestore, verify bool) (func() *ListRes, error) {
 	}, nil
 }
 
-func next(qr dsq.Results) (*cid.Cid, *pb.DataObj, error) {
+func next(qr dsq.Results) (cid.Cid, *pb.DataObj, error) {
 	v, ok := qr.NextSync()
 	if !ok {
-		return nil, nil, nil
+		return cid.Cid{}, nil, nil
 	}
 
 	k := ds.RawKey(v.Key)
 	c, err := dshelp.DsKeyToCid(k)
 	if err != nil {
-		return nil, nil, fmt.Errorf("decoding cid from filestore: %s", err)
+		return cid.Cid{}, nil, fmt.Errorf("decoding cid from filestore: %s", err)
 	}
 
 	dobj, err := unmarshalDataObj(v.Value)
@@ -212,9 +215,9 @@ func listAllFileOrder(fs *Filestore, verify bool) (func() *ListRes, error) {
 		}
 		// now reconstruct the DataObj
 		dobj := pb.DataObj{
-			FilePath: &v.filePath,
-			Offset:   &v.offset,
-			Size_:    &v.size,
+			FilePath: v.filePath,
+			Offset:   v.offset,
+			Size_:    v.size,
 		}
 		// now if we could not convert the datastore key return that
 		// error
@@ -252,7 +255,7 @@ func (l listEntries) Less(i, j int) bool {
 	return l[i].filePath < l[j].filePath
 }
 
-func mkListRes(c *cid.Cid, d *pb.DataObj, err error) *ListRes {
+func mkListRes(c cid.Cid, d *pb.DataObj, err error) *ListRes {
 	status := StatusOk
 	errorMsg := ""
 	if err != nil {
@@ -277,8 +280,8 @@ func mkListRes(c *cid.Cid, d *pb.DataObj, err error) *ListRes {
 		Status:   status,
 		ErrorMsg: errorMsg,
 		Key:      c,
-		FilePath: *d.FilePath,
-		Size:     *d.Size_,
-		Offset:   *d.Offset,
+		FilePath: d.FilePath,
+		Size:     d.Size_,
+		Offset:   d.Offset,
 	}
 }

@@ -4,24 +4,30 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/phoreproject/openbazaar-go/repo/migrations"
+
 	"os"
 	"path"
 	"time"
+
+	"github.com/phoreproject/openbazaar-go/ipfs"
+	"github.com/phoreproject/openbazaar-go/repo/migrations"
+	"github.com/phoreproject/openbazaar-go/schema"
 
 	"github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/namesys"
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
 	"github.com/op/go-logging"
-	"github.com/phoreproject/openbazaar-go/ipfs"
-	"github.com/phoreproject/openbazaar-go/schema"
 	"github.com/tyler-smith/go-bip39"
 )
 
-const RepoVersion = "15"
+const RepoVersion = "23"
 
 var log = logging.MustGetLogger("repo")
 var ErrRepoExists = errors.New("IPFS configuration file exists. Reinitializing would overwrite your keys. Use -f to force overwrite.")
+
+func init() {
+	ipfs.InstallDatabasePlugins()
+}
 
 func DoInit(repoRoot string, nBitsForKeypair int, testnet bool, password string, mnemonic string, creationDate time.Time, dbInit func(string, []byte, string, time.Time) error) error {
 	nodeSchema, err := schema.NewCustomSchemaManager(schema.SchemaContext{
@@ -32,7 +38,7 @@ func DoInit(repoRoot string, nBitsForKeypair int, testnet bool, password string,
 	if err != nil {
 		return err
 	}
-	if nodeSchema.BuildSchemaDirectories(); err != nil {
+	if err = nodeSchema.BuildSchemaDirectories(); err != nil {
 		return err
 	}
 
@@ -68,12 +74,12 @@ func DoInit(repoRoot string, nBitsForKeypair int, testnet bool, password string,
 	if err != nil {
 		return err
 	}
+	conf.Identity = identity
 
 	log.Infof("Initializing OpenBazaar node at %s\n", repoRoot)
 	if err := fsrepo.Init(repoRoot, conf); err != nil {
 		return err
 	}
-	conf.Identity = identity
 
 	if err := addConfigExtensions(repoRoot); err != nil {
 		return err
@@ -91,7 +97,6 @@ func DoInit(repoRoot string, nBitsForKeypair int, testnet bool, password string,
 	if werr != nil {
 		return werr
 	}
-	f.Close()
 
 	f, err = os.Create(path.Join(repoRoot, "swarm.key"))
 	if err != nil {
@@ -103,7 +108,10 @@ func DoInit(repoRoot string, nBitsForKeypair int, testnet bool, password string,
 	}
 	f.Close()
 
-	return initializeIpnsKeyspace(repoRoot, identityKey)
+	if err := initializeIpnsKeyspace(repoRoot, identityKey); err != nil {
+		return err
+	}
+	return nodeSchema.CleanIdentityFromConfig()
 }
 
 func checkWriteable(dir string) error {
@@ -116,7 +124,7 @@ func checkWriteable(dir string) error {
 			if os.IsPermission(err) {
 				return fmt.Errorf("%s is not writeable by the current user", dir)
 			}
-			return fmt.Errorf("Unexpected error while checking writeablility of repo root: %s", err)
+			return fmt.Errorf("unexpected error while checking writeablility of repo root: %s", err)
 		}
 		fi.Close()
 		return os.Remove(testfile)
@@ -128,17 +136,21 @@ func checkWriteable(dir string) error {
 	}
 
 	if os.IsPermission(err) {
-		return fmt.Errorf("Cannot write to %s, incorrect permissions", err)
+		return fmt.Errorf("cannot write to %s, incorrect permissions", err)
 	}
 
 	return err
 }
 
 func initializeIpnsKeyspace(repoRoot string, privKeyBytes []byte) error {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	r, err := fsrepo.Open(repoRoot)
 	if err != nil { // NB: repo is owned by the node
 		return err
 	}
+
 	cfg, err := r.Config()
 	if err != nil {
 		log.Error(err)
@@ -150,18 +162,12 @@ func initializeIpnsKeyspace(repoRoot string, privKeyBytes []byte) error {
 	}
 
 	cfg.Identity = identity
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+
 	nd, err := core.NewNode(ctx, &core.BuildCfg{Repo: r})
 	if err != nil {
 		return err
 	}
 	defer nd.Close()
-
-	err = nd.SetupOfflineRouting()
-	if err != nil {
-		return err
-	}
 
 	return namesys.InitializeKeyspace(ctx, nd.Namesys, nd.Pinning, nd.PrivateKey)
 }
@@ -172,56 +178,6 @@ func addConfigExtensions(repoRoot string) error {
 		return err
 	}
 	var (
-		w = schema.WalletConfig{
-			Type:             "phored",
-			MaxFee:           2000,
-			FeeAPI:           "https://btc.fees.openbazaar.org",
-			HighFeeDefault:   160,
-			MediumFeeDefault: 60,
-			LowFeeDefault:    20,
-			TrustedPeer:      "",
-			RPCLocation:      "rpc2.phore.io",
-		}
-		ws = schema.WalletsConfig{
-			BTC: schema.CoinConfig{
-				Type:             "API",
-				API:              "https://btc.bloqapi.net/insight-api",
-				APITestnet:       "https://test-insight.bitpay.com/api",
-				MaxFee:           200,
-				FeeAPI:           "https://btc.fees.openbazaar.org",
-				HighFeeDefault:   50,
-				MediumFeeDefault: 10,
-				LowFeeDefault:    1,
-			},
-			BCH: schema.CoinConfig{
-				Type:             "API",
-				API:              "https://bch-insight.bitpay.com/api",
-				APITestnet:       "https://test-bch-insight.bitpay.com/api",
-				MaxFee:           200,
-				HighFeeDefault:   10,
-				MediumFeeDefault: 5,
-				LowFeeDefault:    1,
-			},
-			LTC: schema.CoinConfig{
-				Type:             "API",
-				API:              "https://insight.litecore.io/api",
-				APITestnet:       "https://testnet.litecore.io/api",
-				MaxFee:           200,
-				HighFeeDefault:   20,
-				MediumFeeDefault: 10,
-				LowFeeDefault:    5,
-			},
-			ZEC: schema.CoinConfig{
-				Type:             "API",
-				API:              "https://zcashnetwork.info/api",
-				APITestnet:       "https://explorer.testnet.z.cash/api",
-				MaxFee:           200,
-				HighFeeDefault:   20,
-				MediumFeeDefault: 10,
-				LowFeeDefault:    5,
-			},
-		}
-
 		a = schema.APIConfig{
 			Enabled:     true,
 			AllowedIPs:  []string{},
@@ -232,29 +188,26 @@ func addConfigExtensions(repoRoot string) error {
 			AcceptStoreRequests: false,
 			PushTo:              schema.DataPushNodes,
 		}
+		ie = schema.IpnsExtraConfig{
+			DHTQuorumSize: 1,
+			APIRouter:     schema.IPFSCachingRouterDefaultURI,
+		}
 
 		t = schema.TorConfig{}
-
-		resolvers = schema.ResolverConfig{
-			Id: "https://resolver.onename.com/",
-		}
 	)
-	if err := r.SetConfigKey("Wallet", w); err != nil {
-		return err
-	}
-	if err := r.SetConfigKey("Wallets", ws); err != nil {
+	if err := r.SetConfigKey("Wallets", schema.DefaultWalletsConfig()); err != nil {
 		return err
 	}
 	if err := r.SetConfigKey("DataSharing", ds); err != nil {
-		return err
-	}
-	if err := r.SetConfigKey("Resolvers", resolvers); err != nil {
 		return err
 	}
 	if err := r.SetConfigKey("Bootstrap-testnet", schema.BootstrapAddressesTestnet); err != nil {
 		return err
 	}
 	if err := r.SetConfigKey("Dropbox-api-token", ""); err != nil {
+		return err
+	}
+	if err := r.SetConfigKey("IpnsExtra", ie); err != nil {
 		return err
 	}
 	if err := r.SetConfigKey("RepublishInterval", "24h"); err != nil {
@@ -266,6 +219,7 @@ func addConfigExtensions(repoRoot string) error {
 	if err := r.SetConfigKey("Tor-config", t); err != nil {
 		return err
 	}
+
 	if err := r.Close(); err != nil {
 		return err
 	}

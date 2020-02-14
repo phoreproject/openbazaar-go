@@ -5,7 +5,8 @@
 		"contractType": "PHYSICAL_GOOD",
 		"format": "FIXED_PRICE",
 		"expiry": "2030-08-17T04:52:19.000Z",
-		"pricingCurrency": "tbtc"
+		"pricingCurrency": "tbtc",
+		"acceptedCurrencies": ["tbtc", "tbch", "tltc", "tzec"]
 	},
 	"item": {
 		"title": "Ron Swanson Tshirt",
@@ -19,11 +20,11 @@
 		],
 		"images": [
 			{
-				"tiny": "zb2rhjqhgN4Pv1SJFNpCQMjv2h8PQEGqAioMhkZjkKDyPW5E2",
-				"small": "zb2rhXn3SHBuEXkHxrupGfjKcuMewMdUJyN6jLMYDEzCyue15",
-				"medium": "zb2rhcdaKnikBPyNT83ngqnkaAuunqCR7craN34iNKJruXhDF",
-				"large": "zb2rhbQY5U167P6jic6c7UZ1x6AXXcmrhfcKKeNbJdwGJxXJi",
-				"original": "zb2rhdTuwSdUe3DP9KuHjiwhoM5ppb6ws4i6j2rWFF3yTTP92",
+				"tiny": "QmUAuYuiafnJRZxDDX7MuruMNsicYNuyub5vUeAcupUBNs",
+				"small": "QmXSEqXLCzpCByJU4wqbJ37TcBEj77FKMUWUP1qLh56847",
+				"medium": "QmYVXrKrKHDC9FobgmcmshCDyWwdrfwfanNQN4oxJ9Fk3h",
+				"large": "QmUadX5EcvrBmxAV9sE7wUWtWSqxns5K84qKJBixmcT1w9",
+				"original": "QmfVj3x4D6Jkq9SEoi5n2NmoUomLwoeiwnYz2KQa15wRw6",
 				"filename": "swanson.jpg"
 			}
 		],
@@ -40,11 +41,11 @@
 					{
 						"name": "Small",
 						"image": {
-							"tiny": "zb2rhjqhgN4Pv1SJFNpCQMjv2h8PQEGqAioMhkZjkKDyPW5E2",
-							"small": "zb2rhXn3SHBuEXkHxrupGfjKcuMewMdUJyN6jLMYDEzCyue15",
-							"medium": "zb2rhcdaKnikBPyNT83ngqnkaAuunqCR7craN34iNKJruXhDF",
-							"large": "zb2rhbQY5U167P6jic6c7UZ1x6AXXcmrhfcKKeNbJdwGJxXJi",
-							"original": "zb2rhdTuwSdUe3DP9KuHjiwhoM5ppb6ws4i6j2rWFF3yTTP92",
+							"tiny": "QmUAuYuiafnJRZxDDX7MuruMNsicYNuyub5vUeAcupUBNs",
+							"small": "QmXSEqXLCzpCByJU4wqbJ37TcBEj77FKMUWUP1qLh56847",
+							"medium": "QmYVXrKrKHDC9FobgmcmshCDyWwdrfwfanNQN4oxJ9Fk3h",
+							"large": "QmUadX5EcvrBmxAV9sE7wUWtWSqxns5K84qKJBixmcT1w9",
+							"original": "QmfVj3x4D6Jkq9SEoi5n2NmoUomLwoeiwnYz2KQa15wRw6",
 							"filename": "swanson.jpg"
 						}
 					},

@@ -5,17 +5,18 @@ import (
 	"sync"
 	"time"
 
-	"github.com/phoreproject/btcd/chaincfg/chainhash"
+	"github.com/OpenBazaar/wallet-interface"
+	"github.com/btcsuite/btcd/chaincfg/chainhash"
+	"github.com/phoreproject/multiwallet/util"
 	"github.com/phoreproject/openbazaar-go/repo"
-	"github.com/phoreproject/wallet-interface"
 )
 
 type TxnsDB struct {
 	modelStore
-	coinType wallet.CoinType
+	coinType util.ExtCoinType
 }
 
-func NewTransactionStore(db *sql.DB, lock *sync.Mutex, coinType wallet.CoinType) repo.TransactionStore {
+func NewTransactionStore(db *sql.DB, lock *sync.Mutex, coinType util.ExtCoinType) repo.TransactionStore {
 	return &TxnsDB{modelStore{db, lock}, coinType}
 }
 

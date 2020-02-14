@@ -5,12 +5,13 @@ import (
 	"path"
 	"runtime"
 
-	cmds "github.com/ipfs/go-ipfs/commands"
-	config "github.com/ipfs/go-ipfs/repo/config"
+	version "github.com/ipfs/go-ipfs"
+	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
 
-	manet "gx/ipfs/QmRK2LxanhK2gZq6k6R7vk5ZoYZk8ULSSTB7FzDsMUX6CB/go-multiaddr-net"
-	sysi "gx/ipfs/QmZRjKbHa6DenStpQJFiaPcEwkZqrx7TH6xTf342LDU3qM/go-sysinfo"
-	"gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit"
+	cmds "gx/ipfs/QmQkW9fnCsg9SLHdViiAh6qfBppodsPZVpU92dZLqYtEfs/go-ipfs-cmds"
+	manet "gx/ipfs/Qmc85NSvmSG4Frn9Vb2cBc1rMyULH6D3TNVEfCzSKoUpip/go-multiaddr-net"
+	sysi "gx/ipfs/QmcoYsZJDtyDTij5dNo7KQCHR3Z6nhPxLkVKg77zg1TL8e/go-sysinfo"
+	cmdkit "gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
 )
 
 var sysDiagCmd = &cmds.Command{
@@ -20,46 +21,40 @@ var sysDiagCmd = &cmds.Command{
 Prints out information about your computer to aid in easier debugging.
 `,
 	},
-	Run: func(req cmds.Request, res cmds.Response) {
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		info := make(map[string]interface{})
 		err := runtimeInfo(info)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
 		err = envVarInfo(info)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
 		err = diskSpaceInfo(info)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
 		err = memInfo(info)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
-		node, err := req.InvocContext().GetNode()
+		nd, err := cmdenv.GetNode(env)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
-		err = netInfo(node.OnlineMode(), info)
+		err = netInfo(nd.OnlineMode(), info)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
-		info["ipfs_version"] = config.CurrentVersionNumber
-		info["ipfs_commit"] = config.CurrentCommit
-		res.SetOutput(info)
+		info["ipfs_version"] = version.CurrentVersionNumber
+		info["ipfs_commit"] = version.CurrentCommit
+		return cmds.EmitOnce(res, info)
 	},
 }
 

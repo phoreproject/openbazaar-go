@@ -1,7 +1,7 @@
 package core
 
 import (
-	"github.com/phoreproject/openbazaar-go/net/retriever"
+	net "github.com/phoreproject/openbazaar-go/net/retriever"
 )
 
 // StartMessageRetriever will collect the required options from the
@@ -10,6 +10,7 @@ func (n *OpenBazaarNode) StartMessageRetriever() {
 	config := net.MRConfig{
 		Db:        n.Datastore,
 		IPFSNode:  n.IpfsNode,
+		DHT:       n.DHT,
 		BanManger: n.BanManager,
 		Service:   n.Service,
 		PrefixLen: 14,

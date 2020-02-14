@@ -137,6 +137,37 @@ func TestModerator(t *testing.T) {
 	})
 }
 
+func TestMessageSignVerify(t *testing.T) {
+	const (
+		signMessageJSON = `{
+	"content": "test"
+}`
+		verifyMessageJSON = `{
+	"content": "test",
+	"signature": "fac9dec1ce872c931bda1af85f9107e8733b42ed6401bc989a84b6b53ad263290d9bd9d470f046024884f502ecb7af50de2fea11268e82dcb1c72d50753c330a",
+	"pubkey": "080112203f94c7707af68ede9ddd24a16edd813146550df565eda8fb81114476ccfe6b78",
+	"peerId": "QmRmisSghsxUMrTQZ5vmqFroxxuCXJqXwXoTc21q5cefmM"
+}`
+	)
+
+	runAPITests(t, apiTests{
+		{"POST", "/ob/signmessage", signMessageJSON, 200, anyResponseJSON},
+		{"POST", "/ob/verifymessage", verifyMessageJSON, 200, anyResponseJSON},
+	})
+}
+
+func TestMessageSignsURLChars(t *testing.T) {
+	const (
+		validateSignWorksWithURLChars = `{
+		"content":"QmdQBWA75xQSMZpTibQ2G83enNdriz2v14tetGvNrpr5KB/this-is-a-social-post"
+	}`
+	)
+
+	runAPITests(t, apiTests{
+		{"POST", "/ob/signmessage", validateSignWorksWithURLChars, 200, anyResponseJSON},
+	})
+}
+
 func TestListingsAcceptedCurrencies(t *testing.T) {
 	runAPITests(t, apiTests{
 		{"POST", "/ob/listing", jsonFor(t, factory.NewListing("ron-swanson-tshirt")), 200, anyResponseJSON},
@@ -161,9 +192,9 @@ func TestListingsAcceptedCurrencies(t *testing.T) {
 	}
 	resp.Body.Close()
 
-	respObj := []struct {
+	var respObj []struct {
 		AcceptedCurrencies []string `json:"acceptedCurrencies"`
-	}{}
+	}
 	err = json.Unmarshal(respBody, &respObj)
 	if err != nil {
 		t.Fatal(err)
@@ -177,8 +208,8 @@ func TestListingsAcceptedCurrencies(t *testing.T) {
 		t.Fatal("Listing should contain exactly 1 acceptedCurrency")
 	}
 
-	if respObj[0].AcceptedCurrencies[0] != "phr" {
-		t.Fatal("Listing acceptedCurrenc9es should contain 'PHR'")
+	if respObj[0].AcceptedCurrencies[0] != "TBTC" {
+		t.Fatal("Listing acceptedCurrencies should contain 'TBTC'")
 	}
 }
 
@@ -221,10 +252,11 @@ func TestListingAcceptedCurrencies(t *testing.T) {
 		t.Fatal("Listing should contain exactly 1 acceptedCurrency")
 	}
 
-	if respObj.Listing.Metadata.AcceptedCurrencies[0] != "PHR" {
-		t.Fatal("Listing acceptedCurrenc9es should contain 'PHR'")
+	if respObj.Listing.Metadata.AcceptedCurrencies[0] != "TBTC" {
+		t.Fatal("Listing acceptedCurrenc9es should contain 'TBTC'")
 	}
 }
+
 func TestListings(t *testing.T) {
 	goodListingJSON := jsonFor(t, factory.NewListing("ron-swanson-tshirt"))
 	updatedListing := factory.NewListing("ron-swanson-tshirt")
@@ -280,6 +312,9 @@ func TestListings(t *testing.T) {
 		// Mutate non-existing listings
 		{"PUT", "/ob/listing", updatedListingJSON, 404, NotFoundJSON("Listing")},
 		{"DELETE", "/ob/listing/ron-swanson-tshirt", "", 404, NotFoundJSON("Listing")},
+
+		// Bulk update currency in listings
+		{"POST", "/ob/bulkupdatecurrency", bulkUpdateCurrencyJSON, 200, `{"success": "true"}`},
 	})
 }
 
@@ -332,6 +367,17 @@ func TestCryptoListingsPriceModifier(t *testing.T) {
 	listing.Metadata.PriceModifier = core.PriceModifierMin - 1
 	runAPITest(t, apiTest{
 		"POST", "/ob/listing", jsonFor(t, listing), 500, errorResponseJSON(outOfRangeErr),
+	})
+
+	listing.Item.Price = 1
+	var f core.ErrMarketPriceListingIllegalField = "item.price"
+	runAPITest(t, apiTest{
+		"POST", "/ob/listing", jsonFor(t, listing), 500, errorResponseJSON(f),
+	})
+
+	listing.Metadata.Format = pb.Listing_Metadata_FIXED_PRICE
+	runAPITest(t, apiTest{
+		"POST", "/ob/listing", jsonFor(t, listing), 200, `{"slug": "crypto"}`,
 	})
 }
 
@@ -444,13 +490,19 @@ func TestStatus(t *testing.T) {
 
 func TestWallet(t *testing.T) {
 	runAPITests(t, apiTests{
-		// Cannot get wallet balance and spend without rpc client and downloading tons of data
-
 		{"GET", "/wallet/address", "", 200, walletAddressJSONResponse},
-		//{"GET", "/wallet/balance", "", 200, walletBalanceJSONResponse},
+		{"GET", "/wallet/balance", "", 200, walletBalanceJSONResponse},
 		{"GET", "/wallet/mnemonic", "", 200, walletMneumonicJSONResponse},
-		//{"POST", "/wallet/spend", spendJSON, 400, insuffientFundsJSON},
+		{"POST", "/wallet/spend/", spendJSON, 400, insuffientFundsJSON},
 		// TODO: Test successful spend on regnet with coins
+	})
+}
+
+func TestExchangeRates(t *testing.T) {
+	runAPITests(t, apiTests{
+		{"GET", "/ob/exchangerates", "", 500, invalidCoinJSON},
+		{"GET", "/ob/exchangerates/", "", 500, invalidCoinJSON},
+		{"GET", "/ob/exchangerates/BTC", "", 200, anyResponseJSON},
 	})
 }
 
@@ -506,8 +558,10 @@ func TestPosts(t *testing.T) {
 
 func TestCloseDisputeBlocksWhenExpired(t *testing.T) {
 	dbSetup := func(testRepo *test.Repository) error {
+		paymentCoin := repo.CurrencyCode("BTC")
 		expired := factory.NewExpiredDisputeCaseRecord()
 		expired.CaseID = "expiredCase"
+		expired.PaymentCoin = &paymentCoin
 		for _, r := range []*repo.DisputeCaseRecord{expired} {
 			if err := testRepo.DB.Cases().PutRecord(r); err != nil {
 				return err
@@ -527,6 +581,7 @@ func TestCloseDisputeBlocksWhenExpired(t *testing.T) {
 func TestZECSalesCannotReleaseEscrow(t *testing.T) {
 	sale := factory.NewSaleRecord()
 	sale.Contract.VendorListings[0].Metadata.AcceptedCurrencies = []string{"ZEC"}
+	sale.Contract.BuyerOrder.Payment.Coin = "ZEC"
 	dbSetup := func(testRepo *test.Repository) error {
 		if err := testRepo.DB.Sales().Put(sale.OrderID, *sale.Contract, sale.OrderState, false); err != nil {
 			return err
@@ -644,12 +699,13 @@ func TestPurchasesGet(t *testing.T) {
 }
 
 func TestCasesGet(t *testing.T) {
+	paymentCoinCode := repo.CurrencyCode("BTC")
 	disputeCaseRecord := factory.NewDisputeCaseRecord()
 	disputeCaseRecord.BuyerContract.VendorListings[0].Metadata.AcceptedCurrencies = []string{"BTC"}
 	disputeCaseRecord.BuyerContract.VendorListings[0].Metadata.CoinType = "ZEC"
 	disputeCaseRecord.BuyerContract.VendorListings[0].Metadata.ContractType = pb.Listing_Metadata_CRYPTOCURRENCY
 	disputeCaseRecord.CoinType = "ZEC"
-	disputeCaseRecord.PaymentCoin = "BTC"
+	disputeCaseRecord.PaymentCoin = &paymentCoinCode
 	dbSetup := func(testRepo *test.Repository) error {
 		return testRepo.DB.Cases().PutRecord(disputeCaseRecord)
 	}

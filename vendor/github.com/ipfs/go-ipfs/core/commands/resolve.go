@@ -2,23 +2,29 @@ package commands
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"strings"
 	"time"
 
-	cmds "github.com/ipfs/go-ipfs/commands"
-	"github.com/ipfs/go-ipfs/core"
-	e "github.com/ipfs/go-ipfs/core/commands/e"
+	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
+	ncmd "github.com/ipfs/go-ipfs/core/commands/name"
 	ns "github.com/ipfs/go-ipfs/namesys"
-	nsopts "github.com/ipfs/go-ipfs/namesys/opts"
-	path "github.com/ipfs/go-ipfs/path"
 
-	"gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit"
+	path "gx/ipfs/QmQAgv6Gaoe2tQpcabqwKXKChp2MZ7i3UXv9DqTTaxCaTR/go-path"
+	cmds "gx/ipfs/QmQkW9fnCsg9SLHdViiAh6qfBppodsPZVpU92dZLqYtEfs/go-ipfs-cmds"
+	coreiface "gx/ipfs/QmXLwxifxwfc2bAwq6rdjbYqAsGzWsDE9RM5TWMGtykyj6/interface-go-ipfs-core"
+	options "gx/ipfs/QmXLwxifxwfc2bAwq6rdjbYqAsGzWsDE9RM5TWMGtykyj6/interface-go-ipfs-core/options"
+	nsopts "gx/ipfs/QmXLwxifxwfc2bAwq6rdjbYqAsGzWsDE9RM5TWMGtykyj6/interface-go-ipfs-core/options/namesys"
+	cmdkit "gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
+	cidenc "gx/ipfs/Qmf3gRH2L1QZy92gJHJEwKmBJKJGVf8RpN2kPPD2NQWg8G/go-cidutil/cidenc"
 )
 
-type ResolvedPath struct {
-	Path path.Path
-}
+const (
+	resolveRecursiveOptionName      = "recursive"
+	resolveDhtRecordCountOptionName = "dht-record-count"
+	resolveDhtTimeoutOptionName     = "dht-timeout"
+)
 
 var ResolveCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
@@ -64,89 +70,88 @@ Resolve the value of an IPFS DAG path:
 		cmdkit.StringArg("name", true, false, "The name to resolve.").EnableStdin(),
 	},
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption("recursive", "r", "Resolve until the result is an IPFS name."),
-		cmdkit.UintOption("dht-record-count", "dhtrc", "Number of records to request for DHT resolution."),
-		cmdkit.StringOption("dht-timeout", "dhtt", "Max time to collect values during DHT resolution eg \"30s\". Pass 0 for no timeout."),
+		cmdkit.BoolOption(resolveRecursiveOptionName, "r", "Resolve until the result is an IPFS name."),
+		cmdkit.IntOption(resolveDhtRecordCountOptionName, "dhtrc", "Number of records to request for DHT resolution."),
+		cmdkit.StringOption(resolveDhtTimeoutOptionName, "dhtt", "Max time to collect values during DHT resolution eg \"30s\". Pass 0 for no timeout."),
 	},
-	Run: func(req cmds.Request, res cmds.Response) {
-
-		n, err := req.InvocContext().GetNode()
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		api, err := cmdenv.GetApi(env, req)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
-		if !n.OnlineMode() {
-			err := n.SetupOfflineRouting()
+		name := req.Arguments[0]
+		recursive, _ := req.Options[resolveRecursiveOptionName].(bool)
+
+		var enc cidenc.Encoder
+		switch {
+		case !cmdenv.CidBaseDefined(req):
+			// Not specified, check the path.
+			enc, err = cmdenv.CidEncoderFromPath(name)
+			if err == nil {
+				break
+			}
+			// Nope, fallback on the default.
+			fallthrough
+		default:
+			enc, err = cmdenv.GetCidEncoder(req)
 			if err != nil {
-				res.SetError(err, cmdkit.ErrNormal)
-				return
+				return err
 			}
 		}
 
-		name := req.Arguments()[0]
-		recursive, _, _ := req.Option("recursive").Bool()
-
 		// the case when ipns is resolved step by step
 		if strings.HasPrefix(name, "/ipns/") && !recursive {
-			rc, rcok, _ := req.Option("dht-record-count").Int()
-			dhtt, dhttok, _ := req.Option("dht-timeout").String()
-			ropts := []nsopts.ResolveOpt{nsopts.Depth(1)}
+			rc, rcok := req.Options[resolveDhtRecordCountOptionName].(uint)
+			dhtt, dhttok := req.Options[resolveDhtTimeoutOptionName].(string)
+			ropts := []options.NameResolveOption{
+				options.Name.ResolveOption(nsopts.Depth(1)),
+			}
+
 			if rcok {
-				ropts = append(ropts, nsopts.DhtRecordCount(uint(rc)))
+				ropts = append(ropts, options.Name.ResolveOption(nsopts.DhtRecordCount(rc)))
 			}
 			if dhttok {
 				d, err := time.ParseDuration(dhtt)
 				if err != nil {
-					res.SetError(err, cmdkit.ErrNormal)
-					return
+					return err
 				}
 				if d < 0 {
-					res.SetError(errors.New("DHT timeout value must be >= 0"), cmdkit.ErrNormal)
-					return
+					return errors.New("DHT timeout value must be >= 0")
 				}
-				ropts = append(ropts, nsopts.DhtTimeout(d))
+				ropts = append(ropts, options.Name.ResolveOption(nsopts.DhtTimeout(d)))
 			}
-			p, err := n.Namesys.Resolve(req.Context(), name, ropts...)
+			p, err := api.Name().Resolve(req.Context, name, ropts...)
 			// ErrResolveRecursion is fine
 			if err != nil && err != ns.ErrResolveRecursion {
-				res.SetError(err, cmdkit.ErrNormal)
-				return
+				return err
 			}
-			res.SetOutput(&ResolvedPath{p})
-			return
+			return cmds.EmitOnce(res, &ncmd.ResolvedPath{Path: path.Path(p.String())})
 		}
 
 		// else, ipfs path or ipns with recursive flag
-		p, err := path.ParsePath(name)
+		p, err := coreiface.ParsePath(name)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
-		node, err := core.Resolve(req.Context(), n.Namesys, n.Resolver, p)
+		rp, err := api.ResolvePath(req.Context, p)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
-		c := node.Cid()
+		encoded := "/" + rp.Namespace() + "/" + enc.Encode(rp.Cid())
+		if remainder := rp.Remainder(); remainder != "" {
+			encoded += "/" + remainder
+		}
 
-		res.SetOutput(&ResolvedPath{path.FromCid(c)})
+		return cmds.EmitOnce(res, &ncmd.ResolvedPath{Path: path.Path(encoded)})
 	},
-	Marshalers: cmds.MarshalerMap{
-		cmds.Text: func(res cmds.Response) (io.Reader, error) {
-			v, err := unwrapOutput(res.Output())
-			if err != nil {
-				return nil, err
-			}
-
-			output, ok := v.(*ResolvedPath)
-			if !ok {
-				return nil, e.TypeErr(output, v)
-			}
-			return strings.NewReader(output.Path.String() + "\n"), nil
-		},
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, rp *ncmd.ResolvedPath) error {
+			fmt.Fprintln(w, rp.Path.String())
+			return nil
+		}),
 	},
-	Type: ResolvedPath{},
+	Type: ncmd.ResolvedPath{},
 }

@@ -11,7 +11,7 @@ import (
 
 	core "github.com/ipfs/go-ipfs/core"
 
-	unix "gx/ipfs/QmPXvegq26x982cQjSfbTvSzZXn7GiaMwhhVPHkeTEhrPT/sys/unix"
+	unix "gx/ipfs/QmVGjyM9i2msKvLXwh9VosCTgP4mL91kC7hDmqnwTTx6Hu/sys/unix"
 	"gx/ipfs/QmYRGECuvQnRX73fcvPnGbYijBcGN2HbKZQ7jh26qmLiHG/semver"
 )
 
@@ -74,7 +74,7 @@ Please install it yourself by running:
 You can also stop ipfs from running these checks and use whatever OSXFUSE
 version you have by running:
 
-	ipfs config %s true
+	ipfs --json config %s true
 
 [1]: https://github.com/ipfs/go-ipfs/issues/177
 [2]: https://github.com/ipfs/go-ipfs/pull/533

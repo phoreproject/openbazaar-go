@@ -2,9 +2,10 @@ package db
 
 import (
 	"database/sql"
-	"github.com/phoreproject/openbazaar-go/repo"
 	"strconv"
 	"sync"
+
+	"github.com/phoreproject/openbazaar-go/repo"
 )
 
 type ModeratedDB struct {
@@ -15,14 +16,14 @@ func NewModeratedStore(db *sql.DB, lock *sync.Mutex) repo.ModeratedStore {
 	return &ModeratedDB{modelStore{db, lock}}
 }
 
-func (m *ModeratedDB) Put(peerID string) error {
+func (m *ModeratedDB) Put(peerId string) error {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 	tx, _ := m.db.Begin()
 	stmt, _ := tx.Prepare("insert into moderatedstores(peerID) values(?)")
 
 	defer stmt.Close()
-	_, err := stmt.Exec(peerID)
+	_, err := stmt.Exec(peerId)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -31,12 +32,12 @@ func (m *ModeratedDB) Put(peerID string) error {
 	return nil
 }
 
-func (m *ModeratedDB) Get(offsetID string, limit int) ([]string, error) {
+func (m *ModeratedDB) Get(offsetId string, limit int) ([]string, error) {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 	var stm string
-	if offsetID != "" {
-		stm = "select peerID from moderatedstores order by rowid desc limit " + strconv.Itoa(limit) + " offset ((select coalesce(max(rowid)+1, 0) from moderatedstores)-(select rowid from moderatedstores where peerID='" + offsetID + "'))"
+	if offsetId != "" {
+		stm = "select peerID from moderatedstores order by rowid desc limit " + strconv.Itoa(limit) + " offset ((select coalesce(max(rowid)+1, 0) from moderatedstores)-(select rowid from moderatedstores where peerID='" + offsetId + "'))"
 	} else {
 		stm = "select peerID from moderatedstores order by rowid desc limit " + strconv.Itoa(limit) + " offset 0"
 	}

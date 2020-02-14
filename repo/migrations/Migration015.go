@@ -8,49 +8,115 @@ import (
 	"path"
 )
 
-var (
-	Migration017PushToBeforePushTo = []string{
-		"QmWbi8z4uPkEdrWHtgxCkQGE5vxJnrStXAeEQnupmQnKRh",
-		"QmRh7fSZyFHesEL9aTmdxbrvMFxzyFxoaQGjYBotot6WLw",
-		"QmZLs6zVpVtkoR8oYyAbCxujvC6weU5CgUPTYx8zKMAtTf",
-	}
-
-	Migration017PushToAfterPushTo = []string{
-		"QmWbi8z4uPkEdrWHtgxCkQGE5vxJnrStXAeEQnupmQnKRh",
-		"Qma2LRYB4xLaoxsMCL2kb93WKCW4EotUMhgvQUSqE6tCka",
-		"QmZLs6zVpVtkoR8oYyAbCxujvC6weU5CgUPTYx8zKMAtTf",
-		"QmNSnS2K3TkSQjxJhaRBSZxotUQp1yxLss4zKDVbhRc9nv",
-	}
-
-	Migration017PushToBeforeBootstrapNodes = []string{
-		"/ip4/54.227.172.110/tcp/5001/ipfs/QmWbi8z4uPkEdrWHtgxCkQGE5vxJnrStXAeEQnupmQnKRh",
-		"/ip4/45.63.71.103/tcp/5001/ipfs/QmRh7fSZyFHesEL9aTmdxbrvMFxzyFxoaQGjYBotot6WLw",
-		"/ip4/54.175.193.226/tcp/5001/ipfs/QmZLs6zVpVtkoR8oYyAbCxujvC6weU5CgUPTYx8zKMAtTf",
-		"/ip4/34.239.133.237/tcp/5001/ipfs/QmNSnS2K3TkSQjxJhaRBSZxotUQp1yxLss4zKDVbhRc9nv",
-		"/ip4/159.203.115.78/tcp/5001/ipfs/QmPJuP4Myo8pGL1k56b85Q4rpaoSnmn5L3wLjYHTzbBrk1",
-		"/ip4/104.131.19.44/tcp/5001/ipfs/QmRvbZttqh6CPFiMKWa1jPfRR9JxagYRv4wsvMAG4ADUTj",
-	}
-
-	Migration017PushToAfterBootstrapNodes = []string{
-		"/ip4/54.227.172.110/tcp/5001/ipfs/QmWbi8z4uPkEdrWHtgxCkQGE5vxJnrStXAeEQnupmQnKRh",
-		"/ip4/144.202.25.235/tcp/5001/ipfs/Qma2LRYB4xLaoxsMCL2kb93WKCW4EotUMhgvQUSqE6tCka",
-		"/ip4/54.175.193.226/tcp/5001/ipfs/QmZLs6zVpVtkoR8oYyAbCxujvC6weU5CgUPTYx8zKMAtTf",
-		"/ip4/34.239.133.237/tcp/5001/ipfs/QmNSnS2K3TkSQjxJhaRBSZxotUQp1yxLss4zKDVbhRc9nv",
-		"/ip4/159.203.115.78/tcp/5001/ipfs/QmPJuP4Myo8pGL1k56b85Q4rpaoSnmn5L3wLjYHTzbBrk1",
-		"/ip4/104.131.19.44/tcp/5001/ipfs/QmRvbZttqh6CPFiMKWa1jPfRR9JxagYRv4wsvMAG4ADUTj",
-	}
+const (
+	migration015EthereumRegistryAddressMainnet = "0x403d907982474cdd51687b09a8968346159378f3"
+	migration015EthereumRegistryAddressRinkeby = "0x403d907982474cdd51687b09a8968346159378f3"
+	migration015EthereumRegistryAddressRopsten = "0x403d907982474cdd51687b09a8968346159378f3"
 )
 
-type migration015DataSharing struct {
-	AcceptStoreRequests bool
-	PushTo              []string
+type migration015WalletsConfig struct {
+	PHR *migration015CoinConfig `json:"PHR"`
+	BTC *migration015CoinConfig `json:"BTC"`
+	BCH *migration015CoinConfig `json:"BCH"`
+	LTC *migration015CoinConfig `json:"LTC"`
+	ZEC *migration015CoinConfig `json:"ZEC"`
+	ETH *migration015CoinConfig `json:"ETH"`
+}
+
+type migration015CoinConfig struct {
+	Type             string                 `json:"Type"`
+	APIPool          []string               `json:"API"`
+	APITestnetPool   []string               `json:"APITestnet"`
+	MaxFee           uint64                 `json:"MaxFee"`
+	FeeAPI           string                 `json:"FeeAPI"`
+	HighFeeDefault   uint64                 `json:"HighFeeDefault"`
+	MediumFeeDefault uint64                 `json:"MediumFeeDefault"`
+	LowFeeDefault    uint64                 `json:"LowFeeDefault"`
+	TrustedPeer      string                 `json:"TrustedPeer"`
+	WalletOptions    map[string]interface{} `json:"WalletOptions"`
+}
+
+func migration015DefaultWalletConfig() *migration015WalletsConfig {
+	var feeAPI = "https://btc.fees.openbazaar.org"
+	return &migration015WalletsConfig{
+		PHR: &migration015CoinConfig{
+			Type:             "API",
+			APIPool:          []string{"https://phr.api.phore.io/api"},
+			APITestnetPool:   []string{"https://phr.api.phore.io/api"},
+			FeeAPI:           "",
+			LowFeeDefault:    1,
+			MediumFeeDefault: 10,
+			HighFeeDefault:   50,
+			MaxFee:           200,
+			WalletOptions:    nil,
+		},
+		BTC: &migration015CoinConfig{
+			Type:             "API",
+			APIPool:          []string{"https://btc.api.openbazaar.org/api"},
+			APITestnetPool:   []string{"https://tbtc.api.openbazaar.org/api"},
+			FeeAPI:           feeAPI,
+			LowFeeDefault:    1,
+			MediumFeeDefault: 10,
+			HighFeeDefault:   50,
+			MaxFee:           200,
+			WalletOptions:    nil,
+		},
+		BCH: &migration015CoinConfig{
+			Type:             "API",
+			APIPool:          []string{"https://bch.api.openbazaar.org/api"},
+			APITestnetPool:   []string{"https://tbch.api.openbazaar.org/api"},
+			FeeAPI:           "", // intentionally blank
+			LowFeeDefault:    1,
+			MediumFeeDefault: 5,
+			HighFeeDefault:   10,
+			MaxFee:           200,
+			WalletOptions:    nil,
+		},
+		LTC: &migration015CoinConfig{
+			Type:             "API",
+			APIPool:          []string{"https://ltc.api.openbazaar.org/api"},
+			APITestnetPool:   []string{"https://tltc.api.openbazaar.org/api"},
+			FeeAPI:           "", // intentionally blank
+			LowFeeDefault:    5,
+			MediumFeeDefault: 10,
+			HighFeeDefault:   20,
+			MaxFee:           200,
+			WalletOptions:    nil,
+		},
+		ZEC: &migration015CoinConfig{
+			Type:             "API",
+			APIPool:          []string{"https://zec.api.openbazaar.org/api"},
+			APITestnetPool:   []string{"https://tzec.api.openbazaar.org/api"},
+			FeeAPI:           "", // intentionally blank
+			LowFeeDefault:    5,
+			MediumFeeDefault: 10,
+			HighFeeDefault:   20,
+			MaxFee:           200,
+			WalletOptions:    nil,
+		},
+		ETH: &migration015CoinConfig{
+			Type:             "API",
+			APIPool:          []string{"https://rinkeby.infura.io"},
+			APITestnetPool:   []string{"https://rinkeby.infura.io"},
+			FeeAPI:           "", // intentionally blank
+			LowFeeDefault:    7,
+			MediumFeeDefault: 15,
+			HighFeeDefault:   30,
+			MaxFee:           200,
+			WalletOptions: map[string]interface{}{
+				"RegistryAddress":        migration015EthereumRegistryAddressMainnet,
+				"RinkebyRegistryAddress": migration015EthereumRegistryAddressRinkeby,
+				"RopstenRegistryAddress": migration015EthereumRegistryAddressRopsten,
+			},
+		},
+	}
 }
 
 type Migration015 struct{}
 
 func (Migration015) Up(repoPath, dbPassword string, testnet bool) error {
 	var (
-		configMap        = map[string]interface{}{}
+		configMap        = make(map[string]interface{})
 		configBytes, err = ioutil.ReadFile(path.Join(repoPath, "config"))
 	)
 	if err != nil {
@@ -61,8 +127,9 @@ func (Migration015) Up(repoPath, dbPassword string, testnet bool) error {
 		return fmt.Errorf("unmarshal config: %s", err.Error())
 	}
 
-	configMap["DataSharing"] = migration015DataSharing{PushTo: Migration017PushToAfterPushTo}
-	configMap["Bootstrap"] = Migration017PushToAfterBootstrapNodes
+	configMap["LegacyWallet"] = configMap["Wallet"]
+	delete(configMap, "Wallet")
+	configMap["Wallets"] = migration015DefaultWalletConfig()
 
 	newConfigBytes, err := json.MarshalIndent(configMap, "", "    ")
 	if err != nil {
@@ -73,12 +140,15 @@ func (Migration015) Up(repoPath, dbPassword string, testnet bool) error {
 		return fmt.Errorf("writing migrated config: %s", err.Error())
 	}
 
+	if err := writeRepoVer(repoPath, 16); err != nil {
+		return fmt.Errorf("bumping repover to 16: %s", err.Error())
+	}
 	return nil
 }
 
 func (Migration015) Down(repoPath, dbPassword string, testnet bool) error {
 	var (
-		configMap        = map[string]interface{}{}
+		configMap        = make(map[string]interface{})
 		configBytes, err = ioutil.ReadFile(path.Join(repoPath, "config"))
 	)
 	if err != nil {
@@ -89,8 +159,9 @@ func (Migration015) Down(repoPath, dbPassword string, testnet bool) error {
 		return fmt.Errorf("unmarshal config: %s", err.Error())
 	}
 
-	configMap["DataSharing"] = migration015DataSharing{PushTo: Migration017PushToBeforePushTo}
-	configMap["Bootstrap"] = Migration017PushToBeforeBootstrapNodes
+	configMap["Wallet"] = configMap["LegacyWallet"]
+	delete(configMap, "Wallets")
+	delete(configMap, "LegacyWallet")
 
 	newConfigBytes, err := json.MarshalIndent(configMap, "", "    ")
 	if err != nil {
@@ -101,5 +172,8 @@ func (Migration015) Down(repoPath, dbPassword string, testnet bool) error {
 		return fmt.Errorf("writing migrated config: %s", err.Error())
 	}
 
+	if err := writeRepoVer(repoPath, 15); err != nil {
+		return fmt.Errorf("bumping repover to 16: %s", err.Error())
+	}
 	return nil
 }

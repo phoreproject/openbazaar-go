@@ -1,3 +1,5 @@
+*Note: This document is out-of-date and does not accurately reflect the wallet architecture and changes introduced in v2.3.0/v0.13.0 (desktop/daemon).*
+
 Creating an altcoin integration
 ===============================
 
@@ -16,7 +18,7 @@ running instances.
 
 ### How to integrate your altcoin
 
-The first thing you need to do is create a wallet implementation that conforms to the wallet interface found [here](https://github.com/phoreproject/wallet-interface).
+The first thing you need to do is create a wallet implementation that conforms to the wallet interface found [here](https://github.com/OpenBazaar/wallet-interface).
 The interface *should* be agnostic enough to support most bitcoin derived altcoins, though if you find it isn't just talk to us and we'll see if
 we can make the necessary changes. 
 
@@ -24,7 +26,7 @@ The default wallet used openbazaar-go is a custom built SPV wallet based on the 
 which talks to bitcoind using the JSON-RPC interface. The code, found [here](https://github.com/phoreproject/openbazaar-go/tree/master/bitcoin/bitcoind), could be
 used as an example of how to integrate an altcoin. It should just be a matter of cloning the code into a new package and making the necessary changes.
 
-Most likely you will need to fork the [btcrpcclient](https://github.com/btcsuite/btcrpcclient) to make it work with your altcoin as that library expects the data
+Most likely you will need to fork the [btcrpcclient](https://github.com/btcsuite/btcd/tree/master/rpcclient) to make it work with your altcoin as that library expects the data
 returned by the JSON-RPC interface to be formatted in a very specific way. For example, `rpcClient.GetNewAddress()` expects a properly formatted Bitcoin address to 
 be returned and will thrown an error if it sees an altcoin address. The changes you would need to make to the library should be fairly minimal.
 

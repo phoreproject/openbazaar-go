@@ -30,6 +30,7 @@ message Listing {
     repeated string moderators              = 8;
     string termsAndConditions               = 9;
     string refundPolicy                     = 10;
+    bool testnet                            = 11;
 
     message Metadata {
         uint32 version                     = 1;

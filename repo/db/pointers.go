@@ -2,15 +2,18 @@ package db
 
 import (
 	"database/sql"
-	"github.com/phoreproject/openbazaar-go/ipfs"
-	"github.com/phoreproject/openbazaar-go/repo"
-	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
-	ps "gx/ipfs/QmXauCuJzmzapetmC6W4TuDJLL1yFFrVzSHoWv8YdbmnxH/go-libp2p-peerstore"
-	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
-	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
+
+	ma "gx/ipfs/QmTZBfrPJmjWsCvHEtX5FE6KimVJhsJg5sBbqEFYf4UZtL/go-multiaddr"
+	cid "gx/ipfs/QmTbxNB1NwDesLmKTscr4udL2tVP7MaxvXnD1D9yX7g3PN/go-cid"
+	peer "gx/ipfs/QmYVXrKrKHDC9FobgmcmshCDyWwdrfwfanNQN4oxJ9Fk3h/go-libp2p-peer"
+	ps "gx/ipfs/QmaCTz9RkrU13bm9kMB54f7atgqM4qkjDZpRwRoJiWXEqs/go-libp2p-peerstore"
+
 	"strconv"
 	"sync"
 	"time"
+
+	"github.com/phoreproject/openbazaar-go/ipfs"
+	"github.com/phoreproject/openbazaar-go/repo"
 )
 
 type PointersDB struct {
@@ -107,7 +110,7 @@ func (p *PointersDB) GetAll() ([]ipfs.Pointer, error) {
 			canID = &c
 		}
 		pointer := ipfs.Pointer{
-			Cid: k,
+			Cid: &k,
 			Value: ps.PeerInfo{
 				ID:    pid,
 				Addrs: []ma.Multiaddr{maAddr},
@@ -162,7 +165,7 @@ func (p *PointersDB) GetByPurpose(purpose ipfs.Purpose) ([]ipfs.Pointer, error) 
 			canID = &c
 		}
 		pointer := ipfs.Pointer{
-			Cid: k,
+			Cid: &k,
 			Value: ps.PeerInfo{
 				ID:    pid,
 				Addrs: []ma.Multiaddr{maAddr},
@@ -213,7 +216,7 @@ func (p *PointersDB) Get(id peer.ID) (ipfs.Pointer, error) {
 		canID = &c
 	}
 	pointer = ipfs.Pointer{
-		Cid: k,
+		Cid: &k,
 		Value: ps.PeerInfo{
 			ID:    pid,
 			Addrs: []ma.Multiaddr{maAddr},

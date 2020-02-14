@@ -2,14 +2,15 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"os/signal"
+	"path/filepath"
+
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
 	"github.com/jessevdk/go-flags"
 	"github.com/op/go-logging"
 	"github.com/phoreproject/openbazaar-go/cmd"
 	"github.com/phoreproject/openbazaar-go/core"
-	"os"
-	"os/signal"
-	"path/filepath"
 )
 
 var log = logging.MustGetLogger("main")
@@ -17,13 +18,6 @@ var log = logging.MustGetLogger("main")
 type Opts struct {
 	Version bool `short:"v" long:"version" description:"Print the version number and exit"`
 }
-
-type Stop struct{}
-
-type Restart struct{}
-
-var stopServer Stop
-var restartServer Restart
 
 var opts Opts
 
@@ -47,7 +41,7 @@ func main() {
 				core.Node.Datastore.Close()
 				repoLockFile := filepath.Join(core.Node.RepoPath, fsrepo.LockFile)
 				os.Remove(repoLockFile)
-				core.Node.Wallet.Close()
+				core.Node.Multiwallet.Close()
 				core.Node.IpfsNode.Close()
 			}
 			os.Exit(1)
@@ -74,14 +68,6 @@ func main() {
 		"start the OpenBazaar-Server",
 		"The start command starts the OpenBazaar-Server",
 		&cmd.Start{})
-	parser.AddCommand("stop",
-		"shutdown the server and disconnect",
-		"The stop command disconnects from peers and shuts down OpenBazaar-Server",
-		&stopServer)
-	parser.AddCommand("restart",
-		"restart the server",
-		"The restart command shuts down the server and restarts",
-		&restartServer)
 	parser.AddCommand("encryptdatabase",
 		"encrypt your database",
 		"This command encrypts the database containing your bitcoin private keys, identity key, and contracts",

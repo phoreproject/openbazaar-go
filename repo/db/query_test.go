@@ -1,8 +1,9 @@
 package db
 
 import (
-	"github.com/phoreproject/openbazaar-go/pb"
 	"testing"
+
+	"github.com/phoreproject/openbazaar-go/pb"
 )
 
 func Test_filterQuery(t *testing.T) {

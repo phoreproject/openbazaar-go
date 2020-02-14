@@ -28,6 +28,7 @@ func (c *connection) reader() {
 	for {
 		_, message, err := c.ws.ReadMessage()
 		if err != nil {
+			log.Errorf("Websocket read error: %s", err.Error())
 			break
 		}
 		log.Debugf("Incoming websocket message: %s", string(message))
@@ -42,6 +43,7 @@ func (c *connection) writer() {
 	for message := range c.send {
 		err := c.ws.WriteMessage(websocket.TextMessage, message)
 		if err != nil {
+			log.Errorf("Websocket write error: %s", err.Error())
 			break
 		}
 	}
@@ -123,7 +125,7 @@ func (wsh wsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			username, password, ok := r.BasicAuth()
 			h := sha256.Sum256([]byte(password))
 			password = hex.EncodeToString(h[:])
-			if !ok || username != wsh.username || strings.ToLower(password) != strings.ToLower(wsh.password) {
+			if !ok || username != wsh.username || !strings.EqualFold(password, wsh.password) {
 				wsh.logger.Error("refused websocket connection: invalid username and/or password")
 				w.WriteHeader(http.StatusForbidden)
 				fmt.Fprint(w, "403 - Forbidden")

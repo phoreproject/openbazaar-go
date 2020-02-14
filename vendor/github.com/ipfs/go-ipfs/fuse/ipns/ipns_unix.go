@@ -11,19 +11,20 @@ import (
 	"io"
 	"os"
 
-	core "github.com/ipfs/go-ipfs/core"
-	dag "github.com/ipfs/go-ipfs/merkledag"
-	mfs "github.com/ipfs/go-ipfs/mfs"
-	namesys "github.com/ipfs/go-ipfs/namesys"
-	path "github.com/ipfs/go-ipfs/path"
-	ft "github.com/ipfs/go-ipfs/unixfs"
+	dag "gx/ipfs/QmPJNbVw8o3ohC43ppSXyNXwYKsWShG4zygnirHptfbHri/go-merkledag"
+	path "gx/ipfs/QmQAgv6Gaoe2tQpcabqwKXKChp2MZ7i3UXv9DqTTaxCaTR/go-path"
+	ft "gx/ipfs/QmcYUTQ7tBZeH1CLsZM2S3xhMEZdvUgXvbjhpMsLDpk3oJ/go-unixfs"
 
-	logging "gx/ipfs/QmRb5jh8z2E8hMGN2tkvs1yHynUanqnZ3UeKwgN1i9P1F8/go-log"
-	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
-	fuse "gx/ipfs/QmaFNtBAXX4nVMQWbUqNysXyhevUj1k4B1y5uS45LC7Vw9/fuse"
-	fs "gx/ipfs/QmaFNtBAXX4nVMQWbUqNysXyhevUj1k4B1y5uS45LC7Vw9/fuse/fs"
-	ci "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
-	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
+	core "github.com/ipfs/go-ipfs/core"
+	namesys "github.com/ipfs/go-ipfs/namesys"
+
+	fuse "gx/ipfs/QmSJBsmLP1XMjv8hxYg2rUMdPDB7YUpyBo9idjrJ6Cmq6F/fuse"
+	fs "gx/ipfs/QmSJBsmLP1XMjv8hxYg2rUMdPDB7YUpyBo9idjrJ6Cmq6F/fuse/fs"
+	ci "gx/ipfs/QmTW4SdgBWq9GjsBsHeUx8WuGxzhgzAf88UMH2w62PC8yK/go-libp2p-crypto"
+	cid "gx/ipfs/QmTbxNB1NwDesLmKTscr4udL2tVP7MaxvXnD1D9yX7g3PN/go-cid"
+	peer "gx/ipfs/QmYVXrKrKHDC9FobgmcmshCDyWwdrfwfanNQN4oxJ9Fk3h/go-libp2p-peer"
+	mfs "gx/ipfs/Qmb74fRYPgpjYzoBV7PAVNmP3DQaRrh8dHdKE4PwnF3cRx/go-mfs"
+	logging "gx/ipfs/QmbkT7eMTyXfpeyB3ZMxxcxg7XH8t6uXp49jqzz4HB7BGF/go-log"
 )
 
 func init() {
@@ -84,7 +85,7 @@ type Root struct {
 }
 
 func ipnsPubFunc(ipfs *core.IpfsNode, k ci.PrivKey) mfs.PubFunc {
-	return func(ctx context.Context, c *cid.Cid) error {
+	return func(ctx context.Context, c cid.Cid) error {
 		return ipfs.Namesys.Publish(ctx, k, path.FromCid(c))
 	}
 }
@@ -118,14 +119,7 @@ func loadRoot(ctx context.Context, rt *keyRoot, ipfs *core.IpfsNode, name string
 
 	rt.root = root
 
-	switch val := root.GetValue().(type) {
-	case *mfs.Directory:
-		return &Directory{dir: val}, nil
-	case *mfs.File:
-		return &FileNode{fi: val}, nil
-	default:
-		return nil, errors.New("unrecognized type")
-	}
+	return &Directory{dir: root.GetDirectory()}, nil
 }
 
 type keyRoot struct {
@@ -203,7 +197,8 @@ func (s *Root) Lookup(ctx context.Context, name string) (fs.Node, error) {
 	}
 
 	// other links go through ipns resolution and are symlinked into the ipfs mountpoint
-	resolved, err := s.Ipfs.Namesys.Resolve(s.Ipfs.Context(), name)
+	ipnsName := "/ipns/" + name
+	resolved, err := s.Ipfs.Namesys.Resolve(s.Ipfs.Context(), ipnsName)
 	if err != nil {
 		log.Warningf("ipns: namesys resolve error: %s", err)
 		return nil, fuse.ENOENT
@@ -408,12 +403,13 @@ func (fi *File) Setattr(ctx context.Context, req *fuse.SetattrRequest, resp *fus
 	return nil
 }
 
-// Fsync flushes the content in the file to disk, but does not
-// update the dag tree internally
+// Fsync flushes the content in the file to disk.
 func (fi *FileNode) Fsync(ctx context.Context, req *fuse.FsyncRequest) error {
+	// This needs to perform a *full* flush because, in MFS, a write isn't
+	// persisted until the root is updated.
 	errs := make(chan error, 1)
 	go func() {
-		errs <- fi.fi.Sync()
+		errs <- fi.fi.Flush()
 	}()
 	select {
 	case err := <-errs:
@@ -424,7 +420,8 @@ func (fi *FileNode) Fsync(ctx context.Context, req *fuse.FsyncRequest) error {
 }
 
 func (fi *File) Forget() {
-	err := fi.fi.Sync()
+	// TODO(steb): this seems like a place where we should be *uncaching*, not flushing.
+	err := fi.fi.Flush()
 	if err != nil {
 		log.Debug("forget file error: ", err)
 	}
@@ -440,19 +437,11 @@ func (dir *Directory) Mkdir(ctx context.Context, req *fuse.MkdirRequest) (fs.Nod
 }
 
 func (fi *FileNode) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenResponse) (fs.Handle, error) {
-	var mfsflag int
-	switch {
-	case req.Flags.IsReadOnly():
-		mfsflag = mfs.OpenReadOnly
-	case req.Flags.IsWriteOnly():
-		mfsflag = mfs.OpenWriteOnly
-	case req.Flags.IsReadWrite():
-		mfsflag = mfs.OpenReadWrite
-	default:
-		return nil, errors.New("unsupported flag type")
-	}
-
-	fd, err := fi.fi.Open(mfsflag, true)
+	fd, err := fi.fi.Open(mfs.Flags{
+		Read:  req.Flags.IsReadOnly() || req.Flags.IsReadWrite(),
+		Write: req.Flags.IsWriteOnly() || req.Flags.IsReadWrite(),
+		Sync:  true,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -508,19 +497,11 @@ func (dir *Directory) Create(ctx context.Context, req *fuse.CreateRequest, resp 
 
 	nodechild := &FileNode{fi: fi}
 
-	var openflag int
-	switch {
-	case req.Flags.IsReadOnly():
-		openflag = mfs.OpenReadOnly
-	case req.Flags.IsWriteOnly():
-		openflag = mfs.OpenWriteOnly
-	case req.Flags.IsReadWrite():
-		openflag = mfs.OpenReadWrite
-	default:
-		return nil, nil, errors.New("unsupported open mode")
-	}
-
-	fd, err := fi.Open(openflag, true)
+	fd, err := fi.Open(mfs.Flags{
+		Read:  req.Flags.IsReadOnly() || req.Flags.IsReadWrite(),
+		Write: req.Flags.IsWriteOnly() || req.Flags.IsReadWrite(),
+		Sync:  true,
+	})
 	if err != nil {
 		return nil, nil, err
 	}

@@ -7,25 +7,25 @@ import (
 	"os"
 	"strings"
 
-	blockservice "github.com/ipfs/go-ipfs/blockservice"
-	core "github.com/ipfs/go-ipfs/core"
-	"github.com/ipfs/go-ipfs/core/coreunix"
-	dag "github.com/ipfs/go-ipfs/merkledag"
-	dagtest "github.com/ipfs/go-ipfs/merkledag/test"
-	mfs "github.com/ipfs/go-ipfs/mfs"
-	ft "github.com/ipfs/go-ipfs/unixfs"
+	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
 
-	cmds "gx/ipfs/QmTjNRVt2fvaRFu93keEC7z5M1GS1iH6qZ9227htQioTUY/go-ipfs-cmds"
-	offline "gx/ipfs/QmWM5HhdG5ZQNyHQ5XhMdGmV9CvLpFynQfGpTxN2MEM7Lc/go-ipfs-exchange-offline"
-	mh "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
-	bstore "gx/ipfs/QmaG4DZ4JaqEfvPWt5nPPgoTzhc1tr1T3f4Nu9Jpdm8ymY/go-ipfs-blockstore"
-	cmdkit "gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit"
-	files "gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit/files"
-	pb "gx/ipfs/QmeWjRodbcZFKe5tMN7poEx3izym6osrLSnTLf9UjJZBbs/pb"
+	cmds "gx/ipfs/QmQkW9fnCsg9SLHdViiAh6qfBppodsPZVpU92dZLqYtEfs/go-ipfs-cmds"
+	coreiface "gx/ipfs/QmXLwxifxwfc2bAwq6rdjbYqAsGzWsDE9RM5TWMGtykyj6/interface-go-ipfs-core"
+	options "gx/ipfs/QmXLwxifxwfc2bAwq6rdjbYqAsGzWsDE9RM5TWMGtykyj6/interface-go-ipfs-core/options"
+	pb "gx/ipfs/QmYWB8oH6o7qftxoyqTTZhzLrhKCVT7NYahECQTwTtqbgj/pb"
+	cmdkit "gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
+	mh "gx/ipfs/QmerPMzPk1mJVowm8KgmoknWa4yCYvvugMPsgWmDNUvDLW/go-multihash"
 )
 
 // ErrDepthLimitExceeded indicates that the max depth has been exceeded.
 var ErrDepthLimitExceeded = fmt.Errorf("depth limit exceeded")
+
+type AddEvent struct {
+	Name  string
+	Hash  string `json:",omitempty"`
+	Bytes int64  `json:",omitempty"`
+	Size  string `json:",omitempty"`
+}
 
 const (
 	quietOptionName       = "quiet"
@@ -34,6 +34,7 @@ const (
 	progressOptionName    = "progress"
 	trickleOptionName     = "trickle"
 	wrapOptionName        = "wrap-with-directory"
+	stdinPathName         = "stdin-name"
 	hiddenOptionName      = "hidden"
 	onlyHashOptionName    = "only-hash"
 	chunkerOptionName     = "chunker"
@@ -43,6 +44,8 @@ const (
 	fstoreCacheOptionName = "fscache"
 	cidVersionOptionName  = "cid-version"
 	hashOptionName        = "hash"
+	inlineOptionName      = "inline"
+	inlineLimitOptionName = "inline-limit"
 )
 
 const adderOutChanSize = 8
@@ -75,12 +78,16 @@ You can now refer to the added file in a gateway, like so:
 
 The chunker option, '-s', specifies the chunking strategy that dictates
 how to break files into blocks. Blocks with same content can
-be deduplicated. The default is a fixed block size of
+be deduplicated. Different chunking strategies will produce different
+hashes for the same file. The default is a fixed block size of
 256 * 1024 bytes, 'size-262144'. Alternatively, you can use the
-rabin chunker for content defined chunking by specifying
-rabin-[min]-[avg]-[max] (where min/avg/max refer to the resulting
-chunk sizes). Using other chunking strategies will produce
-different hashes for the same file.
+Rabin fingerprint chunker for content defined chunking by specifying
+rabin-[min]-[avg]-[max] (where min/avg/max refer to the desired
+chunk sizes in bytes), e.g. 'rabin-262144-524288-1048576'.
+
+The following examples use very small byte sizes to demonstrate the
+properties of the different chunkers on a small file. You'll likely
+want to use a 1024 times larger chunk sizes for most files.
 
   > ipfs add --chunker=size-2048 ipfs-logo.svg
   added QmafrLBfzRLV4XSH1XcaMMeaXEUhDJjmtDfsYU95TrWG87 ipfs-logo.svg
@@ -104,6 +111,7 @@ You can now check what blocks have been created by:
 	},
 	Options: []cmdkit.Option{
 		cmds.OptionRecursivePath, // a builtin option that allows recursive paths (-r, --recursive)
+		cmds.OptionDerefArgs,     // a builtin option that resolves passed in filesystem links (--dereference-args)
 		cmdkit.BoolOption(quietOptionName, "q", "Write minimal output."),
 		cmdkit.BoolOption(quieterOptionName, "Q", "Write only final hash."),
 		cmdkit.BoolOption(silentOptionName, "Write no output."),
@@ -111,6 +119,7 @@ You can now check what blocks have been created by:
 		cmdkit.BoolOption(trickleOptionName, "t", "Use trickle-dag format for dag generation."),
 		cmdkit.BoolOption(onlyHashOptionName, "n", "Only chunk and hash - do not write to disk."),
 		cmdkit.BoolOption(wrapOptionName, "w", "Wrap files with a directory object."),
+		cmdkit.StringOption(stdinPathName, "Assign a name if the file source is stdin."),
 		cmdkit.BoolOption(hiddenOptionName, "H", "Include files that are hidden. Only takes effect on recursive add."),
 		cmdkit.StringOption(chunkerOptionName, "s", "Chunking algorithm, size-[bytes] or rabin-[min]-[avg]-[max]").WithDefault("size-262144"),
 		cmdkit.BoolOption(pinOptionName, "Pin this object when adding.").WithDefault(true),
@@ -119,6 +128,8 @@ You can now check what blocks have been created by:
 		cmdkit.BoolOption(fstoreCacheOptionName, "Check the filestore for pre-existing blocks. (experimental)"),
 		cmdkit.IntOption(cidVersionOptionName, "CID version. Defaults to 0 unless an option that depends on CIDv1 is passed. (experimental)"),
 		cmdkit.StringOption(hashOptionName, "Hash function to use. Implies CIDv1 if not sha2-256. (experimental)").WithDefault("sha2-256"),
+		cmdkit.BoolOption(inlineOptionName, "Inline small blocks into CIDs. (experimental)"),
+		cmdkit.IntOption(inlineLimitOptionName, "Maximum block size to inline. (experimental)").WithDefault(32),
 	},
 	PreRun: func(req *cmds.Request, env cmds.Environment) error {
 		quiet, _ := req.Options[quietOptionName].(bool)
@@ -139,25 +150,11 @@ You can now check what blocks have been created by:
 
 		return nil
 	},
-	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) {
-		n, err := GetNode(env)
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		api, err := cmdenv.GetApi(env, req)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
-
-		cfg, err := n.Repo.Config()
-		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
-		}
-		// check if repo will exceed storage limit if added
-		// TODO: this doesn't handle the case if the hashed file is already in blocks (deduplicated)
-		// TODO: conditional GC is disabled due to it is somehow not possible to pass the size to the daemon
-		//if err := corerepo.ConditionalGC(req.Context(), n, uint64(size)); err != nil {
-		//	res.SetError(err, cmdkit.ErrNormal)
-		//	return
-		//}
 
 		progress, _ := req.Options[progressOptionName].(bool)
 		trickle, _ := req.Options[trickleOptionName].(bool)
@@ -172,204 +169,102 @@ You can now check what blocks have been created by:
 		fscache, _ := req.Options[fstoreCacheOptionName].(bool)
 		cidVer, cidVerSet := req.Options[cidVersionOptionName].(int)
 		hashFunStr, _ := req.Options[hashOptionName].(string)
-
-		// The arguments are subject to the following constraints.
-		//
-		// nocopy -> filestoreEnabled
-		// nocopy -> rawblocks
-		// (hash != sha2-256) -> cidv1
-
-		// NOTE: 'rawblocks -> cidv1' is missing. Legacy reasons.
-
-		// nocopy -> filestoreEnabled
-		if nocopy && !cfg.Experimental.FilestoreEnabled {
-			res.SetError(errors.New("filestore is not enabled, see https://git.io/vNItf"),
-				cmdkit.ErrClient)
-			return
-		}
-
-		// nocopy -> rawblocks
-		if nocopy && !rawblks {
-			// fixed?
-			if rbset {
-				res.SetError(
-					fmt.Errorf("nocopy option requires '--raw-leaves' to be enabled as well"),
-					cmdkit.ErrNormal,
-				)
-				return
-			}
-			// No, satisfy mandatory constraint.
-			rawblks = true
-		}
-
-		// (hash != "sha2-256") -> CIDv1
-		if hashFunStr != "sha2-256" && cidVer == 0 {
-			if cidVerSet {
-				res.SetError(
-					errors.New("CIDv0 only supports sha2-256"),
-					cmdkit.ErrClient,
-				)
-				return
-			}
-			cidVer = 1
-		}
-
-		// cidV1 -> raw blocks (by default)
-		if cidVer > 0 && !rbset {
-			rawblks = true
-		}
-
-		prefix, err := dag.PrefixForCidVersion(cidVer)
-		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
-		}
+		inline, _ := req.Options[inlineOptionName].(bool)
+		inlineLimit, _ := req.Options[inlineLimitOptionName].(int)
+		pathName, _ := req.Options[stdinPathName].(string)
 
 		hashFunCode, ok := mh.Names[strings.ToLower(hashFunStr)]
 		if !ok {
-			res.SetError(fmt.Errorf("unrecognized hash function: %s", strings.ToLower(hashFunStr)), cmdkit.ErrNormal)
-			return
+			return fmt.Errorf("unrecognized hash function: %s", strings.ToLower(hashFunStr))
 		}
 
-		prefix.MhType = hashFunCode
-		prefix.MhLength = -1
-
-		if hash {
-			nilnode, err := core.NewNode(n.Context(), &core.BuildCfg{
-				//TODO: need this to be true or all files
-				// hashed will be stored in memory!
-				NilRepo: true,
-			})
-			if err != nil {
-				res.SetError(err, cmdkit.ErrNormal)
-				return
-			}
-			n = nilnode
-		}
-
-		addblockstore := n.Blockstore
-		if !(fscache || nocopy) {
-			addblockstore = bstore.NewGCBlockstore(n.BaseBlocks, n.GCLocker)
-		}
-
-		exch := n.Exchange
-		local, _ := req.Options["local"].(bool)
-		if local {
-			exch = offline.Exchange(addblockstore)
-		}
-
-		bserv := blockservice.New(addblockstore, exch) // hash security 001
-		dserv := dag.NewDAGService(bserv)
-
-		outChan := make(chan interface{}, adderOutChanSize)
-
-		fileAdder, err := coreunix.NewAdder(req.Context, n.Pinning, n.Blockstore, dserv)
+		enc, err := cmdenv.GetCidEncoder(req)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
-		fileAdder.Out = outChan
-		fileAdder.Chunker = chunker
-		fileAdder.Progress = progress
-		fileAdder.Hidden = hidden
-		fileAdder.Trickle = trickle
-		fileAdder.Wrap = wrap
-		fileAdder.Pin = dopin
-		fileAdder.Silent = silent
-		fileAdder.RawLeaves = rawblks
-		fileAdder.NoCopy = nocopy
-		fileAdder.Prefix = &prefix
+		events := make(chan interface{}, adderOutChanSize)
 
-		if hash {
-			md := dagtest.Mock()
-			emptyDirNode := ft.EmptyDirNode()
-			// Use the same prefix for the "empty" MFS root as for the file adder.
-			emptyDirNode.Prefix = *fileAdder.Prefix
-			mr, err := mfs.NewRoot(req.Context, md, emptyDirNode, nil)
-			if err != nil {
-				res.SetError(err, cmdkit.ErrNormal)
-				return
-			}
+		opts := []options.UnixfsAddOption{
+			options.Unixfs.Hash(hashFunCode),
 
-			fileAdder.SetMfsRoot(mr)
+			options.Unixfs.Inline(inline),
+			options.Unixfs.InlineLimit(inlineLimit),
+
+			options.Unixfs.Chunker(chunker),
+
+			options.Unixfs.Pin(dopin),
+			options.Unixfs.HashOnly(hash),
+			options.Unixfs.FsCache(fscache),
+			options.Unixfs.Nocopy(nocopy),
+
+			options.Unixfs.Wrap(wrap),
+			options.Unixfs.Hidden(hidden),
+			options.Unixfs.StdinName(pathName),
+
+			options.Unixfs.Progress(progress),
+			options.Unixfs.Silent(silent),
+			options.Unixfs.Events(events),
 		}
 
-		addAllAndPin := func(f files.File) error {
-			// Iterate over each top-level file and add individually. Otherwise the
-			// single files.File f is treated as a directory, affecting hidden file
-			// semantics.
-			for {
-				file, err := f.NextFile()
-				if err == io.EOF {
-					// Finished the list of files.
-					break
-				} else if err != nil {
-					return err
-				}
-				if err := fileAdder.AddFile(file); err != nil {
-					return err
-				}
-			}
+		if cidVerSet {
+			opts = append(opts, options.Unixfs.CidVersion(cidVer))
+		}
 
-			// copy intermediary nodes from editor to our actual dagservice
-			_, err := fileAdder.Finalize()
-			if err != nil {
-				return err
-			}
+		if rbset {
+			opts = append(opts, options.Unixfs.RawLeaves(rawblks))
+		}
 
-			if hash {
-				return nil
-			}
-
-			return fileAdder.PinRoot()
+		if trickle {
+			opts = append(opts, options.Unixfs.Layout(options.TrickleLayout))
 		}
 
 		errCh := make(chan error)
 		go func() {
 			var err error
 			defer func() { errCh <- err }()
-			defer close(outChan)
-			err = addAllAndPin(req.Files)
+			defer close(events)
+			_, err = api.Unixfs().Add(req.Context, req.Files, opts...)
 		}()
 
-		defer res.Close()
+		for event := range events {
+			output, ok := event.(*coreiface.AddEvent)
+			if !ok {
+				return errors.New("unknown event type")
+			}
 
-		err = res.Emit(outChan)
-		if err != nil {
-			log.Error(err)
-			return
+			h := ""
+			if output.Path != nil {
+				h = enc.Encode(output.Path.Cid())
+			}
+
+			res.Emit(&AddEvent{
+				Name:  output.Name,
+				Hash:  h,
+				Bytes: output.Bytes,
+				Size:  output.Size,
+			})
 		}
-		err = <-errCh
-		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-		}
+
+		return <-errCh
 	},
 	PostRun: cmds.PostRunMap{
-		cmds.CLI: func(req *cmds.Request, re cmds.ResponseEmitter) cmds.ResponseEmitter {
-			reNext, res := cmds.NewChanResponsePair(req)
-			outChan := make(chan interface{})
-
+		cmds.CLI: func(res cmds.Response, re cmds.ResponseEmitter) error {
 			sizeChan := make(chan int64, 1)
+			outChan := make(chan interface{})
+			req := res.Request()
 
-			sizeFile, ok := req.Files.(files.SizeFile)
-			if ok {
-				// Could be slow.
-				go func() {
-					size, err := sizeFile.Size()
-					if err != nil {
-						log.Warningf("error getting files size: %s", err)
-						// see comment above
-						return
-					}
+			// Could be slow.
+			go func() {
+				size, err := req.Files.Size()
+				if err != nil {
+					log.Warningf("error getting files size: %s", err)
+					// see comment above
+					return
+				}
 
-					sizeChan <- size
-				}()
-			} else {
-				// we don't need to error, the progress bar just
-				// won't know how big the files are
-				log.Warning("cannot determine size of input file")
-			}
+				sizeChan <- size
+			}()
 
 			progressBar := func(wait chan struct{}) {
 				defer close(wait)
@@ -405,7 +300,7 @@ You can now check what blocks have been created by:
 
 							break LOOP
 						}
-						output := out.(*coreunix.AddedObject)
+						output := out.(*AddEvent)
 						if len(output.Hash) > 0 {
 							lastHash = output.Hash
 							if quieter {
@@ -454,41 +349,44 @@ You can now check what blocks have been created by:
 						return
 					}
 				}
+
+				if progress && bar.Total == 0 && bar.Get() != 0 {
+					bar.Total = bar.Get()
+					bar.ShowPercent = true
+					bar.ShowBar = true
+					bar.ShowTimeLeft = true
+					bar.Update()
+				}
 			}
 
-			go func() {
-				// defer order important! First close outChan, then wait for output to finish, then close re
-				defer re.Close()
+			if e := res.Error(); e != nil {
+				close(outChan)
+				return e
+			}
 
-				if e := res.Error(); e != nil {
-					defer close(outChan)
-					re.SetError(e.Message, e.Code)
-					return
-				}
+			wait := make(chan struct{})
+			go progressBar(wait)
 
-				wait := make(chan struct{})
-				go progressBar(wait)
+			defer func() { <-wait }()
+			defer close(outChan)
 
-				defer func() { <-wait }()
-				defer close(outChan)
-
-				for {
-					v, err := res.Next()
-					if !cmds.HandleError(err, res, re) {
-						break
+			for {
+				v, err := res.Next()
+				if err != nil {
+					if err == io.EOF {
+						return nil
 					}
 
-					select {
-					case outChan <- v:
-					case <-req.Context.Done():
-						re.SetError(req.Context.Err(), cmdkit.ErrNormal)
-						return
-					}
+					return err
 				}
-			}()
 
-			return reNext
+				select {
+				case outChan <- v:
+				case <-req.Context.Done():
+					return req.Context.Err()
+				}
+			}
 		},
 	},
-	Type: coreunix.AddedObject{},
+	Type: AddEvent{},
 }

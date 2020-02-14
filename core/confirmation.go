@@ -5,14 +5,13 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+
+	crypto "gx/ipfs/QmTW4SdgBWq9GjsBsHeUx8WuGxzhgzAf88UMH2w62PC8yK/go-libp2p-crypto"
 	"time"
 
+	"github.com/OpenBazaar/wallet-interface"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
-	"github.com/phoreproject/wallet-interface"
-
-	crypto "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
-
 	"github.com/phoreproject/openbazaar-go/pb"
 )
 
@@ -25,8 +24,14 @@ func (n *OpenBazaarNode) NewOrderConfirmation(contract *pb.RicardianContract, ad
 		return nil, err
 	}
 	oc.OrderID = orderID
+
+	wal, err := n.Multiwallet.WalletForCurrencyCode(contract.BuyerOrder.Payment.Coin)
+	if err != nil {
+		return nil, err
+	}
+
 	if addressRequest {
-		addr := n.Wallet.NewAddress(wallet.EXTERNAL)
+		addr := wal.NewAddress(wallet.EXTERNAL)
 		oc.PaymentAddress = addr.EncodeAddress()
 	}
 
@@ -96,12 +101,16 @@ func (n *OpenBazaarNode) ConfirmOfflineOrder(contract *pb.RicardianContract, rec
 	if err != nil {
 		return err
 	}
+	wal, err := n.Multiwallet.WalletForCurrencyCode(contract.BuyerOrder.Payment.Coin)
+	if err != nil {
+		return err
+	}
 	if contract.BuyerOrder.Payment.Method != pb.Order_Payment_MODERATED {
 		// Sweep the temp address into our wallet
 		var txInputs []wallet.TransactionInput
 		for _, r := range records {
 			if !r.Spent && r.Value > 0 {
-				addr, err := n.Wallet.DecodeAddress(r.Address)
+				addr, err := wal.DecodeAddress(r.Address)
 				if err != nil {
 					return err
 				}
@@ -120,22 +129,19 @@ func (n *OpenBazaarNode) ConfirmOfflineOrder(contract *pb.RicardianContract, rec
 		}
 
 		if len(txInputs) == 0 {
-			return errors.New("No unspent transactions found to fund order")
+			return errors.New("no unspent transactions found to fund order")
 		}
 
 		chaincode, err := hex.DecodeString(contract.BuyerOrder.Payment.Chaincode)
 		if err != nil {
 			return err
 		}
-		mPrivKey := n.Wallet.MasterPrivateKey()
-		if err != nil {
-			return err
-		}
+		mPrivKey := n.MasterPrivateKey
 		mECKey, err := mPrivKey.ECPrivKey()
 		if err != nil {
 			return err
 		}
-		vendorKey, err := n.Wallet.ChildKey(mECKey.Serialize(), chaincode, true)
+		vendorKey, err := wal.ChildKey(mECKey.Serialize(), chaincode, true)
 		if err != nil {
 			return err
 		}
@@ -143,7 +149,7 @@ func (n *OpenBazaarNode) ConfirmOfflineOrder(contract *pb.RicardianContract, rec
 		if err != nil {
 			return err
 		}
-		_, err = n.Wallet.SweepAddress(txInputs, nil, vendorKey, &redeemScript, wallet.NORMAL)
+		_, err = wal.SweepAddress(txInputs, nil, vendorKey, &redeemScript, wallet.NORMAL)
 		if err != nil {
 			return err
 		}
@@ -168,13 +174,17 @@ func (n *OpenBazaarNode) RejectOfflineOrder(contract *pb.RicardianContract, reco
 	if err != nil {
 		return fmt.Errorf("marshal timestamp: %s", err.Error())
 	}
+	wal, err := n.Multiwallet.WalletForCurrencyCode(contract.BuyerOrder.Payment.Coin)
+	if err != nil {
+		return err
+	}
 	rejectMsg.Timestamp = ts
 	if contract.BuyerOrder.Payment.Method == pb.Order_Payment_MODERATED {
 		var ins []wallet.TransactionInput
 		var outValue int64
 		for _, r := range records {
 			if !r.Spent && r.Value > 0 {
-				addr, err := n.Wallet.DecodeAddress(r.Address)
+				addr, err := wal.DecodeAddress(r.Address)
 				if err != nil {
 					return fmt.Errorf("decode prior transactions address: %s", err.Error())
 				}
@@ -193,7 +203,7 @@ func (n *OpenBazaarNode) RejectOfflineOrder(contract *pb.RicardianContract, reco
 			}
 		}
 
-		refundAddress, err := n.Wallet.DecodeAddress(contract.BuyerOrder.RefundAddress)
+		refundAddress, err := wal.DecodeAddress(contract.BuyerOrder.RefundAddress)
 		if err != nil {
 			return fmt.Errorf("decode refund address: %s", err.Error())
 		}
@@ -206,15 +216,12 @@ func (n *OpenBazaarNode) RejectOfflineOrder(contract *pb.RicardianContract, reco
 		if err != nil {
 			return fmt.Errorf("decode buyer chaincode: %s", err.Error())
 		}
-		mPrivKey := n.Wallet.MasterPrivateKey()
-		if err != nil {
-			return fmt.Errorf("acquire wallet private key: %s", err.Error())
-		}
+		mPrivKey := n.MasterPrivateKey
 		mECKey, err := mPrivKey.ECPrivKey()
 		if err != nil {
 			return fmt.Errorf("generate ec private key: %s", err.Error())
 		}
-		vendorKey, err := n.Wallet.ChildKey(mECKey.Serialize(), chaincode, true)
+		vendorKey, err := wal.ChildKey(mECKey.Serialize(), chaincode, true)
 		if err != nil {
 			return fmt.Errorf("generate child key: %s", err.Error())
 		}
@@ -222,7 +229,7 @@ func (n *OpenBazaarNode) RejectOfflineOrder(contract *pb.RicardianContract, reco
 		if err != nil {
 			return fmt.Errorf("generate child key: %s", err.Error())
 		}
-		signatures, err := n.Wallet.CreateMultisigSignature(ins, []wallet.TransactionOutput{output}, vendorKey, redeemScript, contract.BuyerOrder.RefundFee)
+		signatures, err := wal.CreateMultisigSignature(ins, []wallet.TransactionOutput{output}, vendorKey, redeemScript, contract.BuyerOrder.RefundFee)
 		if err != nil {
 			return fmt.Errorf("generate multisig: %s", err.Error())
 		}
@@ -250,10 +257,14 @@ func (n *OpenBazaarNode) ValidateOrderConfirmation(contract *pb.RicardianContrac
 		return err
 	}
 	if contract.VendorOrderConfirmation.OrderID != orderID {
-		return errors.New("Vendor's response contained invalid order ID")
+		return errors.New("vendor's response contained invalid order ID")
 	}
 	if contract.VendorOrderConfirmation.RequestedAmount != contract.BuyerOrder.Payment.Amount {
-		return errors.New("Vendor requested an amount different from what we calculated")
+		return errors.New("vendor requested an amount different from what we calculated")
+	}
+	wal, err := n.Multiwallet.WalletForCurrencyCode(contract.BuyerOrder.Payment.Coin)
+	if err != nil {
+		return err
 	}
 	if contract.BuyerOrder.Payment.Method == pb.Order_Payment_MODERATED {
 		for _, sig := range contract.VendorOrderConfirmation.RatingSignatures {
@@ -265,7 +276,7 @@ func (n *OpenBazaarNode) ValidateOrderConfirmation(contract *pb.RicardianContrac
 				}
 			}
 			if !exists {
-				return errors.New("Rating signatures do not cover all purchased listings")
+				return errors.New("rating signatures do not cover all purchased listings")
 			}
 			pubkey, err := crypto.UnmarshalPublicKey(contract.VendorListings[0].VendorID.Pubkeys.Identity)
 			if err != nil {
@@ -273,7 +284,7 @@ func (n *OpenBazaarNode) ValidateOrderConfirmation(contract *pb.RicardianContrac
 			}
 
 			if !bytes.Equal(sig.Metadata.ModeratorKey, contract.BuyerOrder.Payment.ModeratorKey) {
-				return errors.New("Rating signature does not contain moderatory key")
+				return errors.New("rating signature does not contain moderatory key")
 			}
 			ser, err := proto.Marshal(sig.Metadata)
 			if err != nil {
@@ -281,12 +292,12 @@ func (n *OpenBazaarNode) ValidateOrderConfirmation(contract *pb.RicardianContrac
 			}
 			valid, err := pubkey.Verify(ser, sig.Signature)
 			if err != nil || !valid {
-				return errors.New("Failed to verify signature on rating keys")
+				return errors.New("failed to verify signature on rating keys")
 			}
 		}
 	}
 	if validateAddress {
-		_, err = n.Wallet.DecodeAddress(contract.VendorOrderConfirmation.PaymentAddress)
+		_, err = wal.DecodeAddress(contract.VendorOrderConfirmation.PaymentAddress)
 		if err != nil {
 			return err
 		}
@@ -306,9 +317,7 @@ func (n *OpenBazaarNode) SignOrderConfirmation(contract *pb.RicardianContract) (
 	}
 	s := new(pb.Signature)
 	s.Section = pb.Signature_ORDER_CONFIRMATION
-	if err != nil {
-		return contract, err
-	}
+
 	guidSig, err := n.IpfsNode.PrivateKey.Sign(serializedOrderConf)
 	if err != nil {
 		return contract, err
@@ -328,11 +337,11 @@ func verifySignaturesOnOrderConfirmation(contract *pb.RicardianContract) error {
 	); err != nil {
 		switch err.(type) {
 		case noSigError:
-			return errors.New("Contract does not contain a signature for the order confirmation")
+			return errors.New("contract does not contain a signature for the order confirmation")
 		case invalidSigError:
-			return errors.New("Vendor's guid signature on contact failed to verify")
+			return errors.New("vendor's guid signature on contact failed to verify")
 		case matchKeyError:
-			return errors.New("Public key in order confirmation does not match reported vendor ID")
+			return errors.New("public key in order confirmation does not match reported vendor ID")
 		default:
 			return err
 		}

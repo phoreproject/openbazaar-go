@@ -4,22 +4,20 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	ma "gx/ipfs/QmTZBfrPJmjWsCvHEtX5FE6KimVJhsJg5sBbqEFYf4UZtL/go-multiaddr"
+	"gx/ipfs/Qmc85NSvmSG4Frn9Vb2cBc1rMyULH6D3TNVEfCzSKoUpip/go-multiaddr-net"
+
 	"io/ioutil"
 	"net/http"
+	"os"
 	"reflect"
 	"testing"
 	"time"
 
 	"github.com/OpenBazaar/jsonpb"
 	"github.com/golang/protobuf/proto"
-	"github.com/phoreproject/openbazaar-go/test"
-
-	manet "gx/ipfs/QmRK2LxanhK2gZq6k6R7vk5ZoYZk8ULSSTB7FzDsMUX6CB/go-multiaddr-net"
-	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
-
-	"os"
-
 	"github.com/op/go-logging"
+	"github.com/phoreproject/openbazaar-go/test"
 )
 
 // testURIRoot is the root http URI to hit for testing
@@ -57,7 +55,7 @@ func newTestGateway() (*Gateway, error) {
 		return nil, err
 	}
 
-	return NewGateway(node, *test.GetAuthCookie(), listener.NetListener(), *apiConfig, logging.NewLogBackend(os.Stdout, "", 0))
+	return NewGateway(node, *test.GetAuthCookie(), manet.NetListener(listener), *apiConfig, logging.NewLogBackend(os.Stdout, "", 0))
 }
 
 // apiTest is a test case to be run against the api blackbox
@@ -206,9 +204,9 @@ func httpGet(endpoint string) ([]byte, error) {
 func jsonFor(t *testing.T, fixture proto.Message) string {
 	m := jsonpb.Marshaler{}
 
-	json, err := m.MarshalToString(fixture)
+	jsonStr, err := m.MarshalToString(fixture)
 	if err != nil {
 		t.Fatal(err)
 	}
-	return json
+	return jsonStr
 }

@@ -1,11 +1,12 @@
 package selfhosted
 
 import (
-	"github.com/ipfs/go-ipfs/core/mock"
-	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
-	"gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
+	"gx/ipfs/QmTbxNB1NwDesLmKTscr4udL2tVP7MaxvXnD1D9yX7g3PN/go-cid"
+	"gx/ipfs/QmYVXrKrKHDC9FobgmcmshCDyWwdrfwfanNQN4oxJ9Fk3h/go-libp2p-peer"
 	"os"
 	"testing"
+
+	"github.com/ipfs/go-ipfs/core/mock"
 )
 
 func TestSelfHostedStorage_Store(t *testing.T) {
@@ -26,7 +27,7 @@ func TestSelfHostedStorage_Store(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if ma.String() != "/ipfs/zb2rhj7crUKTQYRGCRATFaQ6YFLTde2YzdqbbhAASkL9uRDXn" {
+	if ma.String() != "/ipfs/Qmf412jQZiuVUtdgnB36FXFX7xg5V6KEbSJ4dpQuhkLyfD" {
 		t.Error("Self-hosted storage returned incorrect multiaddr")
 	}
 	os.RemoveAll("./outbox")

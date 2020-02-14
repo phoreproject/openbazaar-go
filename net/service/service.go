@@ -3,27 +3,27 @@ package service
 import (
 	"context"
 	"errors"
-	host "gx/ipfs/QmNmJZL7FQySMtE2BQuLMuZg2EB2CLEunJJUSVSc9YnnbV/go-libp2p-host"
-	ps "gx/ipfs/QmXauCuJzmzapetmC6W4TuDJLL1yFFrVzSHoWv8YdbmnxH/go-libp2p-peerstore"
-	inet "gx/ipfs/QmXfkENeeBvh3zYA51MaSdGUdBjhQ99cP5WQe8zgr6wchG/go-libp2p-net"
-	ggio "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/io"
+
+	inet "gx/ipfs/QmY3ArotKMKaL7YGfbQfyDrib6RVraLqZYWXZvVgZktBxp/go-libp2p-net"
+	peer "gx/ipfs/QmYVXrKrKHDC9FobgmcmshCDyWwdrfwfanNQN4oxJ9Fk3h/go-libp2p-peer"
+	host "gx/ipfs/QmYrWiWM4qtrnCeT3R14jY3ZZyirDNJgwK57q4qFYePgbd/go-libp2p-host"
 	protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
-	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
-	"sync"
-	"time"
+	ps "gx/ipfs/QmaCTz9RkrU13bm9kMB54f7atgqM4qkjDZpRwRoJiWXEqs/go-libp2p-peerstore"
+	ggio "gx/ipfs/QmddjPSGZb3ieihSseFeCfVRpZzcqczPNsD2DvarSwnjJB/gogo-protobuf/io"
 
 	"io"
+	"sync"
+	"time"
 
 	ctxio "github.com/jbenet/go-context/io"
 	"github.com/op/go-logging"
 	"github.com/phoreproject/openbazaar-go/core"
+	"github.com/phoreproject/openbazaar-go/ipfs"
 	"github.com/phoreproject/openbazaar-go/pb"
 	"github.com/phoreproject/openbazaar-go/repo"
 )
 
 var log = logging.MustGetLogger("service")
-
-var ProtocolOpenBazaar protocol.ID = "/openbazaar/app/1.0.0"
 
 type OpenBazaarService struct {
 	host      host.Host
@@ -48,9 +48,13 @@ func New(node *core.OpenBazaarNode, datastore repo.Datastore) *OpenBazaarService
 		node:      node,
 		sender:    make(map[peer.ID]*messageSender),
 	}
-	node.IpfsNode.PeerHost.SetStreamHandler(ProtocolOpenBazaar, service.HandleNewStream)
-	log.Infof("OpenBazaar service running at %s", ProtocolOpenBazaar)
+	node.IpfsNode.PeerHost.SetStreamHandler(protocol.ID(ipfs.IPFSProtocolAppMainnetOne), service.HandleNewStream)
+	log.Infof("OpenBazaar service running at %s", ipfs.IPFSProtocolAppMainnetOne)
 	return service
+}
+
+func (service *OpenBazaarService) WaitForReady() {
+	<-service.node.DHT.BootstrapChan
 }
 
 func (service *OpenBazaarService) DisconnectFromPeer(p peer.ID) error {
@@ -83,7 +87,7 @@ func (service *OpenBazaarService) handleNewMessage(s inet.Stream) {
 		return
 	}
 
-	ms, err := service.messageSenderForPeer(mPeer)
+	ms, err := service.messageSenderForPeer(service.ctx, mPeer)
 	if err != nil {
 		log.Error("Error getting message sender")
 		return
@@ -162,7 +166,7 @@ func (service *OpenBazaarService) handleNewMessage(s inet.Stream) {
 
 func (service *OpenBazaarService) SendRequest(ctx context.Context, p peer.ID, pmes *pb.Message) (*pb.Message, error) {
 	log.Debugf("Sending %s request to %s", pmes.MessageType.String(), p.Pretty())
-	ms, err := service.messageSenderForPeer(p)
+	ms, err := service.messageSenderForPeer(ctx, p)
 	if err != nil {
 		return nil, err
 	}
@@ -186,7 +190,7 @@ func (service *OpenBazaarService) SendMessage(ctx context.Context, p peer.ID, pm
 	if pmes.MessageType != pb.Message_BLOCK {
 		log.Debugf("Sending %s message to %s", pmes.MessageType.String(), p.Pretty())
 	}
-	ms, err := service.messageSenderForPeer(p)
+	ms, err := service.messageSenderForPeer(ctx, p)
 	if err != nil {
 		return err
 	}

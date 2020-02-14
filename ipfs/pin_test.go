@@ -1,9 +1,11 @@
 package ipfs
 
 import (
-	"github.com/ipfs/go-ipfs/core/mock"
+	"os"
 	"path"
 	"testing"
+
+	coremock "github.com/ipfs/go-ipfs/core/mock"
 )
 
 func TestUnPinDir(t *testing.T) {
@@ -12,7 +14,7 @@ func TestUnPinDir(t *testing.T) {
 		t.Error(err)
 	}
 
-	root, err := AddDirectory(n, path.Join("./", "root"))
+	root, err := AddDirectory(n, path.Join(os.TempDir(), "root"))
 	if err != nil {
 		t.Error(err)
 	}

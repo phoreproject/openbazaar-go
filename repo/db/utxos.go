@@ -3,21 +3,24 @@ package db
 import (
 	"database/sql"
 	"encoding/hex"
-	"github.com/phoreproject/btcd/chaincfg/chainhash"
-	"github.com/phoreproject/btcd/wire"
-	"github.com/phoreproject/openbazaar-go/repo"
-	"github.com/phoreproject/wallet-interface"
 	"strconv"
 	"strings"
 	"sync"
+
+	"github.com/phoreproject/multiwallet/util"
+
+	"github.com/OpenBazaar/wallet-interface"
+	"github.com/btcsuite/btcd/chaincfg/chainhash"
+	"github.com/btcsuite/btcd/wire"
+	"github.com/phoreproject/openbazaar-go/repo"
 )
 
 type UtxoDB struct {
 	modelStore
-	coinType wallet.CoinType
+	coinType util.ExtCoinType
 }
 
-func NewUnspentTransactionStore(db *sql.DB, lock *sync.Mutex, coinType wallet.CoinType) repo.UnspentTransactionOutputStore {
+func NewUnspentTransactionStore(db *sql.DB, lock *sync.Mutex, coinType util.ExtCoinType) repo.UnspentTransactionOutputStore {
 	return &UtxoDB{modelStore{db, lock}, coinType}
 }
 

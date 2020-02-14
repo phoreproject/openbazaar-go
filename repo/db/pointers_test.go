@@ -2,15 +2,16 @@ package db_test
 
 import (
 	"crypto/rand"
+
+	ma "gx/ipfs/QmTZBfrPJmjWsCvHEtX5FE6KimVJhsJg5sBbqEFYf4UZtL/go-multiaddr"
+	cid "gx/ipfs/QmTbxNB1NwDesLmKTscr4udL2tVP7MaxvXnD1D9yX7g3PN/go-cid"
+	peer "gx/ipfs/QmYVXrKrKHDC9FobgmcmshCDyWwdrfwfanNQN4oxJ9Fk3h/go-libp2p-peer"
+	ps "gx/ipfs/QmaCTz9RkrU13bm9kMB54f7atgqM4qkjDZpRwRoJiWXEqs/go-libp2p-peerstore"
+	multihash "gx/ipfs/QmerPMzPk1mJVowm8KgmoknWa4yCYvvugMPsgWmDNUvDLW/go-multihash"
+
 	"sync"
 	"testing"
 	"time"
-
-	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
-	ps "gx/ipfs/QmXauCuJzmzapetmC6W4TuDJLL1yFFrVzSHoWv8YdbmnxH/go-libp2p-peerstore"
-	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
-	multihash "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
-	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 
 	"github.com/phoreproject/openbazaar-go/ipfs"
 	"github.com/phoreproject/openbazaar-go/repo"
@@ -42,7 +43,7 @@ func mustNewPointer() ipfs.Pointer {
 		panic(err)
 	}
 	return ipfs.Pointer{
-		k,
+		&k,
 		ps.PeerInfo{
 			ID:    id,
 			Addrs: []ma.Multiaddr{maAddr},
@@ -173,7 +174,7 @@ func TestGetAllPointers(t *testing.T) {
 		if p.Value.ID != pointer.Value.ID {
 			t.Error("Get all pointers returned incorrect data")
 		}
-		if !p.Cid.Equals(pointer.Cid) {
+		if !p.Cid.Equals(*pointer.Cid) {
 			t.Error("Get all pointers returned incorrect data")
 		}
 		if p.CancelID.Pretty() != pointer.CancelID.Pretty() {
@@ -197,7 +198,7 @@ func TestPointersDB_GetByPurpose(t *testing.T) {
 	maAddr, _ := ma.NewMultiaddr("/ipfs/QmamudHQGtztShX7Nc9HcczehdpGGWpFBWu2JvKWcpELxr/")
 	k, _ := cid.Decode("QmamudHQGtztShX7Nc9HcczehdpGGWpFBWu2JvKWcpELxr")
 	m := ipfs.Pointer{
-		k,
+		&k,
 		ps.PeerInfo{
 			ID:    id,
 			Addrs: []ma.Multiaddr{maAddr},
@@ -224,7 +225,7 @@ func TestPointersDB_GetByPurpose(t *testing.T) {
 		if p.Value.ID != m.Value.ID {
 			t.Error("Get pointers returned incorrect data")
 		}
-		if !p.Cid.Equals(m.Cid) {
+		if !p.Cid.Equals(*m.Cid) {
 			t.Error("Get pointers returned incorrect data")
 		}
 		if p.CancelID != nil {
@@ -248,7 +249,7 @@ func TestPointersDB_Get(t *testing.T) {
 	maAddr, _ := ma.NewMultiaddr("/ipfs/QmamudHQGtztShX7Nc9HcczehdpGGWpFBWu2JvKWcpELxr/")
 	k, _ := cid.Decode("QmamudHQGtztShX7Nc9HcczehdpGGWpFBWu2JvKWcpELxr")
 	m := ipfs.Pointer{
-		k,
+		&k,
 		ps.PeerInfo{
 			ID:    id,
 			Addrs: []ma.Multiaddr{maAddr},
@@ -272,7 +273,7 @@ func TestPointersDB_Get(t *testing.T) {
 	if p.Value.ID != m.Value.ID {
 		t.Error("Get pointers returned incorrect data")
 	}
-	if !p.Cid.Equals(m.Cid) {
+	if !p.Cid.Equals(*m.Cid) {
 		t.Error("Get pointers returned incorrect data")
 	}
 	if p.CancelID != nil {

@@ -13,15 +13,14 @@ func TestOpenBazaarNode_CalculateOrderTotal(t *testing.T) {
 	node, err := test.NewNode()
 	if err != nil {
 		t.Error(err)
-		return
 	}
 	contract := &pb.RicardianContract{
 		VendorListings: []*pb.Listing{{
 			Metadata: &pb.Listing_Metadata{
 				ContractType:       pb.Listing_Metadata_PHYSICAL_GOOD,
 				Format:             pb.Listing_Metadata_FIXED_PRICE,
-				AcceptedCurrencies: []string{"PHR"},
-				PricingCurrency:    "PHR",
+				AcceptedCurrencies: []string{"BTC"},
+				PricingCurrency:    "BTC",
 				Version:            2,
 			},
 			Item: &pb.Listing_Item{
@@ -66,6 +65,9 @@ func TestOpenBazaarNode_CalculateOrderTotal(t *testing.T) {
 		Shipping: &pb.Order_Shipping{
 			Country: pb.CountryCode_UNITED_STATES,
 		},
+		Payment: &pb.Order_Payment{
+			Coin: "BTC",
+		},
 	}
 	contract.BuyerOrder = order
 
@@ -75,8 +77,7 @@ func TestOpenBazaarNode_CalculateOrderTotal(t *testing.T) {
 		t.Error(err)
 	}
 	if total != 125000 {
-		t.Error("Calculated wrong order total")
-		return
+		t.Errorf("Calculated wrong order total. Wanted %d, got %d", 125000, total)
 	}
 
 	// Test higher quantity
@@ -295,8 +296,8 @@ func TestOpenBazaarNode_CalculateOrderTotal(t *testing.T) {
 				Version:            3,
 				ContractType:       pb.Listing_Metadata_PHYSICAL_GOOD,
 				Format:             pb.Listing_Metadata_FIXED_PRICE,
-				AcceptedCurrencies: []string{"PHR"},
-				PricingCurrency:    "PHR",
+				AcceptedCurrencies: []string{"BTC"},
+				PricingCurrency:    "BTC",
 			},
 			Item: &pb.Listing_Item{
 				Price: 100000,
@@ -339,6 +340,9 @@ func TestOpenBazaarNode_CalculateOrderTotal(t *testing.T) {
 		},
 		Shipping: &pb.Order_Shipping{
 			Country: pb.CountryCode_UNITED_STATES,
+		},
+		Payment: &pb.Order_Payment{
+			Coin: "BTC",
 		},
 	}
 	contract2.BuyerOrder = order2

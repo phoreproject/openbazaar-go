@@ -3,6 +3,7 @@ package api
 import (
 	"bytes"
 	"encoding/json"
+
 	"github.com/OpenBazaar/jsonpb"
 	"github.com/golang/protobuf/proto"
 	"github.com/microcosm-cc/bluemonday"
@@ -55,13 +56,13 @@ func sanitize(data interface{}) {
 	switch d := data.(type) {
 	case map[string]interface{}:
 		for k, v := range d {
-			switch v.(type) {
+			switch tv := v.(type) {
 			case string:
-				d[k] = sanitizer.Sanitize(v.(string))
+				d[k] = sanitizer.Sanitize(tv)
 			case map[string]interface{}:
-				sanitize(v)
+				sanitize(tv)
 			case []interface{}:
-				sanitize(v)
+				sanitize(tv)
 			case nil:
 				delete(d, k)
 			}

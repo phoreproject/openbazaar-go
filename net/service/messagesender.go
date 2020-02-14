@@ -3,13 +3,14 @@ package service
 import (
 	"context"
 	"fmt"
-	inet "gx/ipfs/QmXfkENeeBvh3zYA51MaSdGUdBjhQ99cP5WQe8zgr6wchG/go-libp2p-net"
-	ggio "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/io"
-	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
+	inet "gx/ipfs/QmY3ArotKMKaL7YGfbQfyDrib6RVraLqZYWXZvVgZktBxp/go-libp2p-net"
+	"gx/ipfs/QmYVXrKrKHDC9FobgmcmshCDyWwdrfwfanNQN4oxJ9Fk3h/go-libp2p-peer"
+	ggio "gx/ipfs/QmddjPSGZb3ieihSseFeCfVRpZzcqczPNsD2DvarSwnjJB/gogo-protobuf/io"
 	"math/rand"
 	"sync"
 	"time"
 
+	"github.com/phoreproject/openbazaar-go/ipfs"
 	"github.com/phoreproject/openbazaar-go/pb"
 )
 
@@ -28,8 +29,9 @@ type messageSender struct {
 
 var ReadMessageTimeout = time.Minute * 5
 var ErrReadTimeout = fmt.Errorf("timed out reading response")
+var ErrWriteTimeout = fmt.Errorf("timed out writing message")
 
-func (service *OpenBazaarService) messageSenderForPeer(p peer.ID) (*messageSender, error) {
+func (service *OpenBazaarService) messageSenderForPeer(ctx context.Context, p peer.ID) (*messageSender, error) {
 	service.senderlk.Lock()
 	ms, ok := service.sender[p]
 	if ok {
@@ -40,7 +42,7 @@ func (service *OpenBazaarService) messageSenderForPeer(p peer.ID) (*messageSende
 	service.sender[p] = ms
 	service.senderlk.Unlock()
 
-	if err := ms.prepOrInvalidate(); err != nil {
+	if err := ms.ctxPrepOrInvalidate(ctx); err != nil {
 		service.senderlk.Lock()
 		defer service.senderlk.Unlock()
 
@@ -61,14 +63,6 @@ func (service *OpenBazaarService) messageSenderForPeer(p peer.ID) (*messageSende
 	return ms, nil
 }
 
-func (service *OpenBazaarService) newMessageSender(p peer.ID) *messageSender {
-	return &messageSender{
-		p:        p,
-		service:  service,
-		requests: make(map[int32]chan *pb.Message, 2), // low initial capacity
-	}
-}
-
 // invalidate is called before this messageSender is removed from the strmap.
 // It prevents the messageSender from being reused/reinitialized and then
 // forgotten (leaving the stream open).
@@ -80,14 +74,25 @@ func (ms *messageSender) invalidate() {
 	}
 }
 
-func (ms *messageSender) prepOrInvalidate() error {
+func (ms *messageSender) ctxPrepOrInvalidate(ctx context.Context) error {
 	ms.lk.Lock()
 	defer ms.lk.Unlock()
-	if err := ms.prep(); err != nil {
-		ms.invalidate()
+
+	errCh := make(chan error)
+	go func() {
+		errCh <- ms.prep()
+	}()
+
+	select {
+	case err := <-errCh:
+		if err != nil {
+			ms.invalidate()
+		}
 		return err
+	case <-ctx.Done():
+		ms.invalidate()
+		return ErrWriteTimeout
 	}
-	return nil
 }
 
 func (ms *messageSender) prep() error {
@@ -98,7 +103,7 @@ func (ms *messageSender) prep() error {
 		return nil
 	}
 
-	nstr, err := ms.service.host.NewStream(ms.service.ctx, ms.p, ProtocolOpenBazaar)
+	nstr, err := ms.service.host.NewStream(ms.service.ctx, ms.p, ipfs.IPFSProtocolAppMainnetOne)
 	if err != nil {
 		return err
 	}
@@ -112,7 +117,7 @@ func (ms *messageSender) prep() error {
 
 // streamReuseTries is the number of times we will try to reuse a stream to a
 // given peer before giving up and reverting to the old one-message-per-stream
-// behaviour.
+// behavior.
 const streamReuseTries = 3
 
 func (ms *messageSender) SendMessage(ctx context.Context, pmes *pb.Message) error {
@@ -124,7 +129,15 @@ func (ms *messageSender) SendMessage(ctx context.Context, pmes *pb.Message) erro
 			return err
 		}
 
-		if err := ms.w.WriteMsg(pmes); err != nil {
+		err := ms.ctxWriteMsg(ctx, pmes)
+		switch err {
+		case ErrWriteTimeout:
+			ms.s.Reset()
+			ms.s = nil
+			return err
+		case nil:
+			break
+		default:
 			ms.s.Reset()
 			ms.s = nil
 
@@ -154,6 +167,8 @@ func (ms *messageSender) SendRequest(ctx context.Context, pmes *pb.Message) (*pb
 	ms.requests[pmes.RequestId] = returnChan
 	ms.requestlk.Unlock()
 
+	defer ms.closeRequest(pmes.RequestId)
+
 	ms.lk.Lock()
 	defer ms.lk.Unlock()
 	retry := false
@@ -162,7 +177,15 @@ func (ms *messageSender) SendRequest(ctx context.Context, pmes *pb.Message) (*pb
 			return nil, err
 		}
 
-		if err := ms.w.WriteMsg(pmes); err != nil {
+		err := ms.ctxWriteMsg(ctx, pmes)
+		switch err {
+		case ErrWriteTimeout:
+			ms.s.Reset()
+			ms.s = nil
+			return nil, err
+		case nil:
+			break
+		default:
 			ms.s.Reset()
 			ms.s = nil
 
@@ -214,5 +237,19 @@ func (ms *messageSender) ctxReadMsg(ctx context.Context, returnChan chan *pb.Mes
 		return nil, ctx.Err()
 	case <-t.C:
 		return nil, ErrReadTimeout
+	}
+}
+
+func (ms *messageSender) ctxWriteMsg(ctx context.Context, pmes *pb.Message) error {
+	errCh := make(chan error)
+	go func() {
+		errCh <- ms.w.WriteMsg(pmes)
+	}()
+
+	select {
+	case err := <-errCh:
+		return err
+	case <-ctx.Done():
+		return ErrWriteTimeout
 	}
 }

@@ -1,14 +1,11 @@
 {
-  "author": "phore <admin@phore.io>",
-  "bugs": {
-    "url": "https://github.com/phoreproject/openbazaar-go"
-  },
-  "gxDependencies": [
-  ],
-  "gxVersion": "0.11.0",
+  "name": "openbazaar-go",
+  "author": "Phore Blockchain Company",
+  "version": "0.13.4",
   "language": "english",
   "license": "",
-  "name": "openbazaar-go",
-  "releaseCmd": "git commit -a -m \"gx publish $VERSION\"",
-  "version": "v1.1.7"
+  "bugs": {
+    "url": "https://github.com/phoreproject/openbazaar-go/issues/new"
+  },
+  "gxVersion": "0.11.0"
 }

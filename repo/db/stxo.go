@@ -3,21 +3,23 @@ package db
 import (
 	"database/sql"
 	"encoding/hex"
-	"github.com/phoreproject/btcd/chaincfg/chainhash"
-	"github.com/phoreproject/btcd/wire"
-	"github.com/phoreproject/openbazaar-go/repo"
-	"github.com/phoreproject/wallet-interface"
 	"strconv"
 	"strings"
 	"sync"
+
+	"github.com/OpenBazaar/wallet-interface"
+	"github.com/btcsuite/btcd/chaincfg/chainhash"
+	"github.com/btcsuite/btcd/wire"
+	"github.com/phoreproject/multiwallet/util"
+	"github.com/phoreproject/openbazaar-go/repo"
 )
 
 type StxoDB struct {
 	modelStore
-	coinType wallet.CoinType
+	coinType util.ExtCoinType
 }
 
-func NewSpentTransactionStore(db *sql.DB, lock *sync.Mutex, coinType wallet.CoinType) repo.SpentTransactionOutputStore {
+func NewSpentTransactionStore(db *sql.DB, lock *sync.Mutex, coinType util.ExtCoinType) repo.SpentTransactionOutputStore {
 	return &StxoDB{modelStore{db, lock}, coinType}
 }
 

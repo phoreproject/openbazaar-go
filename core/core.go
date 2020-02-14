@@ -2,34 +2,40 @@ package core
 
 import (
 	"errors"
+
+	"gx/ipfs/QmSY3nkMNLzh9GdbFKK5tT7YMfLpf52iUZ8ZRkr29MJaa5/go-libp2p-kad-dht"
+	libp2p "gx/ipfs/QmTW4SdgBWq9GjsBsHeUx8WuGxzhgzAf88UMH2w62PC8yK/go-libp2p-crypto"
+	ma "gx/ipfs/QmTZBfrPJmjWsCvHEtX5FE6KimVJhsJg5sBbqEFYf4UZtL/go-multiaddr"
+	cid "gx/ipfs/QmTbxNB1NwDesLmKTscr4udL2tVP7MaxvXnD1D9yX7g3PN/go-cid"
+	"gx/ipfs/QmUadX5EcvrBmxAV9sE7wUWtWSqxns5K84qKJBixmcT1w9/go-datastore"
+	peer "gx/ipfs/QmYVXrKrKHDC9FobgmcmshCDyWwdrfwfanNQN4oxJ9Fk3h/go-libp2p-peer"
+	routing "gx/ipfs/QmYxUdYY9S6yg5tSPVin5GFTvtfsLauVcr7reHDD3dM8xf/go-libp2p-routing"
+
 	"path"
 	"sync"
 	"time"
 
-	"github.com/ipfs/go-ipfs/core"
-	"github.com/op/go-logging"
-	"github.com/phoreproject/wallet-interface"
-	"golang.org/x/net/context"
-	"golang.org/x/net/proxy"
-
-	routing "gx/ipfs/QmTiWLZ6Fo5j4KcTVutZJ5KWRRJrbxzmxA4td8NfEdrPh7/go-libp2p-routing"
-	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
-	ds "gx/ipfs/QmXRKBQA4wXP7xWbFiZsR1GP4HV6wMDQ1aWFxZZ4uBcPX9/go-datastore"
-	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
-	libp2p "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
-	"gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
+	"github.com/phoreproject/multiwallet"
 
 	"github.com/phoreproject/openbazaar-go/ipfs"
-	"github.com/phoreproject/openbazaar-go/namesys"
 	"github.com/phoreproject/openbazaar-go/net"
 	rep "github.com/phoreproject/openbazaar-go/net/repointer"
 	ret "github.com/phoreproject/openbazaar-go/net/retriever"
 	"github.com/phoreproject/openbazaar-go/repo"
 	sto "github.com/phoreproject/openbazaar-go/storage"
+
+	"github.com/btcsuite/btcutil/hdkeychain"
+	"github.com/gosimple/slug"
+	"github.com/ipfs/go-ipfs/core"
+	logging "github.com/op/go-logging"
+	"golang.org/x/net/context"
+	"golang.org/x/net/proxy"
 )
 
-var (
-	VERSION   = "2.0.3"
+const (
+	// VERSION - current version
+	VERSION = "2.3.1"
+	// USERAGENT - user-agent header string
 	USERAGENT = "/Phore-Marketplace-go:" + VERSION + "/"
 )
 
@@ -45,9 +51,12 @@ type OpenBazaarNode struct {
 	// IPFS node object
 	IpfsNode *core.IpfsNode
 
-	/* The roothash of the node directory inside the openbazaar repo.
-	   This directory hash is published on IPNS at our peer ID making
-	   the directory publicly viewable on the network. */
+	// An implementation of the custom DHT used by OpenBazaar
+	DHT *dht.IpfsDHT
+
+	// The roothash of the node directory inside the openbazaar repo.
+	// This directory hash is published on IPNS at our peer ID making
+	// the directory publicly viewable on the network.
 	RootHash string
 
 	// The path to the openbazaar repo in the file system
@@ -62,8 +71,8 @@ type OpenBazaarNode struct {
 	// Websocket channel used for pushing data to the UI
 	Broadcast chan repo.Notifier
 
-	// Bitcoin wallet implementation
-	Wallet wallet.Wallet
+	// A map of cryptocurrency wallets
+	Multiwallet multiwallet.MultiWallet
 
 	// Storage for our outgoing messages
 	MessageStorage sto.OfflineMessagingStorage
@@ -71,14 +80,13 @@ type OpenBazaarNode struct {
 	// A service that periodically checks the dht for outstanding messages
 	MessageRetriever *ret.MessageRetriever
 
+	// OfflineMessageFailoverTimeout is the duration until the protocol
+	// will stop looking for the peer to send a direct message and failover to
+	// sending an offline message
+	OfflineMessageFailoverTimeout time.Duration
+
 	// A service that periodically republishes active pointers
 	PointerRepublisher *rep.PointerRepublisher
-
-	// Used to resolve domains to OpenBazaar IDs
-	NameSystem *namesys.NameSystem
-
-	// A service that periodically fetches and caches the bitcoin exchange rates
-	ExchangeRates wallet.ExchangeRates
 
 	// Optional nodes to push user data to
 	PushNodes []peer.ID
@@ -95,15 +103,19 @@ type OpenBazaarNode struct {
 	// Allow other nodes to push data to this node for storage
 	AcceptStoreRequests bool
 
-	// Last ditch API to find records that dropped out of the DHT
-	IPNSBackupAPI string
-
 	// RecordAgingNotifier is a worker that walks the cases datastore to
 	// notify the user as disputes age past certain thresholds
 	RecordAgingNotifier *recordAgingNotifier
 
 	// Generic pubsub interface
 	Pubsub ipfs.Pubsub
+
+	// The master private key derived from the mnemonic
+	MasterPrivateKey *hdkeychain.ExtendedKey
+
+	// The number of DHT records to collect before returning. The larger the number
+	// the slower the query but the less likely we will get an old record.
+	IPNSQuorumSize uint
 
 	TestnetEnable        bool
 	RegressionTestEnable bool
@@ -189,7 +201,7 @@ func (n *OpenBazaarNode) sendToPushNodes(hash string) error {
 
 	var graph []cid.Cid
 	if len(n.PushNodes) > 0 {
-		graph, err = ipfs.FetchGraph(n.IpfsNode, id)
+		graph, err = ipfs.FetchGraph(n.IpfsNode, &id)
 		if err != nil {
 			return err
 		}
@@ -208,20 +220,37 @@ func (n *OpenBazaarNode) sendToPushNodes(hash string) error {
 				if err != nil {
 					continue
 				}
-				graph = append(graph, *c)
+				graph = append(graph, c)
 			}
 		}
 	}
 	for _, p := range n.PushNodes {
-		go func(pid peer.ID) {
-			err := n.SendStore(pid.Pretty(), graph)
-			if err != nil {
-				log.Errorf("Error pushing data to peer %s: %s", pid.Pretty(), err.Error())
-			}
-		}(p)
+		go n.retryableSeedStoreToPeer(p, hash, graph)
 	}
 
 	return nil
+}
+
+func (n *OpenBazaarNode) retryableSeedStoreToPeer(pid peer.ID, graphHash string, graph []cid.Cid) {
+	var retryTimeout = 2 * time.Second
+	for {
+		if graphHash != n.RootHash {
+			log.Errorf("root hash has changed, aborting push to %s", pid.Pretty())
+			return
+		}
+		err := n.SendStore(pid.Pretty(), graph)
+		if err != nil {
+			if retryTimeout > 60*time.Second {
+				log.Errorf("error pushing to peer %s: %s", pid.Pretty(), err.Error())
+				return
+			}
+			log.Errorf("error pushing to peer %s...backing off: %s", pid.Pretty(), err.Error())
+			time.Sleep(retryTimeout)
+			retryTimeout *= 2
+			continue
+		}
+		return
+	}
 }
 
 // SetUpRepublisher - periodic publishing to IPNS
@@ -242,19 +271,19 @@ func (n *OpenBazaarNode) SetUpRepublisher(interval time.Duration) {
   For now we will just encrypt outgoing offline messages with the long lived identity key.
   Optionally you may provide a public key, to avoid doing an IPFS lookup */
 func (n *OpenBazaarNode) EncryptMessage(peerID peer.ID, peerKey *libp2p.PubKey, message []byte) (ct []byte, rerr error) {
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithTimeout(context.Background(), n.OfflineMessageFailoverTimeout)
 	defer cancel()
 	if peerKey == nil {
 		var pubKey libp2p.PubKey
-		keyval, err := n.IpfsNode.Repo.Datastore().Get(ds.NewKey(KeyCachePrefix + peerID.Pretty()))
+		keyval, err := n.IpfsNode.Repo.Datastore().Get(datastore.NewKey(KeyCachePrefix + peerID.Pretty()))
 		if err != nil {
-			pubKey, err = routing.GetPublicKey(n.IpfsNode.Routing, ctx, []byte(peerID))
+			pubKey, err = routing.GetPublicKey(n.IpfsNode.Routing, ctx, peerID)
 			if err != nil {
 				log.Errorf("Failed to find public key for %s", peerID.Pretty())
 				return nil, err
 			}
 		} else {
-			pubKey, err = libp2p.UnmarshalPublicKey(keyval.([]byte))
+			pubKey, err = libp2p.UnmarshalPublicKey(keyval)
 			if err != nil {
 				log.Errorf("Failed to find public key for %s", peerID.Pretty())
 				return nil, err
@@ -276,4 +305,15 @@ func (n *OpenBazaarNode) EncryptMessage(peerID peer.ID, peerKey *libp2p.PubKey, 
 // IPFSIdentityString - IPFS identifier
 func (n *OpenBazaarNode) IPFSIdentityString() string {
 	return n.IpfsNode.Identity.Pretty()
+}
+
+// createSlugFor Create a slug from a multi-lang string
+func createSlugFor(slugName string) string {
+	l := SentenceMaxCharacters - SlugBuffer
+
+	slug := slug.Make(slugName)
+	if len(slug) < SentenceMaxCharacters-SlugBuffer {
+		l = len(slug)
+	}
+	return slug[:l]
 }

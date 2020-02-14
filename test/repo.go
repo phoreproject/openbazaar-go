@@ -3,12 +3,11 @@ package test
 import (
 	"os"
 	"path"
-
 	"time"
 
+	"github.com/phoreproject/multiwallet/util"
 	"github.com/phoreproject/openbazaar-go/repo"
 	"github.com/phoreproject/openbazaar-go/repo/db"
-	"github.com/phoreproject/wallet-interface"
 )
 
 // Repository represents a test (temporary/volitile) repository
@@ -28,7 +27,7 @@ func NewRepository() (*Repository, error) {
 
 	// Create database
 	var err error
-	r.DB, err = db.Create(r.Path, "", true, wallet.Bitcoin)
+	r.DB, err = db.Create(r.Path, "", true, util.CoinTypePhore)
 	if err != nil {
 		return nil, err
 	}

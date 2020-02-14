@@ -3,13 +3,15 @@ package ipfs
 import (
 	"context"
 	"errors"
-	u "gx/ipfs/QmNiJuT8Ja3hMVpBHXv3Q6dwmperaQ6JjLtpMQgMCD7xvx/go-ipfs-util"
-	p2phost "gx/ipfs/QmNmJZL7FQySMtE2BQuLMuZg2EB2CLEunJJUSVSc9YnnbV/go-libp2p-host"
-	floodsub "gx/ipfs/QmSFihvoND3eDaAYRCeLgLPt62yCPgMZs1NSZmKFEtJQQw/go-libp2p-floodsub"
-	routing "gx/ipfs/QmTiWLZ6Fo5j4KcTVutZJ5KWRRJrbxzmxA4td8NfEdrPh7/go-libp2p-routing"
-	ds "gx/ipfs/QmXRKBQA4wXP7xWbFiZsR1GP4HV6wMDQ1aWFxZZ4uBcPX9/go-datastore"
-	pstore "gx/ipfs/QmXauCuJzmzapetmC6W4TuDJLL1yFFrVzSHoWv8YdbmnxH/go-libp2p-peerstore"
-	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
+
+	u "gx/ipfs/QmNohiVssaPw3KVLZik59DBVGTSm2dGvYT9eoXt5DQ36Yz/go-ipfs-util"
+	cid "gx/ipfs/QmTbxNB1NwDesLmKTscr4udL2tVP7MaxvXnD1D9yX7g3PN/go-cid"
+	ds "gx/ipfs/QmUadX5EcvrBmxAV9sE7wUWtWSqxns5K84qKJBixmcT1w9/go-datastore"
+	"gx/ipfs/QmVzLBPPg4gdyX3XFnNaNDkK4V81ptT5X6WZVFzTUECXMa/go-libp2p-pubsub"
+	p2phost "gx/ipfs/QmYrWiWM4qtrnCeT3R14jY3ZZyirDNJgwK57q4qFYePgbd/go-libp2p-host"
+	routing "gx/ipfs/QmYxUdYY9S6yg5tSPVin5GFTvtfsLauVcr7reHDD3dM8xf/go-libp2p-routing"
+	pstore "gx/ipfs/QmaCTz9RkrU13bm9kMB54f7atgqM4qkjDZpRwRoJiWXEqs/go-libp2p-peerstore"
+
 	"sync"
 	"time"
 )
@@ -32,7 +34,7 @@ type PubsubPublisher struct {
 	ds   ds.Datastore
 	host p2phost.Host
 	cr   routing.ContentRouting
-	ps   *floodsub.PubSub
+	ps   *pubsub.PubSub
 
 	mx   sync.Mutex
 	subs map[string]struct{}
@@ -44,14 +46,14 @@ type PubsubSubscriber struct {
 	ds   ds.Datastore
 	host p2phost.Host
 	cr   routing.ContentRouting
-	ps   *floodsub.PubSub
+	ps   *pubsub.PubSub
 
 	mx   sync.Mutex
-	subs map[string]*floodsub.Subscription
+	subs map[string]*pubsub.Subscription
 }
 
 // NewPubsubPublisher constructs a new Publisher that publishes arbitrary data through pubsub.
-func NewPubsubPublisher(ctx context.Context, host p2phost.Host, cr routing.ContentRouting, ds ds.Datastore, ps *floodsub.PubSub) *PubsubPublisher {
+func NewPubsubPublisher(ctx context.Context, host p2phost.Host, cr routing.ContentRouting, ds ds.Datastore, ps *pubsub.PubSub) *PubsubPublisher {
 	return &PubsubPublisher{
 		ctx:  ctx,
 		ds:   ds,
@@ -64,14 +66,14 @@ func NewPubsubPublisher(ctx context.Context, host p2phost.Host, cr routing.Conte
 
 // NewPubsubSubscriber constructs a new subscriber for arbitrary subscriptions through pubsub.
 // same as above for pubsub bootstrap dependencies
-func NewPubsubSubscriber(ctx context.Context, host p2phost.Host, cr routing.ContentRouting, ds ds.Datastore, ps *floodsub.PubSub) *PubsubSubscriber {
+func NewPubsubSubscriber(ctx context.Context, host p2phost.Host, cr routing.ContentRouting, ds ds.Datastore, ps *pubsub.PubSub) *PubsubSubscriber {
 	return &PubsubSubscriber{
 		ctx:  ctx,
 		ds:   ds,
 		host: host, // needed for pubsub bootstrap
 		cr:   cr,   // needed for pubsub bootstrap
 		ps:   ps,
-		subs: make(map[string]*floodsub.Subscription),
+		subs: make(map[string]*pubsub.Subscription),
 	}
 }
 
@@ -144,7 +146,7 @@ func (r *PubsubSubscriber) Cancel(name string) bool {
 	return ok
 }
 
-func (r *PubsubSubscriber) handleSubscription(sub *floodsub.Subscription, topic string, resp chan<- []byte, cancel func()) {
+func (r *PubsubSubscriber) handleSubscription(sub *pubsub.Subscription, topic string, resp chan<- []byte, cancel func()) {
 	defer sub.Cancel()
 	defer cancel()
 
@@ -164,7 +166,7 @@ func (r *PubsubSubscriber) handleSubscription(sub *floodsub.Subscription, topic 
 	}
 }
 
-func (r *PubsubSubscriber) receive(msg *floodsub.Message, topic string, resp chan<- []byte) error {
+func (r *PubsubSubscriber) receive(msg *pubsub.Message, topic string, resp chan<- []byte) error {
 	data := msg.GetData()
 	if data == nil {
 		return errors.New("empty message")

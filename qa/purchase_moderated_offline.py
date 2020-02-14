@@ -9,16 +9,16 @@ class PurchaseModeratedOfflineTest(OpenBazaarTestFramework):
 
     def __init__(self):
         super().__init__()
-        self.num_nodes = 3
+        self.num_nodes = 4
 
     def run_test(self):
-        alice = self.nodes[0]
-        bob = self.nodes[1]
-        charlie = self.nodes[2]
+        alice = self.nodes[1]
+        bob = self.nodes[2]
+        charlie = self.nodes[3]
 
         # generate some coins and send them to bob
         time.sleep(4)
-        api_url = bob["gateway_url"] + "wallet/address"
+        api_url = bob["gateway_url"] + "wallet/address/" + self.cointype
         r = requests.get(api_url)
         if r.status_code == 200:
             resp = json.loads(r.text)
@@ -63,6 +63,7 @@ class PurchaseModeratedOfflineTest(OpenBazaarTestFramework):
         # post listing to alice
         with open('testdata/listing.json') as listing_file:
             listing_json = json.load(listing_file, object_pairs_hook=OrderedDict)
+        listing_json["metadata"]["pricingCurrency"] = "t" + self.cointype
 
         api_url = alice["gateway_url"] + "ob/listing"
         listing_json["moderators"] = [moderatorId]
@@ -75,7 +76,7 @@ class PurchaseModeratedOfflineTest(OpenBazaarTestFramework):
         time.sleep(4)
 
         # get listing hash
-        api_url = alice["gateway_url"] + "ipns/" + alice["peerId"] + "/listings.json"
+        api_url = alice["gateway_url"] + "ob/listings/" + alice["peerId"]
         r = requests.get(api_url)
         if r.status_code != 200:
             raise TestFailure("PurchaseModeratedOfflineTest - FAIL: Couldn't get listing index")
@@ -89,13 +90,14 @@ class PurchaseModeratedOfflineTest(OpenBazaarTestFramework):
         # shutdown alice
         api_url = alice["gateway_url"] + "ob/shutdown"
         requests.post(api_url, data="")
-        time.sleep(4)
+        time.sleep(10)
 
         # bob send order
         with open('testdata/order_direct.json') as order_file:
             order_json = json.load(order_file, object_pairs_hook=OrderedDict)
         order_json["items"][0]["listingHash"] = listingId
         order_json["moderator"] = moderatorId
+        order_json["paymentCoin"] = "t" + self.cointype
         api_url = bob["gateway_url"] + "ob/purchase"
         r = requests.post(api_url, data=json.dumps(order_json, indent=4))
         if r.status_code == 404:
@@ -123,6 +125,7 @@ class PurchaseModeratedOfflineTest(OpenBazaarTestFramework):
 
         # fund order
         spend = {
+            "wallet": self.cointype,
             "address": payment_address,
             "amount": payment_amount,
             "feeLevel": "NORMAL"
@@ -154,7 +157,7 @@ class PurchaseModeratedOfflineTest(OpenBazaarTestFramework):
 
         # startup alice again
         self.start_node(alice)
-        time.sleep(45)
+        time.sleep(80)
 
         # check alice detected order and payment
         api_url = alice["gateway_url"] + "ob/order/" + orderId
@@ -163,12 +166,12 @@ class PurchaseModeratedOfflineTest(OpenBazaarTestFramework):
             raise TestFailure("PurchaseModeratedOfflineTest - FAIL: Couldn't load order from Alice %s", r.status_code)
         resp = json.loads(r.text)
         if resp["state"] != "PENDING":
-            raise TestFailure("PurchaseModeratedOfflineTest - FAIL: Alice failed to detect payment")
+            raise TestFailure("PurchaseModeratedOfflineTest - FAIL: Alice failed to detect initial payment")
         if resp["funded"] == False:
             raise TestFailure("PurchaseModeratedOfflineTest - FAIL: Alice incorrectly saved as unfunded")
 
         # check alice balance is zero
-        api_url = alice["gateway_url"] + "wallet/balance"
+        api_url = alice["gateway_url"] + "wallet/balance/" + self.cointype
         r = requests.get(api_url)
         if r.status_code == 200:
             resp = json.loads(r.text)
@@ -217,6 +220,7 @@ class PurchaseModeratedOfflineTest(OpenBazaarTestFramework):
             raise TestFailure("PurchaseDirectOnlineTest - FAIL: Alice incorrectly saved as unfunded")
 
         print("PurchaseModeratedOfflineTest - PASS")
+
 
 if __name__ == '__main__':
     print("Running PurchaseModeratedOfflineTest")

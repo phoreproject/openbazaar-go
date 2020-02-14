@@ -26,7 +26,6 @@ if [ ! -z "$TRAVIS_TAG" ] &&
 
   rm sha512_checksums.txt
 
-
   # Upload to GitHub Release page
   ghr --username phoreproject -t $GITHUB_TOKEN --replace --prerelease --debug $TRAVIS_TAG .
 else

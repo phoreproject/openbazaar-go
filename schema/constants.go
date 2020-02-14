@@ -39,6 +39,10 @@ const (
 	// End SQL Statements
 
 	// Configuration defaults
+	EthereumRegistryAddressMainnet = "0x403d907982474cdd51687b09a8968346159378f3"
+	EthereumRegistryAddressRinkeby = "0x403d907982474cdd51687b09a8968346159378f3"
+	EthereumRegistryAddressRopsten = "0x403d907982474cdd51687b09a8968346159378f3"
+
 	DataPushNodeOne   = "QmWbi8z4uPkEdrWHtgxCkQGE5vxJnrStXAeEQnupmQnKRh"
 	DataPushNodeTwo   = "Qma2LRYB4xLaoxsMCL2kb93WKCW4EotUMhgvQUSqE6tCka"
 	DataPushNodeThree = "QmZLs6zVpVtkoR8oYyAbCxujvC6weU5CgUPTYx8zKMAtTf"
@@ -51,6 +55,11 @@ const (
 	BootstrapNodeDefault_LeMarcheSerpette = "/ip4/159.203.115.78/tcp/5001/ipfs/QmPJuP4Myo8pGL1k56b85Q4rpaoSnmn5L3wLjYHTzbBrk1"
 	BootstrapNodeDefault_BrixtonVillage   = "/ip4/104.131.19.44/tcp/5001/ipfs/QmRvbZttqh6CPFiMKWa1jPfRR9JxagYRv4wsvMAG4ADUTj"
 
+	IPFSCachingRouterDefaultURI = "https://routing.api.phore.io"
+
+	// Testnet defaults
+	DataPushNodeTestnetOne  = "QmYJ42wLrkZE119DoDEd4TASuWFTEdwY9A9MpYS2okvfvJ"
+	BootstrapNodeTestnetOne = "/ip4/3.89.75.185/tcp/5001/ipfs/QmYJ42wLrkZE119DoDEd4TASuWFTEdwY9A9MpYS2okvfvJ"
 	// End Configuration defaults
 )
 
@@ -71,5 +80,36 @@ var (
 		BootstrapNodeDefault_LeMarcheSerpette,
 		BootstrapNodeDefault_BrixtonVillage,
 	}
-	BootstrapAddressesTestnet = []string{}
+	BootstrapAddressesTestnet = []string{
+		BootstrapNodeTestnetOne,
+	}
+)
+
+func EthereumDefaultOptions() map[string]interface{} {
+	return map[string]interface{}{
+		"RegistryAddress":        EthereumRegistryAddressMainnet,
+		"RinkebyRegistryAddress": EthereumRegistryAddressRinkeby,
+		"RopstenRegistryAddress": EthereumRegistryAddressRopsten,
+	}
+}
+
+const (
+	WalletTypeAPI = "API"
+	WalletTypeSPV = "SPV"
+)
+
+const (
+	CoinAPIOpenBazaarPHR = "https://phr.blockbook.api.phore.io/api"
+	CoinAPIOpenBazaarBTC = "https://btc.blockbook.api.phore.io/api"
+
+	CoinAPIOpenBazaarTPHR = "https://tphr.blockbook.api.phore.io/api"
+	CoinAPIOpenBazaarTBTC = "https://tbtc.blockbook.api.phore.io/api"
+)
+
+var (
+	CoinPoolPHR = []string{CoinAPIOpenBazaarPHR}
+	CoinPoolBTC = []string{CoinAPIOpenBazaarBTC}
+
+	CoinPoolTPHR = []string{CoinAPIOpenBazaarTPHR}
+	CoinPoolTBTC = []string{CoinAPIOpenBazaarTBTC}
 )

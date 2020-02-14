@@ -1,30 +1,31 @@
 package commands
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
 	"io"
 	"time"
 
-	cmds "github.com/ipfs/go-ipfs/commands"
-	e "github.com/ipfs/go-ipfs/core/commands/e"
-	dag "github.com/ipfs/go-ipfs/merkledag"
-	path "github.com/ipfs/go-ipfs/path"
+	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
 
-	ipdht "gx/ipfs/QmRaVcGchmC1stHHK7YhcgEuTk5k1JiGS568pfYWMgT91H/go-libp2p-kad-dht"
-	routing "gx/ipfs/QmTiWLZ6Fo5j4KcTVutZJ5KWRRJrbxzmxA4td8NfEdrPh7/go-libp2p-routing"
-	notif "gx/ipfs/QmTiWLZ6Fo5j4KcTVutZJ5KWRRJrbxzmxA4td8NfEdrPh7/go-libp2p-routing/notifications"
+	dag "gx/ipfs/QmPJNbVw8o3ohC43ppSXyNXwYKsWShG4zygnirHptfbHri/go-merkledag"
+	path "gx/ipfs/QmQAgv6Gaoe2tQpcabqwKXKChp2MZ7i3UXv9DqTTaxCaTR/go-path"
+	cmds "gx/ipfs/QmQkW9fnCsg9SLHdViiAh6qfBppodsPZVpU92dZLqYtEfs/go-ipfs-cmds"
+	cid "gx/ipfs/QmTbxNB1NwDesLmKTscr4udL2tVP7MaxvXnD1D9yX7g3PN/go-cid"
 	b58 "gx/ipfs/QmWFAMPqsEyUX7gDUsRVmMWz59FxSpJ1b2v6bJ1yYzo7jY/go-base58-fast/base58"
-	pstore "gx/ipfs/QmXauCuJzmzapetmC6W4TuDJLL1yFFrVzSHoWv8YdbmnxH/go-libp2p-peerstore"
-	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
-	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
-	"gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit"
-	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
+	peer "gx/ipfs/QmYVXrKrKHDC9FobgmcmshCDyWwdrfwfanNQN4oxJ9Fk3h/go-libp2p-peer"
+	routing "gx/ipfs/QmYxUdYY9S6yg5tSPVin5GFTvtfsLauVcr7reHDD3dM8xf/go-libp2p-routing"
+	notif "gx/ipfs/QmYxUdYY9S6yg5tSPVin5GFTvtfsLauVcr7reHDD3dM8xf/go-libp2p-routing/notifications"
+	ipld "gx/ipfs/QmZ6nzCLwGLVfRzYLpD7pW6UNuBDKEcA2imJtVpbEx2rxy/go-ipld-format"
+	pstore "gx/ipfs/QmaCTz9RkrU13bm9kMB54f7atgqM4qkjDZpRwRoJiWXEqs/go-libp2p-peerstore"
+	cmdkit "gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
 )
 
 var ErrNotDHT = errors.New("routing service is not a DHT")
+
+// TODO: Factor into `ipfs dht` and `ipfs routing`.
+// Everything *except `query` goes into `ipfs routing`.
 
 var DhtCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
@@ -42,6 +43,10 @@ var DhtCmd = &cmds.Command{
 	},
 }
 
+const (
+	dhtVerboseOptionName = "verbose"
+)
+
 var queryDhtCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline:          "Find the closest Peer IDs to a given Peer ID by querying the DHT.",
@@ -52,38 +57,34 @@ var queryDhtCmd = &cmds.Command{
 		cmdkit.StringArg("peerID", true, true, "The peerID to run the query against."),
 	},
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption("verbose", "v", "Print extra information."),
+		cmdkit.BoolOption(dhtVerboseOptionName, "v", "Print extra information."),
 	},
-	Run: func(req cmds.Request, res cmds.Response) {
-		n, err := req.InvocContext().GetNode()
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		nd, err := cmdenv.GetNode(env)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
-		dht, ok := n.Routing.(*ipdht.IpfsDHT)
-		if !ok {
-			res.SetError(ErrNotDHT, cmdkit.ErrNormal)
-			return
+		if nd.DHT == nil {
+			return ErrNotDHT
 		}
 
-		events := make(chan *notif.QueryEvent)
-		ctx := notif.RegisterForQueryEvents(req.Context(), events)
-
-		id, err := peer.IDB58Decode(req.Arguments()[0])
+		id, err := peer.IDB58Decode(req.Arguments[0])
 		if err != nil {
-			res.SetError(cmds.ClientError("invalid peer ID"), cmdkit.ErrClient)
-			return
+			return cmds.ClientError("invalid peer ID")
 		}
 
-		closestPeers, err := dht.GetClosestPeers(ctx, string(id))
+		ctx, cancel := context.WithCancel(req.Context)
+		ctx, events := notif.RegisterForQueryEvents(ctx)
+
+		closestPeers, err := nd.DHT.GetClosestPeers(ctx, string(id))
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			cancel()
+			return err
 		}
 
 		go func() {
-			defer close(events)
+			defer cancel()
 			for p := range closestPeers {
 				notif.PublishQueryEvent(ctx, &notif.QueryEvent{
 					ID:   p,
@@ -92,22 +93,16 @@ var queryDhtCmd = &cmds.Command{
 			}
 		}()
 
-		outChan := make(chan interface{})
-		res.SetOutput((<-chan interface{})(outChan))
-
-		go func() {
-			defer close(outChan)
-			for e := range events {
-				select {
-				case outChan <- e:
-				case <-req.Context().Done():
-					return
-				}
+		for e := range events {
+			if err := res.Emit(e); err != nil {
+				return err
 			}
-		}()
+		}
+
+		return nil
 	},
-	Marshalers: cmds.MarshalerMap{
-		cmds.Text: func() cmds.Marshaler {
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *notif.QueryEvent) error {
 			pfm := pfuncMap{
 				notif.PeerResponse: func(obj *notif.QueryEvent, out io.Writer, verbose bool) {
 					for _, p := range obj.Responses {
@@ -115,32 +110,21 @@ var queryDhtCmd = &cmds.Command{
 					}
 				},
 			}
-
-			return func(res cmds.Response) (io.Reader, error) {
-				v, err := unwrapOutput(res.Output())
-				if err != nil {
-					return nil, err
-				}
-
-				obj, ok := v.(*notif.QueryEvent)
-				if !ok {
-					return nil, e.TypeErr(obj, v)
-				}
-
-				verbose, _, _ := res.Request().Option("v").Bool()
-
-				buf := new(bytes.Buffer)
-				printEvent(obj, buf, verbose, pfm)
-				return buf, nil
-			}
-		}(),
+			verbose, _ := req.Options[dhtVerboseOptionName].(bool)
+			printEvent(out, w, verbose, pfm)
+			return nil
+		}),
 	},
 	Type: notif.QueryEvent{},
 }
 
+const (
+	numProvidersOptionName = "num-providers"
+)
+
 var findProvidersDhtCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
-		Tagline:          "Find peers in the DHT that can provide a specific value, given a key.",
+		Tagline:          "Find peers that can provide a specific value, given a key.",
 		ShortDescription: "Outputs a list of newline-delimited provider Peer IDs.",
 	},
 
@@ -148,58 +132,40 @@ var findProvidersDhtCmd = &cmds.Command{
 		cmdkit.StringArg("key", true, true, "The key to find providers for."),
 	},
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption("verbose", "v", "Print extra information."),
-		cmdkit.IntOption("num-providers", "n", "The number of providers to find.").WithDefault(20),
+		cmdkit.BoolOption(dhtVerboseOptionName, "v", "Print extra information."),
+		cmdkit.IntOption(numProvidersOptionName, "n", "The number of providers to find.").WithDefault(20),
 	},
-	Run: func(req cmds.Request, res cmds.Response) {
-		n, err := req.InvocContext().GetNode()
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		n, err := cmdenv.GetNode(env)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
-		dht, ok := n.Routing.(*ipdht.IpfsDHT)
-		if !ok {
-			res.SetError(ErrNotDHT, cmdkit.ErrNormal)
-			return
+		if !n.OnlineMode() {
+			return ErrNotOnline
 		}
 
-		numProviders, _, err := res.Request().Option("num-providers").Int()
+		numProviders, _ := req.Options[numProvidersOptionName].(int)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 		if numProviders < 1 {
-			res.SetError(fmt.Errorf("number of providers must be greater than 0"), cmdkit.ErrNormal)
-			return
+			return fmt.Errorf("number of providers must be greater than 0")
 		}
 
-		events := make(chan *notif.QueryEvent)
-		ctx := notif.RegisterForQueryEvents(req.Context(), events)
+		c, err := cid.Parse(req.Arguments[0])
 
-		c, err := cid.Decode(req.Arguments()[0])
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
-		outChan := make(chan interface{})
-		res.SetOutput((<-chan interface{})(outChan))
+		ctx, cancel := context.WithCancel(req.Context)
+		ctx, events := notif.RegisterForQueryEvents(ctx)
 
-		pchan := dht.FindProvidersAsync(ctx, c, numProviders)
-		go func() {
-			defer close(outChan)
-			for e := range events {
-				select {
-				case outChan <- e:
-				case <-req.Context().Done():
-					return
-				}
-			}
-		}()
+		pchan := n.Routing.FindProvidersAsync(ctx, c, numProviders)
 
 		go func() {
-			defer close(events)
+			defer cancel()
 			for p := range pchan {
 				np := p
 				notif.PublishQueryEvent(ctx, &notif.QueryEvent{
@@ -208,9 +174,16 @@ var findProvidersDhtCmd = &cmds.Command{
 				})
 			}
 		}()
+		for e := range events {
+			if err := res.Emit(e); err != nil {
+				return err
+			}
+		}
+
+		return nil
 	},
-	Marshalers: cmds.MarshalerMap{
-		cmds.Text: func() func(cmds.Response) (io.Reader, error) {
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *notif.QueryEvent) error {
 			pfm := pfuncMap{
 				notif.FinalPeer: func(obj *notif.QueryEvent, out io.Writer, verbose bool) {
 					if verbose {
@@ -231,26 +204,18 @@ var findProvidersDhtCmd = &cmds.Command{
 				},
 			}
 
-			return func(res cmds.Response) (io.Reader, error) {
-				verbose, _, _ := res.Request().Option("v").Bool()
-				v, err := unwrapOutput(res.Output())
-				if err != nil {
-					return nil, err
-				}
+			verbose, _ := req.Options[dhtVerboseOptionName].(bool)
+			printEvent(out, w, verbose, pfm)
 
-				obj, ok := v.(*notif.QueryEvent)
-				if !ok {
-					return nil, e.TypeErr(obj, v)
-				}
-
-				buf := new(bytes.Buffer)
-				printEvent(obj, buf, verbose, pfm)
-				return buf, nil
-			}
-		}(),
+			return nil
+		}),
 	},
 	Type: notif.QueryEvent{},
 }
+
+const (
+	recursiveOptionName = "recursive"
+)
 
 var provideRefDhtCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
@@ -261,74 +226,54 @@ var provideRefDhtCmd = &cmds.Command{
 		cmdkit.StringArg("key", true, true, "The key[s] to send provide records for.").EnableStdin(),
 	},
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption("verbose", "v", "Print extra information."),
-		cmdkit.BoolOption("recursive", "r", "Recursively provide entire graph."),
+		cmdkit.BoolOption(dhtVerboseOptionName, "v", "Print extra information."),
+		cmdkit.BoolOption(recursiveOptionName, "r", "Recursively provide entire graph."),
 	},
-	Run: func(req cmds.Request, res cmds.Response) {
-		n, err := req.InvocContext().GetNode()
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		nd, err := cmdenv.GetNode(env)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
-		if n.Routing == nil {
-			res.SetError(errNotOnline, cmdkit.ErrNormal)
-			return
+		if !nd.OnlineMode() {
+			return ErrNotOnline
 		}
 
-		if len(n.PeerHost.Network().Conns()) == 0 {
-			res.SetError(errors.New("cannot provide, no connected peers"), cmdkit.ErrNormal)
-			return
+		if len(nd.PeerHost.Network().Conns()) == 0 {
+			return errors.New("cannot provide, no connected peers")
 		}
 
-		rec, _, _ := req.Option("recursive").Bool()
+		rec, _ := req.Options[recursiveOptionName].(bool)
 
-		var cids []*cid.Cid
-		for _, arg := range req.Arguments() {
+		var cids []cid.Cid
+		for _, arg := range req.Arguments {
 			c, err := cid.Decode(arg)
 			if err != nil {
-				res.SetError(err, cmdkit.ErrNormal)
-				return
+				return err
 			}
 
-			has, err := n.Blockstore.Has(c)
+			has, err := nd.Blockstore.Has(c)
 			if err != nil {
-				res.SetError(err, cmdkit.ErrNormal)
-				return
+				return err
 			}
 
 			if !has {
-				res.SetError(fmt.Errorf("block %s not found locally, cannot provide", c), cmdkit.ErrNormal)
-				return
+				return fmt.Errorf("block %s not found locally, cannot provide", c)
 			}
 
 			cids = append(cids, c)
 		}
 
-		outChan := make(chan interface{})
-		res.SetOutput((<-chan interface{})(outChan))
-
-		events := make(chan *notif.QueryEvent)
-		ctx := notif.RegisterForQueryEvents(req.Context(), events)
+		ctx, cancel := context.WithCancel(req.Context)
+		ctx, events := notif.RegisterForQueryEvents(ctx)
 
 		go func() {
-			defer close(outChan)
-			for e := range events {
-				select {
-				case outChan <- e:
-				case <-req.Context().Done():
-					return
-				}
-			}
-		}()
-
-		go func() {
-			defer close(events)
+			defer cancel()
 			var err error
 			if rec {
-				err = provideKeysRec(ctx, n.Routing, n.DAG, cids)
+				err = provideKeysRec(ctx, nd.Routing, nd.DAG, cids)
 			} else {
-				err = provideKeys(ctx, n.Routing, cids)
+				err = provideKeys(ctx, nd.Routing, cids)
 			}
 			if err != nil {
 				notif.PublishQueryEvent(ctx, &notif.QueryEvent{
@@ -337,9 +282,17 @@ var provideRefDhtCmd = &cmds.Command{
 				})
 			}
 		}()
+
+		for e := range events {
+			if err := res.Emit(e); err != nil {
+				return err
+			}
+		}
+
+		return nil
 	},
-	Marshalers: cmds.MarshalerMap{
-		cmds.Text: func() func(res cmds.Response) (io.Reader, error) {
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *notif.QueryEvent) error {
 			pfm := pfuncMap{
 				notif.FinalPeer: func(obj *notif.QueryEvent, out io.Writer, verbose bool) {
 					if verbose {
@@ -348,27 +301,16 @@ var provideRefDhtCmd = &cmds.Command{
 				},
 			}
 
-			return func(res cmds.Response) (io.Reader, error) {
-				verbose, _, _ := res.Request().Option("v").Bool()
-				v, err := unwrapOutput(res.Output())
-				if err != nil {
-					return nil, err
-				}
-				obj, ok := v.(*notif.QueryEvent)
-				if !ok {
-					return nil, e.TypeErr(obj, v)
-				}
+			verbose, _ := req.Options[dhtVerboseOptionName].(bool)
+			printEvent(out, w, verbose, pfm)
 
-				buf := new(bytes.Buffer)
-				printEvent(obj, buf, verbose, pfm)
-				return buf, nil
-			}
-		}(),
+			return nil
+		}),
 	},
 	Type: notif.QueryEvent{},
 }
 
-func provideKeys(ctx context.Context, r routing.IpfsRouting, cids []*cid.Cid) error {
+func provideKeys(ctx context.Context, r routing.IpfsRouting, cids []cid.Cid) error {
 	for _, c := range cids {
 		err := r.Provide(ctx, c, true)
 		if err != nil {
@@ -378,7 +320,7 @@ func provideKeys(ctx context.Context, r routing.IpfsRouting, cids []*cid.Cid) er
 	return nil
 }
 
-func provideKeysRec(ctx context.Context, r routing.IpfsRouting, dserv ipld.DAGService, cids []*cid.Cid) error {
+func provideKeysRec(ctx context.Context, r routing.IpfsRouting, dserv ipld.DAGService, cids []cid.Cid) error {
 	provided := cid.NewSet()
 	for _, c := range cids {
 		kset := cid.NewSet()
@@ -406,7 +348,7 @@ func provideKeysRec(ctx context.Context, r routing.IpfsRouting, dserv ipld.DAGSe
 
 var findPeerDhtCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
-		Tagline:          "Query the DHT for all of the multiaddresses associated with a Peer ID.",
+		Tagline:          "Find the multiaddresses associated with a Peer ID.",
 		ShortDescription: "Outputs a list of newline-delimited multiaddresses.",
 	},
 
@@ -414,47 +356,29 @@ var findPeerDhtCmd = &cmds.Command{
 		cmdkit.StringArg("peerID", true, true, "The ID of the peer to search for."),
 	},
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption("verbose", "v", "Print extra information."),
+		cmdkit.BoolOption(dhtVerboseOptionName, "v", "Print extra information."),
 	},
-	Run: func(req cmds.Request, res cmds.Response) {
-		n, err := req.InvocContext().GetNode()
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		nd, err := cmdenv.GetNode(env)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
-		dht, ok := n.Routing.(*ipdht.IpfsDHT)
-		if !ok {
-			res.SetError(ErrNotDHT, cmdkit.ErrNormal)
-			return
+		if !nd.OnlineMode() {
+			return ErrNotOnline
 		}
 
-		pid, err := peer.IDB58Decode(req.Arguments()[0])
+		pid, err := peer.IDB58Decode(req.Arguments[0])
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
-		outChan := make(chan interface{})
-		res.SetOutput((<-chan interface{})(outChan))
-
-		events := make(chan *notif.QueryEvent)
-		ctx := notif.RegisterForQueryEvents(req.Context(), events)
+		ctx, cancel := context.WithCancel(req.Context)
+		ctx, events := notif.RegisterForQueryEvents(ctx)
 
 		go func() {
-			defer close(outChan)
-			for v := range events {
-				select {
-				case outChan <- v:
-				case <-req.Context().Done():
-				}
-
-			}
-		}()
-
-		go func() {
-			defer close(events)
-			pi, err := dht.FindPeer(ctx, pid)
+			defer cancel()
+			pi, err := nd.Routing.FindPeer(ctx, pid)
 			if err != nil {
 				notif.PublishQueryEvent(ctx, &notif.QueryEvent{
 					Type:  notif.QueryError,
@@ -468,9 +392,17 @@ var findPeerDhtCmd = &cmds.Command{
 				Responses: []*pstore.PeerInfo{&pi},
 			})
 		}()
+
+		for e := range events {
+			if err := res.Emit(e); err != nil {
+				return err
+			}
+		}
+
+		return nil
 	},
-	Marshalers: cmds.MarshalerMap{
-		cmds.Text: func() func(cmds.Response) (io.Reader, error) {
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *notif.QueryEvent) error {
 			pfm := pfuncMap{
 				notif.FinalPeer: func(obj *notif.QueryEvent, out io.Writer, verbose bool) {
 					pi := obj.Responses[0]
@@ -480,38 +412,24 @@ var findPeerDhtCmd = &cmds.Command{
 				},
 			}
 
-			return func(res cmds.Response) (io.Reader, error) {
-				verbose, _, _ := res.Request().Option("v").Bool()
-				v, err := unwrapOutput(res.Output())
-				if err != nil {
-					return nil, err
-				}
-
-				obj, ok := v.(*notif.QueryEvent)
-				if !ok {
-					return nil, e.TypeErr(obj, v)
-				}
-
-				buf := new(bytes.Buffer)
-				printEvent(obj, buf, verbose, pfm)
-
-				return buf, nil
-			}
-		}(),
+			verbose, _ := req.Options[dhtVerboseOptionName].(bool)
+			printEvent(out, w, verbose, pfm)
+			return nil
+		}),
 	},
 	Type: notif.QueryEvent{},
 }
 
 var getValueDhtCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
-		Tagline: "Given a key, query the DHT for its best value.",
+		Tagline: "Given a key, query the routing system for its best value.",
 		ShortDescription: `
 Outputs the best value for the given key.
 
-There may be several different values for a given key stored in the DHT; in
-this context 'best' means the record that is most desirable. There is no one
-metric for 'best': it depends entirely on the key type. For IPNS, 'best' is
-the record that is both valid and has the highest sequence number (freshest).
+There may be several different values for a given key stored in the routing
+system; in this context 'best' means the record that is most desirable. There is
+no one metric for 'best': it depends entirely on the key type. For IPNS, 'best'
+is the record that is both valid and has the highest sequence number (freshest).
 Different key types can specify other 'best' rules.
 `,
 	},
@@ -520,46 +438,29 @@ Different key types can specify other 'best' rules.
 		cmdkit.StringArg("key", true, true, "The key to find a value for."),
 	},
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption("verbose", "v", "Print extra information."),
+		cmdkit.BoolOption(dhtVerboseOptionName, "v", "Print extra information."),
 	},
-	Run: func(req cmds.Request, res cmds.Response) {
-		n, err := req.InvocContext().GetNode()
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		nd, err := cmdenv.GetNode(env)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
-		dht, ok := n.Routing.(*ipdht.IpfsDHT)
-		if !ok {
-			res.SetError(ErrNotDHT, cmdkit.ErrNormal)
-			return
+		if !nd.OnlineMode() {
+			return ErrNotOnline
 		}
 
-		dhtkey, err := escapeDhtKey(req.Arguments()[0])
+		dhtkey, err := escapeDhtKey(req.Arguments[0])
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
-		outChan := make(chan interface{})
-		res.SetOutput((<-chan interface{})(outChan))
-
-		events := make(chan *notif.QueryEvent)
-		ctx := notif.RegisterForQueryEvents(req.Context(), events)
+		ctx, cancel := context.WithCancel(req.Context)
+		ctx, events := notif.RegisterForQueryEvents(ctx)
 
 		go func() {
-			defer close(outChan)
-			for e := range events {
-				select {
-				case outChan <- e:
-				case <-req.Context().Done():
-				}
-			}
-		}()
-
-		go func() {
-			defer close(events)
-			val, err := dht.GetValue(ctx, dhtkey)
+			defer cancel()
+			val, err := nd.Routing.GetValue(ctx, dhtkey)
 			if err != nil {
 				notif.PublishQueryEvent(ctx, &notif.QueryEvent{
 					Type:  notif.QueryError,
@@ -572,9 +473,17 @@ Different key types can specify other 'best' rules.
 				})
 			}
 		}()
+
+		for e := range events {
+			if err := res.Emit(e); err != nil {
+				return err
+			}
+		}
+
+		return nil
 	},
-	Marshalers: cmds.MarshalerMap{
-		cmds.Text: func() func(cmds.Response) (io.Reader, error) {
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *notif.QueryEvent) error {
 			pfm := pfuncMap{
 				notif.Value: func(obj *notif.QueryEvent, out io.Writer, verbose bool) {
 					if verbose {
@@ -585,35 +494,21 @@ Different key types can specify other 'best' rules.
 				},
 			}
 
-			return func(res cmds.Response) (io.Reader, error) {
-				verbose, _, _ := res.Request().Option("v").Bool()
-				v, err := unwrapOutput(res.Output())
-				if err != nil {
-					return nil, err
-				}
+			verbose, _ := req.Options[dhtVerboseOptionName].(bool)
+			printEvent(out, w, verbose, pfm)
 
-				obj, ok := v.(*notif.QueryEvent)
-				if !ok {
-					return nil, e.TypeErr(obj, v)
-				}
-
-				buf := new(bytes.Buffer)
-
-				printEvent(obj, buf, verbose, pfm)
-
-				return buf, nil
-			}
-		}(),
+			return nil
+		}),
 	},
 	Type: notif.QueryEvent{},
 }
 
 var putValueDhtCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
-		Tagline: "Write a key/value pair to the DHT.",
+		Tagline: "Write a key/value pair to the routing system.",
 		ShortDescription: `
 Given a key of the form /foo/bar and a value of any form, this will write that
-value to the DHT with that key.
+value to the routing system with that key.
 
 Keys have two parts: a keytype (foo) and the key name (bar). IPNS uses the
 /ipns keytype, and expects the key name to be a Peer ID. IPNS entries are
@@ -621,7 +516,7 @@ specifically formatted (protocol buffer).
 
 You may only use keytypes that are supported in your ipfs binary: currently
 this is only /ipns. Unless you have a relatively deep understanding of the
-go-ipfs DHT internals, you likely want to be using 'ipfs name publish' instead
+go-ipfs routing internals, you likely want to be using 'ipfs name publish' instead
 of this.
 
 Value is arbitrary text. Standard input can be used to provide value.
@@ -635,49 +530,31 @@ NOTE: A value may not exceed 2048 bytes.
 		cmdkit.StringArg("value", true, false, "The value to store.").EnableStdin(),
 	},
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption("verbose", "v", "Print extra information."),
+		cmdkit.BoolOption(dhtVerboseOptionName, "v", "Print extra information."),
 	},
-	Run: func(req cmds.Request, res cmds.Response) {
-		n, err := req.InvocContext().GetNode()
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		nd, err := cmdenv.GetNode(env)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
-		dht, ok := n.Routing.(*ipdht.IpfsDHT)
-		if !ok {
-			res.SetError(ErrNotDHT, cmdkit.ErrNormal)
-			return
+		if !nd.OnlineMode() {
+			return ErrNotOnline
 		}
 
-		events := make(chan *notif.QueryEvent)
-		ctx := notif.RegisterForQueryEvents(req.Context(), events)
-
-		key, err := escapeDhtKey(req.Arguments()[0])
+		key, err := escapeDhtKey(req.Arguments[0])
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
-		outChan := make(chan interface{})
-		res.SetOutput((<-chan interface{})(outChan))
+		data := req.Arguments[1]
 
-		data := req.Arguments()[1]
+		ctx, cancel := context.WithCancel(req.Context)
+		ctx, events := notif.RegisterForQueryEvents(ctx)
 
 		go func() {
-			defer close(outChan)
-			for e := range events {
-				select {
-				case outChan <- e:
-				case <-req.Context().Done():
-					return
-				}
-			}
-		}()
-
-		go func() {
-			defer close(events)
-			err := dht.PutValue(ctx, key, []byte(data))
+			defer cancel()
+			err := nd.Routing.PutValue(ctx, key, []byte(data))
 			if err != nil {
 				notif.PublishQueryEvent(ctx, &notif.QueryEvent{
 					Type:  notif.QueryError,
@@ -685,9 +562,17 @@ NOTE: A value may not exceed 2048 bytes.
 				})
 			}
 		}()
+
+		for e := range events {
+			if err := res.Emit(e); err != nil {
+				return err
+			}
+		}
+
+		return nil
 	},
-	Marshalers: cmds.MarshalerMap{
-		cmds.Text: func() func(cmds.Response) (io.Reader, error) {
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *notif.QueryEvent) error {
 			pfm := pfuncMap{
 				notif.FinalPeer: func(obj *notif.QueryEvent, out io.Writer, verbose bool) {
 					if verbose {
@@ -699,23 +584,12 @@ NOTE: A value may not exceed 2048 bytes.
 				},
 			}
 
-			return func(res cmds.Response) (io.Reader, error) {
-				verbose, _, _ := res.Request().Option("v").Bool()
-				v, err := unwrapOutput(res.Output())
-				if err != nil {
-					return nil, err
-				}
-				obj, ok := v.(*notif.QueryEvent)
-				if !ok {
-					return nil, e.TypeErr(obj, v)
-				}
+			verbose, _ := req.Options[dhtVerboseOptionName].(bool)
 
-				buf := new(bytes.Buffer)
-				printEvent(obj, buf, verbose, pfm)
+			printEvent(out, w, verbose, pfm)
 
-				return buf, nil
-			}
-		}(),
+			return nil
+		}),
 	},
 	Type: notif.QueryEvent{},
 }

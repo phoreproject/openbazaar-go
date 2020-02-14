@@ -1,42 +1,46 @@
 package commands
 
 import (
-	"bytes"
 	"fmt"
 	"io"
+	"os"
+	"sort"
 	"text/tabwriter"
 
-	blockservice "github.com/ipfs/go-ipfs/blockservice"
-	cmds "github.com/ipfs/go-ipfs/commands"
-	core "github.com/ipfs/go-ipfs/core"
-	e "github.com/ipfs/go-ipfs/core/commands/e"
-	merkledag "github.com/ipfs/go-ipfs/merkledag"
-	path "github.com/ipfs/go-ipfs/path"
-	resolver "github.com/ipfs/go-ipfs/path/resolver"
-	unixfs "github.com/ipfs/go-ipfs/unixfs"
-	uio "github.com/ipfs/go-ipfs/unixfs/io"
-	unixfspb "github.com/ipfs/go-ipfs/unixfs/pb"
+	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
 
-	offline "gx/ipfs/QmWM5HhdG5ZQNyHQ5XhMdGmV9CvLpFynQfGpTxN2MEM7Lc/go-ipfs-exchange-offline"
-	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
-	"gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit"
-	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
+	cmds "gx/ipfs/QmQkW9fnCsg9SLHdViiAh6qfBppodsPZVpU92dZLqYtEfs/go-ipfs-cmds"
+	iface "gx/ipfs/QmXLwxifxwfc2bAwq6rdjbYqAsGzWsDE9RM5TWMGtykyj6/interface-go-ipfs-core"
+	options "gx/ipfs/QmXLwxifxwfc2bAwq6rdjbYqAsGzWsDE9RM5TWMGtykyj6/interface-go-ipfs-core/options"
+	cmdkit "gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
 )
 
+// LsLink contains printable data for a single ipld link in ls output
 type LsLink struct {
 	Name, Hash string
 	Size       uint64
-	Type       unixfspb.Data_DataType
+	Type       iface.FileType
 }
 
+// LsObject is an element of LsOutput
+// It can represent all or part of a directory
 type LsObject struct {
 	Hash  string
 	Links []LsLink
 }
 
+// LsOutput is a set of printable data for directories,
+// it can be complete or partial
 type LsOutput struct {
 	Objects []LsObject
 }
+
+const (
+	lsHeadersOptionNameTime = "headers"
+	lsResolveTypeOptionName = "resolve-type"
+	lsSizeOptionName        = "size"
+	lsStreamOptionName      = "stream"
+)
 
 var LsCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
@@ -55,157 +59,188 @@ The JSON output contains type information.
 		cmdkit.StringArg("ipfs-path", true, true, "The path to the IPFS object(s) to list links from.").EnableStdin(),
 	},
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption("headers", "v", "Print table headers (Hash, Size, Name)."),
-		cmdkit.BoolOption("resolve-type", "Resolve linked objects to find out their types.").WithDefault(true),
+		cmdkit.BoolOption(lsHeadersOptionNameTime, "v", "Print table headers (Hash, Size, Name)."),
+		cmdkit.BoolOption(lsResolveTypeOptionName, "Resolve linked objects to find out their types.").WithDefault(true),
+		cmdkit.BoolOption(lsSizeOptionName, "Resolve linked objects to find out their file size.").WithDefault(true),
+		cmdkit.BoolOption(lsStreamOptionName, "s", "Enable exprimental streaming of directory entries as they are traversed."),
 	},
-	Run: func(req cmds.Request, res cmds.Response) {
-		nd, err := req.InvocContext().GetNode()
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		api, err := cmdenv.GetApi(env, req)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
-		// get options early -> exit early in case of error
-		if _, _, err := req.Option("headers").Bool(); err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
-		}
+		resolveType, _ := req.Options[lsResolveTypeOptionName].(bool)
+		resolveSize, _ := req.Options[lsSizeOptionName].(bool)
+		stream, _ := req.Options[lsStreamOptionName].(bool)
 
-		resolve, _, err := req.Option("resolve-type").Bool()
+		err = req.ParseBodyArgs()
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
+		}
+		paths := req.Arguments
+
+		enc, err := cmdenv.GetCidEncoder(req)
+		if err != nil {
+			return err
 		}
 
-		dserv := nd.DAG
-		if !resolve {
-			offlineexch := offline.Exchange(nd.Blockstore)
-			bserv := blockservice.New(nd.Blockstore, offlineexch)
-			dserv = merkledag.NewDAGService(bserv)
+		var processLink func(path string, link LsLink) error
+		var dirDone func(i int)
+
+		processDir := func() (func(path string, link LsLink) error, func(i int)) {
+			return func(path string, link LsLink) error {
+				output := []LsObject{{
+					Hash:  path,
+					Links: []LsLink{link},
+				}}
+				return res.Emit(&LsOutput{output})
+			}, func(i int) {}
 		}
+		done := func() error { return nil }
 
-		paths := req.Arguments()
+		if !stream {
+			output := make([]LsObject, len(req.Arguments))
 
-		var dagnodes []ipld.Node
-		for _, fpath := range paths {
-			p, err := path.ParsePath(fpath)
-			if err != nil {
-				res.SetError(err, cmdkit.ErrNormal)
-				return
-			}
+			processDir = func() (func(path string, link LsLink) error, func(i int)) {
+				// for each dir
+				outputLinks := make([]LsLink, 0)
+				return func(path string, link LsLink) error {
+						// for each link
+						outputLinks = append(outputLinks, link)
+						return nil
+					}, func(i int) {
+						// after each dir
+						sort.Slice(outputLinks, func(i, j int) bool {
+							return outputLinks[i].Name < outputLinks[j].Name
+						})
 
-			r := &resolver.Resolver{
-				DAG:         nd.DAG,
-				ResolveOnce: uio.ResolveUnixfsOnce,
-			}
-
-			dagnode, err := core.Resolve(req.Context(), nd.Namesys, r, p)
-			if err != nil {
-				res.SetError(err, cmdkit.ErrNormal)
-				return
-			}
-			dagnodes = append(dagnodes, dagnode)
-		}
-
-		output := make([]LsObject, len(req.Arguments()))
-
-		for i, dagnode := range dagnodes {
-			dir, err := uio.NewDirectoryFromNode(nd.DAG, dagnode)
-			if err != nil && err != uio.ErrNotADir {
-				res.SetError(err, cmdkit.ErrNormal)
-				return
-			}
-
-			var links []*ipld.Link
-			if dir == nil {
-				links = dagnode.Links()
-			} else {
-				links, err = dir.Links(req.Context())
-				if err != nil {
-					res.SetError(err, cmdkit.ErrNormal)
-					return
-				}
-			}
-
-			output[i] = LsObject{
-				Hash:  paths[i],
-				Links: make([]LsLink, len(links)),
-			}
-
-			for j, link := range links {
-				t := unixfspb.Data_DataType(-1)
-
-				switch link.Cid.Type() {
-				case cid.Raw:
-					// No need to check with raw leaves
-					t = unixfspb.Data_File
-				case cid.DagProtobuf:
-					linkNode, err := link.GetNode(req.Context(), dserv)
-					if err == ipld.ErrNotFound && !resolve {
-						// not an error
-						linkNode = nil
-					} else if err != nil {
-						res.SetError(err, cmdkit.ErrNormal)
-						return
-					}
-
-					if pn, ok := linkNode.(*merkledag.ProtoNode); ok {
-						d, err := unixfs.FromBytes(pn.Data())
-						if err != nil {
-							res.SetError(err, cmdkit.ErrNormal)
-							return
+						output[i] = LsObject{
+							Hash:  paths[i],
+							Links: outputLinks,
 						}
-						t = d.GetType()
 					}
-				}
-				output[i].Links[j] = LsLink{
-					Name: link.Name,
-					Hash: link.Cid.String(),
-					Size: link.Size,
-					Type: t,
-				}
+			}
+
+			done = func() error {
+				return cmds.EmitOnce(res, &LsOutput{output})
 			}
 		}
 
-		res.SetOutput(&LsOutput{output})
-	},
-	Marshalers: cmds.MarshalerMap{
-		cmds.Text: func(res cmds.Response) (io.Reader, error) {
-
-			v, err := unwrapOutput(res.Output())
+		for i, fpath := range paths {
+			p, err := iface.ParsePath(fpath)
 			if err != nil {
-				return nil, err
+				return err
 			}
 
-			headers, _, _ := res.Request().Option("headers").Bool()
-			output, ok := v.(*LsOutput)
-			if !ok {
-				return nil, e.TypeErr(output, v)
+			results, err := api.Unixfs().Ls(req.Context, p,
+				options.Unixfs.ResolveChildren(resolveSize || resolveType))
+			if err != nil {
+				return err
 			}
 
-			buf := new(bytes.Buffer)
-			w := tabwriter.NewWriter(buf, 1, 2, 1, ' ', 0)
-			for _, object := range output.Objects {
-				if len(output.Objects) > 1 {
-					fmt.Fprintf(w, "%s:\n", object.Hash)
+			processLink, dirDone = processDir()
+			for link := range results {
+				if link.Err != nil {
+					return link.Err
 				}
-				if headers {
-					fmt.Fprintln(w, "Hash\tSize\tName")
+				lsLink := LsLink{
+					Name: link.Link.Name,
+					Hash: enc.Encode(link.Link.Cid),
+
+					Size: link.Size,
+					Type: link.Type,
 				}
-				for _, link := range object.Links {
-					if link.Type == unixfspb.Data_Directory {
-						link.Name += "/"
+				if err := processLink(paths[i], lsLink); err != nil {
+					return err
+				}
+			}
+			dirDone(i)
+		}
+		return done()
+	},
+	PostRun: cmds.PostRunMap{
+		cmds.CLI: func(res cmds.Response, re cmds.ResponseEmitter) error {
+			req := res.Request()
+			lastObjectHash := ""
+
+			for {
+				v, err := res.Next()
+				if err != nil {
+					if err == io.EOF {
+						return nil
 					}
-					fmt.Fprintf(w, "%s\t%v\t%s\n", link.Hash, link.Size, link.Name)
+					return err
 				}
-				if len(output.Objects) > 1 {
-					fmt.Fprintln(w)
-				}
+				out := v.(*LsOutput)
+				lastObjectHash = tabularOutput(req, os.Stdout, out, lastObjectHash, false)
 			}
-			w.Flush()
-
-			return buf, nil
 		},
 	},
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *LsOutput) error {
+			// when streaming over HTTP using a text encoder, we cannot render breaks
+			// between directories because we don't know the hash of the last
+			// directory encoder
+			ignoreBreaks, _ := req.Options[lsStreamOptionName].(bool)
+			tabularOutput(req, w, out, "", ignoreBreaks)
+			return nil
+		}),
+	},
 	Type: LsOutput{},
+}
+
+func tabularOutput(req *cmds.Request, w io.Writer, out *LsOutput, lastObjectHash string, ignoreBreaks bool) string {
+	headers, _ := req.Options[lsHeadersOptionNameTime].(bool)
+	stream, _ := req.Options[lsStreamOptionName].(bool)
+	size, _ := req.Options[lsSizeOptionName].(bool)
+	// in streaming mode we can't automatically align the tabs
+	// so we take a best guess
+	var minTabWidth int
+	if stream {
+		minTabWidth = 10
+	} else {
+		minTabWidth = 1
+	}
+
+	multipleFolders := len(req.Arguments) > 1
+
+	tw := tabwriter.NewWriter(w, minTabWidth, 2, 1, ' ', 0)
+
+	for _, object := range out.Objects {
+
+		if !ignoreBreaks && object.Hash != lastObjectHash {
+			if multipleFolders {
+				if lastObjectHash != "" {
+					fmt.Fprintln(tw)
+				}
+				fmt.Fprintf(tw, "%s:\n", object.Hash)
+			}
+			if headers {
+				s := "Hash\tName"
+				if size {
+					s = "Hash\tSize\tName"
+				}
+				fmt.Fprintln(tw, s)
+			}
+			lastObjectHash = object.Hash
+		}
+
+		for _, link := range object.Links {
+			s := "%[1]s\t%[3]s\n"
+
+			switch {
+			case link.Type == iface.TDirectory && size:
+				s = "%[1]s\t-\t%[3]s/\n"
+			case link.Type == iface.TDirectory && !size:
+				s = "%[1]s\t%[3]s/\n"
+			case size:
+				s = "%s\t%v\t%s\n"
+			}
+
+			fmt.Fprintf(tw, s, link.Hash, link.Size, link.Name)
+		}
+	}
+	tw.Flush()
+	return lastObjectHash
 }

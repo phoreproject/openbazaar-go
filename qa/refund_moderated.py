@@ -9,16 +9,16 @@ class RefundModeratedTest(OpenBazaarTestFramework):
 
     def __init__(self):
         super().__init__()
-        self.num_nodes = 3
+        self.num_nodes = 4
 
     def run_test(self):
-        alice = self.nodes[0]
-        bob = self.nodes[1]
-        charlie = self.nodes[2]
+        alice = self.nodes[1]
+        bob = self.nodes[2]
+        charlie = self.nodes[3]
 
         # generate some coins and send them to bob
         time.sleep(4)
-        api_url = bob["gateway_url"] + "wallet/address"
+        api_url = bob["gateway_url"] + "wallet/address/" + self.cointype
         r = requests.get(api_url)
         if r.status_code == 200:
             resp = json.loads(r.text)
@@ -63,6 +63,7 @@ class RefundModeratedTest(OpenBazaarTestFramework):
         # post listing to alice
         with open('testdata/listing.json') as listing_file:
             listing_json = json.load(listing_file, object_pairs_hook=OrderedDict)
+        listing_json["metadata"]["pricingCurrency"] = "t" + self.cointype
 
         listing_json["moderators"] = [moderatorId]
         api_url = alice["gateway_url"] + "ob/listing"
@@ -75,7 +76,7 @@ class RefundModeratedTest(OpenBazaarTestFramework):
         time.sleep(4)
 
         # get listing hash
-        api_url = alice["gateway_url"] + "ipns/" + alice["peerId"] + "/listings.json"
+        api_url = alice["gateway_url"] + "ob/listings/" + alice["peerId"]
         r = requests.get(api_url)
         if r.status_code != 200:
             raise TestFailure("RefundModeratedTest - FAIL: Couldn't get listing index")
@@ -87,6 +88,7 @@ class RefundModeratedTest(OpenBazaarTestFramework):
             order_json = json.load(order_file, object_pairs_hook=OrderedDict)
         order_json["items"][0]["listingHash"] = listingId
         order_json["moderator"] = moderatorId
+        order_json["paymentCoin"] = "t" + self.cointype
         api_url = bob["gateway_url"] + "ob/purchase"
         r = requests.post(api_url, data=json.dumps(order_json, indent=4))
         if r.status_code == 404:
@@ -124,6 +126,7 @@ class RefundModeratedTest(OpenBazaarTestFramework):
 
         # fund order
         spend = {
+            "wallet": self.cointype,
             "address": payment_address,
             "amount": payment_amount,
             "feeLevel": "NORMAL"
@@ -201,7 +204,7 @@ class RefundModeratedTest(OpenBazaarTestFramework):
         time.sleep(2)
 
         # Check the funds moved into bob's wallet
-        api_url = bob["gateway_url"] + "wallet/balance"
+        api_url = bob["gateway_url"] + "wallet/balance/" + self.cointype
         r = requests.get(api_url)
         if r.status_code == 200:
             resp = json.loads(r.text)
@@ -213,6 +216,7 @@ class RefundModeratedTest(OpenBazaarTestFramework):
             raise TestFailure("RefundModeratedTest - FAIL: Failed to query Bob's balance")
 
         print("RefundModeratedTest - PASS")
+
 
 if __name__ == '__main__':
     print("Running RefundModeratedTest")

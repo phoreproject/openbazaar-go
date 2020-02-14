@@ -4,12 +4,14 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
-	"github.com/op/go-logging"
-	"github.com/phoreproject/openbazaar-go/repo"
-	"github.com/phoreproject/wallet-interface"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/phoreproject/multiwallet/util"
+	"github.com/phoreproject/openbazaar-go/repo"
+
+	"github.com/op/go-logging"
 )
 
 var log = logging.MustGetLogger("cmd")
@@ -39,18 +41,18 @@ func (x *Init) Execute(args []string) error {
 	if x.WalletCreationDate != "" {
 		creationDate, err = time.Parse(time.RFC3339, x.WalletCreationDate)
 		if err != nil {
-			return errors.New("Wallet creation date timestamp must be in RFC3339 format")
+			return errors.New("wallet creation date timestamp must be in RFC3339 format")
 		}
 	}
 
-	_, err = InitializeRepo(repoPath, x.Password, x.Mnemonic, x.Testnet, creationDate, wallet.Phore)
+	_, err = InitializeRepo(repoPath, x.Password, x.Mnemonic, x.Testnet, creationDate, util.CoinTypePhore)
 	if err == repo.ErrRepoExists && x.Force {
 		reader := bufio.NewReader(os.Stdin)
 		fmt.Print("Force overwriting the db will destroy your existing keys and history. Are you really, really sure you want to continue? (y/n): ")
 		resp, _ := reader.ReadString('\n')
 		if strings.ToLower(resp) == "y\n" || strings.ToLower(resp) == "yes\n" || strings.ToLower(resp)[:1] == "y" {
 			os.RemoveAll(repoPath)
-			_, err = InitializeRepo(repoPath, x.Password, x.Mnemonic, x.Testnet, creationDate, wallet.Phore)
+			_, err = InitializeRepo(repoPath, x.Password, x.Mnemonic, x.Testnet, creationDate, util.CoinTypePhore)
 			if err != nil {
 				return err
 			}

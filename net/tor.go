@@ -5,12 +5,13 @@ import (
 	"crypto/rsa"
 	"encoding/pem"
 	"errors"
-	"github.com/yawning/bulb"
-	"github.com/yawning/bulb/utils/pkcs1"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
+
+	"github.com/yawning/bulb"
+	"github.com/yawning/bulb/utils/pkcs1"
 )
 
 // Return the Tor control port if Tor is running or an error
@@ -25,7 +26,7 @@ func GetTorControlPort() (int, error) {
 		conn.Close()
 		return 9051, nil
 	}
-	return 0, errors.New("Tor control unavailable")
+	return 0, errors.New("tor control unavailable")
 }
 
 // Generate a new RSA key and onion address and save it to the repo
