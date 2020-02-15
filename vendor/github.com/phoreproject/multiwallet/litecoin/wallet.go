@@ -44,6 +44,8 @@ type LitecoinWallet struct {
 	log           *logging.Logger
 }
 
+var _ = wi.Wallet(&LitecoinWallet{})
+
 func NewLitecoinWallet(cfg config.CoinConfig, mnemonic string, params *chaincfg.Params, proxy proxy.Dialer, cache cache.Cacher, disableExchangeRates bool) (*LitecoinWallet, error) {
 	seed := bip39.NewSeed(mnemonic, "")
 
@@ -148,8 +150,14 @@ func (w *LitecoinWallet) ChildKey(keyBytes []byte, chaincode []byte, isPrivateKe
 func (w *LitecoinWallet) CurrentAddress(purpose wi.KeyPurpose) btcutil.Address {
 	var addr btcutil.Address
 	for {
-		key, _ := w.km.GetCurrentKey(purpose)
-		addr, _ = litecoinAddress(key, w.params)
+		key, err := w.km.GetCurrentKey(purpose)
+		if err != nil {
+			w.log.Errorf("Error generating current key: %s", err)
+		}
+		addr, err = w.km.KeyToAddress(key)
+		if err != nil {
+			w.log.Errorf("Error converting key to address: %s", err)
+		}
 
 		if !strings.HasPrefix(strings.ToLower(addr.String()), "ltc1") {
 			break
@@ -158,23 +166,28 @@ func (w *LitecoinWallet) CurrentAddress(purpose wi.KeyPurpose) btcutil.Address {
 			w.log.Errorf("Error marking key as used: %s", err)
 		}
 	}
-	return btcutil.Address(addr)
+	return addr
 }
 
 func (w *LitecoinWallet) NewAddress(purpose wi.KeyPurpose) btcutil.Address {
 	var addr btcutil.Address
 	for {
-		i, _ := w.db.Keys().GetUnused(purpose)
-		key, _ := w.km.GenerateChildKey(purpose, uint32(i[1]))
-		addr, _ = litecoinAddress(key, w.params)
+		key, err := w.km.GetNextUnused(purpose)
+		if err != nil {
+			w.log.Errorf("Error generating next unused key: %s", err)
+		}
+		addr, err = w.km.KeyToAddress(key)
+		if err != nil {
+			w.log.Errorf("Error converting key to address: %s", err)
+		}
 		if err := w.db.Keys().MarkKeyAsUsed(addr.ScriptAddress()); err != nil {
-			w.log.Error("Error marking key as used: %s", err)
+			w.log.Errorf("Error marking key as used: %s", err)
 		}
 		if !strings.HasPrefix(strings.ToLower(addr.String()), "ltc1") {
 			break
 		}
 	}
-	return btcutil.Address(addr)
+	return addr
 }
 
 func (w *LitecoinWallet) DecodeAddress(addr string) (btcutil.Address, error) {
@@ -331,16 +344,25 @@ func (w *LitecoinWallet) GenerateMultisigScript(keys []hd.ExtendedKey, threshold
 	return w.generateMultisigScript(keys, threshold, timeout, timeoutKey)
 }
 
-func (w *LitecoinWallet) AddWatchedAddress(addr btcutil.Address) error {
-	script, err := w.AddressToScript(addr)
+func (w *LitecoinWallet) AddWatchedAddresses(addrs ...btcutil.Address) error {
+
+	var watchedScripts [][]byte
+	for _, addr := range addrs {
+		if !w.HasKey(addr) {
+			script, err := w.AddressToScript(addr)
+			if err != nil {
+				return err
+			}
+			watchedScripts = append(watchedScripts, script)
+		}
+	}
+
+	err := w.db.WatchedScripts().PutAll(watchedScripts)
 	if err != nil {
 		return err
 	}
-	err = w.db.WatchedScripts().Put(script)
-	if err != nil {
-		return err
-	}
-	w.client.ListenAddress(addr)
+
+	w.client.ListenAddresses(addrs...)
 	return nil
 }
 
@@ -353,7 +375,7 @@ func (w *LitecoinWallet) AddWatchedScript(script []byte) error {
 	if err != nil {
 		return err
 	}
-	w.client.ListenAddress(addr)
+	w.client.ListenAddresses(addr)
 	return nil
 }
 

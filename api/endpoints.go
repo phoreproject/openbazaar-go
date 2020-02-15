@@ -113,6 +113,8 @@ func post(i *jsonAPIHandler, path string, w http.ResponseWriter, r *http.Request
 		i.POSTPost(w, r)
 	case strings.HasPrefix(path, "/ob/bulkupdatecurrency"):
 		i.POSTBulkUpdateCurrency(w, r)
+	case strings.HasPrefix(path, "/ob/resendordermessage"):
+		i.POSTResendOrderMessage(w, r)
 	case strings.HasPrefix(path, "/manage/initwallet"):
 		i.POSTInitWallet(w, r)
 	case strings.HasPrefix(path, "/manage/unlockwallet"):
@@ -201,12 +203,16 @@ func get(i *jsonAPIHandler, path string, w http.ResponseWriter, r *http.Request)
 		i.GETWalletStatus(w, r)
 	case strings.HasPrefix(path, "/ob/ipns"):
 		i.GETIPNS(w, r)
+	case strings.HasPrefix(path, "/ob/resolveipns"):
+		i.GETResolveIPNS(w, r)
 	case strings.HasPrefix(path, "/ob/peerinfo"):
 		i.GETPeerInfo(w, r)
 	case strings.HasPrefix(path, "/ob/posts"):
 		i.GETPosts(w, r)
 	case strings.HasPrefix(path, "/ob/post"):
 		i.GETPost(w, r)
+	case strings.HasPrefix(path, "/ob/scanofflinemessages"):
+		i.GETScanOfflineMessages(w, r)
 	case strings.HasPrefix(path, "/manage/iswalletlocked"):
 		i.GETIsWalletLocked(w, r)
 	default:

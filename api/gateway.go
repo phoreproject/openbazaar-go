@@ -1,22 +1,21 @@
 package api
 
 import (
-	"net"
-	"net/http"
-
 	"github.com/ipfs/go-ipfs/core/corehttp"
 	"github.com/op/go-logging"
 	"github.com/phoreproject/openbazaar-go/core"
 	"github.com/phoreproject/openbazaar-go/schema"
+	"net"
+	"net/http"
 )
 
 var log = logging.MustGetLogger("api")
 
 // Gateway represents an HTTP API gateway
 type Gateway struct {
-	listener net.Listener
-	handler  http.Handler
-	config   schema.APIConfig
+	listener       net.Listener
+	handler        http.Handler
+	config         schema.APIConfig
 	gatewayRunning chan error
 }
 

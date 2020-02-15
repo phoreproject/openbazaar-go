@@ -8,8 +8,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"gx/ipfs/QmQmhotPUzVrMEWNK3x1R5jQ5ZHWyL7tVUrmRPjrBrvyCb/go-ipfs-files"
-	"gx/ipfs/QmXLwxifxwfc2bAwq6rdjbYqAsGzWsDE9RM5TWMGtykyj6/interface-go-ipfs-core"
 	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
@@ -24,9 +22,13 @@ import (
 	"time"
 
 	ipnspath "gx/ipfs/QmQAgv6Gaoe2tQpcabqwKXKChp2MZ7i3UXv9DqTTaxCaTR/go-path"
-	"gx/ipfs/QmTbxNB1NwDesLmKTscr4udL2tVP7MaxvXnD1D9yX7g3PN/go-cid"
-	"gx/ipfs/QmUadX5EcvrBmxAV9sE7wUWtWSqxns5K84qKJBixmcT1w9/go-datastore"
-	"gx/ipfs/QmYVXrKrKHDC9FobgmcmshCDyWwdrfwfanNQN4oxJ9Fk3h/go-libp2p-peer"
+	files "gx/ipfs/QmQmhotPUzVrMEWNK3x1R5jQ5ZHWyL7tVUrmRPjrBrvyCb/go-ipfs-files"
+	cid "gx/ipfs/QmTbxNB1NwDesLmKTscr4udL2tVP7MaxvXnD1D9yX7g3PN/go-cid"
+	datastore "gx/ipfs/QmUadX5EcvrBmxAV9sE7wUWtWSqxns5K84qKJBixmcT1w9/go-datastore"
+	ipns "gx/ipfs/QmUwMnKKjH3JwGKNVZ3TcP37W93xzqNA4ECFFiMo6sXkkc/go-ipns"
+	iface "gx/ipfs/QmXLwxifxwfc2bAwq6rdjbYqAsGzWsDE9RM5TWMGtykyj6/interface-go-ipfs-core"
+	peer "gx/ipfs/QmYVXrKrKHDC9FobgmcmshCDyWwdrfwfanNQN4oxJ9Fk3h/go-libp2p-peer"
+	routing "gx/ipfs/QmYxUdYY9S6yg5tSPVin5GFTvtfsLauVcr7reHDD3dM8xf/go-libp2p-routing"
 	ps "gx/ipfs/QmaCTz9RkrU13bm9kMB54f7atgqM4qkjDZpRwRoJiWXEqs/go-libp2p-peerstore"
 	mh "gx/ipfs/QmerPMzPk1mJVowm8KgmoknWa4yCYvvugMPsgWmDNUvDLW/go-multihash"
 
@@ -62,6 +64,10 @@ type jsonAPIHandler struct {
 	config JSONAPIConfig
 	node   *core.OpenBazaarNode
 }
+
+var lastManualScan time.Time
+
+const OfflineMessageScanInterval = 1 * time.Minute
 
 func newJSONAPIHandler(node *core.OpenBazaarNode, authCookie http.Cookie, config schema.APIConfig) *jsonAPIHandler {
 	allowedIPs := make(map[string]bool)
@@ -761,6 +767,17 @@ func (i *jsonAPIHandler) POSTSpendCoinsForOrder(w http.ResponseWriter, r *http.R
 		ErrorResponse(w, http.StatusBadRequest, err.Error())
 		return
 	}
+	msg := pb.OrderPaymentTxn{
+		Coin:          spendArgs.Wallet,
+		OrderID:       result.OrderID,
+		TransactionID: result.Txid,
+		WithInput:     false,
+	}
+
+	err = i.node.SendOrderPayment(result.PeerID, &msg)
+	if err != nil {
+		log.Errorf("error sending order with id %s payment: %v", result.OrderID, err)
+	}
 
 	ser, err := json.MarshalIndent(result, "", "    ")
 	if err != nil {
@@ -855,6 +872,7 @@ func (i *jsonAPIHandler) POSTSettings(w http.ResponseWriter, r *http.Request) {
 				continue
 			}
 			blockedIds = append(blockedIds, id)
+			i.node.Service.DisconnectFromPeer(id)
 		}
 		i.node.BanManager.SetBlockedIds(blockedIds)
 	}
@@ -911,6 +929,7 @@ func (i *jsonAPIHandler) PUTSettings(w http.ResponseWriter, r *http.Request) {
 				continue
 			}
 			blockedIds = append(blockedIds, id)
+			i.node.Service.DisconnectFromPeer(id)
 		}
 		i.node.BanManager.SetBlockedIds(blockedIds)
 	}
@@ -992,6 +1011,7 @@ func (i *jsonAPIHandler) PATCHSettings(w http.ResponseWriter, r *http.Request) {
 				continue
 			}
 			blockedIds = append(blockedIds, id)
+			i.node.Service.DisconnectFromPeer(id)
 		}
 		i.node.BanManager.SetBlockedIds(blockedIds)
 	}
@@ -1478,7 +1498,7 @@ func (i *jsonAPIHandler) GETProfile(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if profile.PeerID != peerID {
-			ErrorResponse(w, http.StatusNotFound, "")
+			ErrorResponse(w, http.StatusNotFound, "invalid profile: peer id mismatch on found profile")
 			return
 		}
 		w.Header().Set("Cache-Control", "public, max-age=600, immutable")
@@ -1887,7 +1907,7 @@ func (i *jsonAPIHandler) GETModerators(w http.ResponseWriter, r *http.Request) {
 						if err != nil {
 							return
 						}
-						i.node.Broadcast <- repo.PremarshalledNotifier{b}
+						i.node.Broadcast <- repo.PremarshalledNotifier{Payload: b}
 					} else {
 						type wsResp struct {
 							ID     string `json:"id"`
@@ -1898,7 +1918,7 @@ func (i *jsonAPIHandler) GETModerators(w http.ResponseWriter, r *http.Request) {
 						if err != nil {
 							return
 						}
-						i.node.Broadcast <- repo.PremarshalledNotifier{data}
+						i.node.Broadcast <- repo.PremarshalledNotifier{Payload: data}
 					}
 				}(p)
 			}
@@ -2822,7 +2842,7 @@ func (i *jsonAPIHandler) POSTFetchProfiles(w http.ResponseWriter, r *http.Reques
 						if err != nil {
 							return
 						}
-						i.node.Broadcast <- repo.PremarshalledNotifier{ret}
+						i.node.Broadcast <- repo.PremarshalledNotifier{Payload: ret}
 					}
 
 					pro, err := i.node.FetchProfile(pid, useCache)
@@ -2847,7 +2867,7 @@ func (i *jsonAPIHandler) POSTFetchProfiles(w http.ResponseWriter, r *http.Reques
 						respondWithError("error Marshalling to JSON")
 						return
 					}
-					i.node.Broadcast <- repo.PremarshalledNotifier{b}
+					i.node.Broadcast <- repo.PremarshalledNotifier{Payload: b}
 				}(p)
 			}
 		}()
@@ -2867,18 +2887,18 @@ func (i *jsonAPIHandler) GETTransactions(w http.ResponseWriter, r *http.Request)
 	}
 	offsetID := r.URL.Query().Get("offsetId")
 	type Tx struct {
-		Txid          string    `json:"txid"`
-		Value         int64     `json:"value"`
-		Address       string    `json:"address"`
-		Status        string    `json:"status"`
-		ErrorMessage  string    `json:"errorMessage"`
-		Memo          string    `json:"memo"`
-		Timestamp     time.Time `json:"timestamp"`
-		Confirmations int32     `json:"confirmations"`
-		Height        int32     `json:"height"`
-		OrderID       string    `json:"orderId"`
-		Thumbnail     string    `json:"thumbnail"`
-		CanBumpFee    bool      `json:"canBumpFee"`
+		Txid          string        `json:"txid"`
+		Value         int64         `json:"value"`
+		Address       string        `json:"address"`
+		Status        string        `json:"status"`
+		ErrorMessage  string        `json:"errorMessage"`
+		Memo          string        `json:"memo"`
+		Timestamp     *repo.APITime `json:"timestamp"`
+		Confirmations int32         `json:"confirmations"`
+		Height        int32         `json:"height"`
+		OrderID       string        `json:"orderId"`
+		Thumbnail     string        `json:"thumbnail"`
+		CanBumpFee    bool          `json:"canBumpFee"`
 	}
 	wal, err := i.node.Multiwallet.WalletForCurrencyCode(coinType)
 	if err != nil {
@@ -2902,7 +2922,7 @@ func (i *jsonAPIHandler) GETTransactions(w http.ResponseWriter, r *http.Request)
 		tx := Tx{
 			Txid:          t.Txid,
 			Value:         t.Value,
-			Timestamp:     t.Timestamp,
+			Timestamp:     repo.NewAPITime(t.Timestamp),
 			Confirmations: int32(t.Confirmations),
 			Height:        t.Height,
 			Status:        string(t.Status),
@@ -3185,6 +3205,7 @@ func (i *jsonAPIHandler) POSTBlockNode(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	i.node.BanManager.AddBlockedId(pid)
+	i.node.Service.DisconnectFromPeer(pid)
 	SanitizedResponse(w, `{}`)
 }
 
@@ -3271,12 +3292,12 @@ func (i *jsonAPIHandler) POSTBumpFee(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	type response struct {
-		Txid               string    `json:"txid"`
-		Amount             int64     `json:"amount"`
-		ConfirmedBalance   int64     `json:"confirmedBalance"`
-		UnconfirmedBalance int64     `json:"unconfirmedBalance"`
-		Timestamp          time.Time `json:"timestamp"`
-		Memo               string    `json:"memo"`
+		Txid               string        `json:"txid"`
+		Amount             int64         `json:"amount"`
+		ConfirmedBalance   int64         `json:"confirmedBalance"`
+		UnconfirmedBalance int64         `json:"unconfirmedBalance"`
+		Timestamp          *repo.APITime `json:"timestamp"`
+		Memo               string        `json:"memo"`
 	}
 	confirmed, unconfirmed := wal.Balance()
 	txn, err := wal.GetTransaction(*newTxid)
@@ -3284,12 +3305,13 @@ func (i *jsonAPIHandler) POSTBumpFee(w http.ResponseWriter, r *http.Request) {
 		ErrorResponse(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+	t := repo.NewAPITime(txn.Timestamp)
 	resp := &response{
 		Txid:               newTxid.String(),
 		ConfirmedBalance:   confirmed,
 		UnconfirmedBalance: unconfirmed,
 		Amount:             -(txn.Value),
-		Timestamp:          txn.Timestamp,
+		Timestamp:          t,
 		Memo:               fmt.Sprintf("Fee bump of %s", txid),
 	}
 	ser, err := json.MarshalIndent(resp, "", "    ")
@@ -3597,7 +3619,7 @@ func (i *jsonAPIHandler) POSTFetchRatings(w http.ResponseWriter, r *http.Request
 					if err != nil {
 						return
 					}
-					i.node.Broadcast <- repo.PremarshalledNotifier{ret}
+					i.node.Broadcast <- repo.PremarshalledNotifier{Payload: ret}
 				}
 				ratingBytes, err := ipfs.Cat(i.node.IpfsNode, rid, time.Minute)
 				if err != nil {
@@ -3636,7 +3658,7 @@ func (i *jsonAPIHandler) POSTFetchRatings(w http.ResponseWriter, r *http.Request
 					respondWithError("error marshalling rating")
 					return
 				}
-				i.node.Broadcast <- repo.PremarshalledNotifier{b}
+				i.node.Broadcast <- repo.PremarshalledNotifier{Payload: b}
 			}(r)
 		}
 	}
@@ -3803,6 +3825,69 @@ func (i *jsonAPIHandler) GETIPNS(w http.ResponseWriter, r *http.Request) {
 	}
 	go ipfs.Resolve(i.node.IpfsNode, pid, time.Minute, i.node.IPNSQuorumSize, false)
 	fmt.Fprint(w, string(retBytes))
+}
+
+func (i *jsonAPIHandler) GETResolveIPNS(w http.ResponseWriter, r *http.Request) {
+	_, peerID := path.Split(r.URL.Path)
+	if len(peerID) == 0 || peerID == "resolveipns" {
+		peerID = i.node.IpfsNode.Identity.Pretty()
+	}
+
+	type respType struct {
+		PeerID string `json:"peerid"`
+		Record struct {
+			Hex string `json:"hex"`
+		} `json:"record"`
+	}
+	var response = respType{PeerID: peerID}
+
+	if i.node.IpfsNode.Identity.Pretty() == peerID {
+		ipnsBytes, err := i.node.IpfsNode.Repo.Datastore().Get(namesys.IpnsDsKey(i.node.IpfsNode.Identity))
+		if err != nil {
+			ErrorResponse(w, http.StatusInternalServerError, fmt.Sprintf("retrieving self from datastore: %s", err))
+			return
+		}
+		response.Record.Hex = hex.EncodeToString(ipnsBytes)
+		b, err := json.MarshalIndent(response, "", "    ")
+		if err != nil {
+			ErrorResponse(w, http.StatusInternalServerError, fmt.Sprintf("marshal json error: %s", err))
+			return
+		}
+
+		SanitizedResponse(w, string(b))
+		return
+	}
+
+	pid, err := peer.IDB58Decode(peerID)
+	if err != nil {
+		ErrorResponse(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*180)
+	_, err = routing.GetPublicKey(i.node.IpfsNode.Routing, ctx, pid)
+	cancel()
+	if err != nil {
+		ErrorResponse(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	ctx, cancel = context.WithTimeout(context.Background(), time.Second*180)
+	ipnsBytes, err := i.node.IpfsNode.Routing.GetValue(ctx, ipns.RecordKey(pid))
+	cancel()
+	if err != nil {
+		ErrorResponse(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	response.Record.Hex = hex.EncodeToString(ipnsBytes)
+	b, err := json.MarshalIndent(response, "", "    ")
+	if err != nil {
+		ErrorResponse(w, http.StatusInternalServerError, fmt.Sprintf("marshal json error: %s", err))
+		return
+	}
+
+	SanitizedResponse(w, string(b))
 }
 
 func (i *jsonAPIHandler) POSTTestEmailNotifications(w http.ResponseWriter, r *http.Request) {
@@ -4220,6 +4305,57 @@ func (i *jsonAPIHandler) GETPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	SanitizedResponseM(w, out, new(pb.SignedPost))
+}
+
+// POSTSendOrderMessage - used to manually send an order message
+func (i *jsonAPIHandler) POSTResendOrderMessage(w http.ResponseWriter, r *http.Request) {
+	type sendRequest struct {
+		OrderID     string `json:"orderID"`
+		MessageType string `json:"messageType"`
+	}
+
+	var args sendRequest
+	decoder := json.NewDecoder(r.Body)
+	err := decoder.Decode(&args)
+	if err != nil {
+		ErrorResponse(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if args.MessageType == "" {
+		ErrorResponse(w, http.StatusBadRequest, fmt.Sprintf("missing messageType argument"))
+		return
+	}
+	if args.OrderID == "" {
+		ErrorResponse(w, http.StatusBadRequest, fmt.Sprintf("missing orderID argument"))
+		return
+	}
+
+	msgInt, ok := pb.Message_MessageType_value[strings.ToUpper(args.MessageType)]
+	if !ok {
+		ErrorResponse(w, http.StatusBadRequest, fmt.Sprintf("unknown messageType (%s)", args.MessageType))
+		return
+	}
+
+	if err := i.node.ResendCachedOrderMessage(args.OrderID, pb.Message_MessageType(msgInt)); err != nil {
+		ErrorResponse(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	SanitizedResponse(w, `{}`)
+}
+
+// GETScanOfflineMessages - used to manually trigger offline message scan
+func (i *jsonAPIHandler) GETScanOfflineMessages(w http.ResponseWriter, r *http.Request) {
+	if lastManualScan.IsZero() {
+		lastManualScan = time.Now()
+	} else {
+		if time.Since(lastManualScan) >= OfflineMessageScanInterval {
+			i.node.MessageRetriever.RunOnce()
+			lastManualScan = time.Now()
+		}
+	}
+	SanitizedResponse(w, `{}`)
 }
 
 func (i *jsonAPIHandler) GETIsWalletLocked(w http.ResponseWriter, r *http.Request) {

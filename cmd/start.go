@@ -564,7 +564,7 @@ func (x *Start) Execute(args []string) error {
 		IPNSQuorumSize:                uint(ipnsExtraConfig.DHTQuorumSize),
 		WalletLocked:                  true,
 	}
-	core.PublishLock.Lock()
+	core.Node.PublishLock.Lock()
 
 	//Multiwallet setup
 	var walletLogWriter io.Writer
@@ -612,7 +612,7 @@ func (x *Start) Execute(args []string) error {
 
 	core.Node = obPartialNode
 
-	resyncManager := resync.NewResyncManager(sqliteDB.Sales(), core.Node.Multiwallet)
+	resyncManager := resync.NewResyncManager(sqliteDB.Sales(), sqliteDB.Purchases(), core.Node.Multiwallet)
 
 	// Offline messaging storage
 	var storage sto.OfflineMessagingStorage
@@ -687,12 +687,12 @@ func (x *Start) Execute(args []string) error {
 		core.Node.StartPointerRepublisher()
 		core.Node.StartRecordAgingNotifier()
 
-		core.PublishLock.Unlock()
+		core.Node.PublishLock.Unlock()
 		err = core.Node.UpdateFollow()
 		if err != nil {
 			log.Error(err)
 		}
-		if !core.InitalPublishComplete {
+		if !core.Node.InitalPublishComplete {
 			err = core.Node.SeedNode()
 			if err != nil {
 				log.Error(err)

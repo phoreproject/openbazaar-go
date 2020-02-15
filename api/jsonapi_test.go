@@ -493,7 +493,7 @@ func TestWallet(t *testing.T) {
 		{"GET", "/wallet/address", "", 200, walletAddressJSONResponse},
 		{"GET", "/wallet/balance", "", 200, walletBalanceJSONResponse},
 		{"GET", "/wallet/mnemonic", "", 200, walletMneumonicJSONResponse},
-		{"POST", "/wallet/spend/", spendJSON, 400, insuffientFundsJSON},
+		{"POST", "/wallet/spend", spendJSON, 400, insuffientFundsJSON},
 		// TODO: Test successful spend on regnet with coins
 	})
 }
@@ -807,7 +807,7 @@ func TestNotificationsAreReturnedInExpectedOrder(t *testing.T) {
 		createdAt = time.Unix(837645345, 0)
 		notif1    = &repo.Notification{
 			ID:           "notif1",
-			CreatedAt:    createdAt,
+			CreatedAt:    repo.NewAPITime(createdAt),
 			NotifierType: repo.NotifierTypeFollowNotification,
 			NotifierData: &repo.FollowNotification{
 				ID:     "notif1",
@@ -817,7 +817,7 @@ func TestNotificationsAreReturnedInExpectedOrder(t *testing.T) {
 		}
 		notif2 = &repo.Notification{
 			ID:           "notif2",
-			CreatedAt:    createdAt,
+			CreatedAt:    repo.NewAPITime(createdAt),
 			NotifierType: repo.NotifierTypeFollowNotification,
 			NotifierData: &repo.FollowNotification{
 				ID:     "notif2",
@@ -827,7 +827,7 @@ func TestNotificationsAreReturnedInExpectedOrder(t *testing.T) {
 		}
 		notif3 = &repo.Notification{
 			ID:           "notif3",
-			CreatedAt:    createdAt,
+			CreatedAt:    repo.NewAPITime(createdAt),
 			NotifierType: repo.NotifierTypeFollowNotification,
 			NotifierData: &repo.FollowNotification{
 				ID:     "notif3",
@@ -856,6 +856,19 @@ func TestNotificationsAreReturnedInExpectedOrder(t *testing.T) {
 		{"GET", "/ob/notifications?limit=-1", "", 200, sameTimestampsAreReturnedInReverse},
 		{"GET", "/ob/notifications?limit=-1&offsetId=notif3", "", 200, sameTimestampsAreReturnedInReverseAndRespectOffsetID},
 	}, dbSetup, dbTeardown)
+}
+
+func TestResendOrderMessage(t *testing.T) {
+	runAPITests(t, apiTests{
+		// supports missing messageType
+		{"POST", "/ob/resendordermessage", `{"orderID":"123"}`, http.StatusBadRequest, errorResponseJSON(fmt.Errorf("missing messageType argument"))},
+		// supports missing order ID
+		{"POST", "/ob/resendordermessage", `{"messageType":"nonexistant"}`, http.StatusBadRequest, errorResponseJSON(fmt.Errorf("missing orderID argument"))},
+		// supports nonexistant message types
+		{"POST", "/ob/resendordermessage", `{"orderID":"123","messageType":"nonexistant"}`, http.StatusBadRequest, errorResponseJSON(fmt.Errorf("unknown messageType (nonexistant)"))},
+		// supports downcased message types, expected not to find order ID
+		{"POST", "/ob/resendordermessage", `{"orderID":"123","messageType":"order"}`, http.StatusInternalServerError, errorResponseJSON(fmt.Errorf("unable to find message for order ID (123) and message type (ORDER)"))},
+	})
 }
 
 // TODO: Make NewDisputeCaseRecord return a valid fixture for this valid case to work
