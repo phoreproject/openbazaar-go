@@ -370,7 +370,7 @@ func (service *OpenBazaarService) handleOrder(peer peer.ID, pmes *pb.Message, op
 		if err != nil {
 			return errorResponse(err.Error()), err
 		}
-		wal.AddWatchedAddress(addr)
+		wal.AddWatchedAddresses(addr)
 		service.node.Datastore.Sales().Put(orderId, *contract, pb.OrderState_AWAITING_PAYMENT, false)
 		log.Debugf("Received direct ORDER message from %s", peer.Pretty())
 		return nil, nil
@@ -394,7 +394,7 @@ func (service *OpenBazaarService) handleOrder(peer peer.ID, pmes *pb.Message, op
 		if err != nil {
 			return errorResponse(err.Error()), err
 		}
-		wal.AddWatchedAddress(addr)
+		wal.AddWatchedAddresses(addr)
 		contract, err = service.node.NewOrderConfirmation(contract, false, false)
 		if err != nil {
 			return errorResponse("Error building order confirmation"), errors.New("error building order confirmation")
@@ -426,7 +426,7 @@ func (service *OpenBazaarService) handleOrder(peer peer.ID, pmes *pb.Message, op
 			log.Error(err)
 			return errorResponse(err.Error()), err
 		}
-		wal.AddWatchedAddress(addr)
+		wal.AddWatchedAddresses(addr)
 		log.Debugf("Received offline moderated ORDER message from %s", peer.Pretty())
 		service.node.Datastore.Sales().Put(orderId, *contract, pb.OrderState_AWAITING_PAYMENT, false)
 		return nil, nil
