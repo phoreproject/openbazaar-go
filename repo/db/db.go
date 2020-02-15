@@ -270,20 +270,66 @@ func (c *ConfigDB) Init(mnemonic string, identityKey []byte, password string, cr
 	return nil
 }
 
-func (c *ConfigDB) GetMnemonic() (string, error) {
+func (c *ConfigDB) GetMnemonic() (string, bool, error) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	stmt, err := c.db.Prepare("select value from config where key=?")
+	selectMnemonicStmt, err := c.db.Prepare("select value from config where key=?")
 	if err != nil {
 		log.Fatal(err)
+		return "", false, err
+	}
+	defer selectMnemonicStmt.Close()
+	var mnemonic string
+	err = selectMnemonicStmt.QueryRow("mnemonic").Scan(&mnemonic)
+	if err != nil {
+		return "", false, err
+	}
+
+	// is mnemonic locked
+	isMnemonicEncryptedStmt, err := c.db.Prepare("select value from config where key=?")
+	if err != nil {
+		return "", false, err
+	}
+	defer isMnemonicEncryptedStmt.Close()
+	var isMnemonicEncrypted sql.NullString
+	err = isMnemonicEncryptedStmt.QueryRow("isMnemonicEncrypted").Scan(&isMnemonicEncrypted)
+
+	if isMnemonicEncrypted.Valid {
+		return mnemonic, isMnemonicEncrypted.String == "1", nil
+	} else if err == sql.ErrNoRows {
+		return mnemonic, false, nil
+	}
+
+	return mnemonic, false, err
+}
+
+func (c *ConfigDB) UpdateMnemonic(mnemonic string, isEncrypted bool) error {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
+	tx, err := c.db.Begin()
+	if err != nil {
+		return err
+	}
+
+	stmt, err := tx.Prepare("insert or replace into config(key, value) values(?,?)")
+	if err != nil {
+		return err
 	}
 	defer stmt.Close()
-	var mnemonic string
-	err = stmt.QueryRow("mnemonic").Scan(&mnemonic)
+
+	_, err = stmt.Exec("mnemonic", mnemonic)
 	if err != nil {
-		log.Fatal(err)
+		tx.Rollback()
+		return err
 	}
-	return mnemonic, nil
+	_, err = stmt.Exec("isMnemonicEncrypted", isEncrypted)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
 }
 
 func (c *ConfigDB) GetIdentityKey() ([]byte, error) {

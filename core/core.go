@@ -6,10 +6,10 @@ import (
 	"gx/ipfs/QmSY3nkMNLzh9GdbFKK5tT7YMfLpf52iUZ8ZRkr29MJaa5/go-libp2p-kad-dht"
 	libp2p "gx/ipfs/QmTW4SdgBWq9GjsBsHeUx8WuGxzhgzAf88UMH2w62PC8yK/go-libp2p-crypto"
 	ma "gx/ipfs/QmTZBfrPJmjWsCvHEtX5FE6KimVJhsJg5sBbqEFYf4UZtL/go-multiaddr"
-	cid "gx/ipfs/QmTbxNB1NwDesLmKTscr4udL2tVP7MaxvXnD1D9yX7g3PN/go-cid"
+	"gx/ipfs/QmTbxNB1NwDesLmKTscr4udL2tVP7MaxvXnD1D9yX7g3PN/go-cid"
 	"gx/ipfs/QmUadX5EcvrBmxAV9sE7wUWtWSqxns5K84qKJBixmcT1w9/go-datastore"
-	peer "gx/ipfs/QmYVXrKrKHDC9FobgmcmshCDyWwdrfwfanNQN4oxJ9Fk3h/go-libp2p-peer"
-	routing "gx/ipfs/QmYxUdYY9S6yg5tSPVin5GFTvtfsLauVcr7reHDD3dM8xf/go-libp2p-routing"
+	"gx/ipfs/QmYVXrKrKHDC9FobgmcmshCDyWwdrfwfanNQN4oxJ9Fk3h/go-libp2p-peer"
+	"gx/ipfs/QmYxUdYY9S6yg5tSPVin5GFTvtfsLauVcr7reHDD3dM8xf/go-libp2p-routing"
 
 	"path"
 	"sync"
@@ -27,7 +27,7 @@ import (
 	"github.com/btcsuite/btcutil/hdkeychain"
 	"github.com/gosimple/slug"
 	"github.com/ipfs/go-ipfs/core"
-	logging "github.com/op/go-logging"
+	"github.com/op/go-logging"
 	"golang.org/x/net/context"
 	"golang.org/x/net/proxy"
 )
@@ -116,6 +116,15 @@ type OpenBazaarNode struct {
 	// The number of DHT records to collect before returning. The larger the number
 	// the slower the query but the less likely we will get an old record.
 	IPNSQuorumSize uint
+
+	// Get mnemoniec password from user - used in case of encrypted mnemonic
+	MnemonicChan chan string
+
+	// Boolean variable which says if wallet state changing REST requests are locked.
+	WalletLocked bool
+
+	// Locks wallet after period of time
+	LockTimer *time.Timer
 
 	TestnetEnable        bool
 	RegressionTestEnable bool
@@ -305,6 +314,107 @@ func (n *OpenBazaarNode) EncryptMessage(peerID peer.ID, peerKey *libp2p.PubKey, 
 // IPFSIdentityString - IPFS identifier
 func (n *OpenBazaarNode) IPFSIdentityString() string {
 	return n.IpfsNode.Identity.Pretty()
+}
+
+func (n *OpenBazaarNode) IsWalletLocked() bool {
+	_, isLocked, err := n.Datastore.Config().GetMnemonic()
+	if err != nil {
+		log.Error(err)
+	}
+
+	if !isLocked {
+		return false
+	}
+
+	return n.WalletLocked
+}
+
+func (n *OpenBazaarNode) UnlockMnemonic(unlockWallet ManageWalletRequest) error {
+	mnemonic, isLocked, err := n.Datastore.Config().GetMnemonic()
+	if err != nil {
+		return err
+	}
+
+	if isLocked {
+		mnemonic, err = DecryptMnemonic(mnemonic, unlockWallet.WalletPassword)
+		if err != nil {
+			return err
+		}
+	}
+
+	if n.MnemonicChan != nil {
+		select {
+		case n.MnemonicChan <- mnemonic:
+		default:
+			if unlockWallet.OmitDecryption {
+				log.Warning("User is asking to unlock wallet for current run only, but no service is waiting for password to unlock.")
+			}
+		}
+	}
+
+	return nil
+}
+
+func (n *OpenBazaarNode) UnlockWallet(unlockWallet ManageWalletRequest) error {
+	mnemonic, isLocked, err := n.Datastore.Config().GetMnemonic()
+	if err != nil {
+		return err
+	}
+
+	// Also checks password
+	decryptedMnemonic, err := DecryptMnemonic(mnemonic, unlockWallet.WalletPassword)
+	if err != nil {
+		return err
+	}
+
+	if unlockWallet.UnlockTimestamp != 0 {
+		if n.LockTimer != nil {
+			n.LockTimer.Stop()
+		}
+		n.LockTimer = time.AfterFunc(time.Second*time.Duration(unlockWallet.UnlockTimestamp), func() {
+			n.WalletLocked = true
+		})
+	}
+
+	if !isLocked {
+		n.WalletLocked = false
+		return nil
+	}
+
+	if !unlockWallet.OmitDecryption {
+		err = n.Datastore.Config().UpdateMnemonic(decryptedMnemonic, false)
+		if err != nil {
+			return err
+		}
+	}
+
+	n.WalletLocked = false
+	return nil
+}
+
+func (n *OpenBazaarNode) LockWallet(lockWallet ManageWalletRequest) error {
+	mnemonic, isLocked, err := n.Datastore.Config().GetMnemonic()
+	if err != nil {
+		return err
+	}
+
+	if isLocked {
+		n.WalletLocked = true
+		return nil
+	}
+
+	encryptedMnemonic, err := EncryptMnemonic(mnemonic, lockWallet.WalletPassword)
+	if err != nil {
+		return err
+	}
+
+	err = n.Datastore.Config().UpdateMnemonic(encryptedMnemonic, true)
+	if err != nil {
+		return err
+	}
+
+	n.WalletLocked = true
+	return nil
 }
 
 // createSlugFor Create a slug from a multi-lang string

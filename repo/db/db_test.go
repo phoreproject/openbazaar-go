@@ -64,7 +64,7 @@ func TestInit(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	mn, err := testDB.Config().GetMnemonic()
+	mn, _, err := testDB.Config().GetMnemonic()
 	if err != nil {
 		t.Error(err)
 	}
