@@ -24,8 +24,6 @@ import (
 	"github.com/phoreproject/openbazaar-go/pb"
 )
 
-const KeyCachePrefix = "/pubkey/"
-
 // ErrorProfileNotFound - profile not found error
 var ErrorProfileNotFound = errors.New("profile not found")
 
