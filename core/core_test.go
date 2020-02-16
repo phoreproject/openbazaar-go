@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/OpenBazaar/openbazaar-go/core"
+	"github.com/phoreproject/openbazaar-go/core"
 )
 
 func TestEmojiToHTML(t *testing.T) {

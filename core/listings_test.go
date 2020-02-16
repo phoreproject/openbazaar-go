@@ -1,8 +1,8 @@
 package core_test
 
 import (
-	"github.com/OpenBazaar/openbazaar-go/test"
-	"github.com/OpenBazaar/openbazaar-go/test/factory"
+	"github.com/phoreproject/openbazaar-go/test"
+	"github.com/phoreproject/openbazaar-go/test/factory"
 	"testing"
 )
 

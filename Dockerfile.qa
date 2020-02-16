@@ -25,10 +25,10 @@ RUN python3 -m pip install --upgrade pip && \
     wget https://bitcoin.org/bin/bitcoin-core-0.16.3/bitcoin-${BITCOIND_VERSION}-x86_64-linux-gnu.tar.gz && \
     tar -xvzf bitcoin-${BITCOIND_VERSION}-x86_64-linux-gnu.tar.gz -C /opt
 
-WORKDIR /go/src/github.com/OpenBazaar/openbazaar-go
+WORKDIR /go/src/github.com/phoreproject/openbazaar-go
 
 COPY ./Makefile ./Makefile
 
-VOLUME /go/src/github.com/OpenBazaar/openbazaar-go
+VOLUME /go/src/github.com/phoreproject/openbazaar-go
 
 CMD make qa_test
