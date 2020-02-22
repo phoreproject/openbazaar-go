@@ -560,7 +560,7 @@ func (x *Start) Execute(args []string) error {
 		IPNSQuorumSize:                uint(ipnsExtraConfig.DHTQuorumSize),
 		WalletLocked:                  true,
 	}
-	core.Node.PublishLock.Lock()
+	obPartialNode.PublishLock.Lock()
 
 	//Multiwallet setup
 	var walletLogWriter io.Writer
