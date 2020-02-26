@@ -1,4 +1,4 @@
-FROM openbazaar/server-qa:0.10
+FROM phoremarketplace/server-qa:0.10
 
 WORKDIR /go/src/github.com/phoreproject/pm-go
 RUN go get -u github.com/gogo/protobuf/proto \

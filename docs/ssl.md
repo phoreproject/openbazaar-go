@@ -1,14 +1,14 @@
 SSL SETUP FOR JSON API
 ======================
-This guide is for setting up SSL encryption on the openbazaar-go JSON API on Linux-based servers. If you plan on running openbazaar-go on a remote server you MUST use SSL otherwise your authentication information will be sent in the clear, allowing attackers to gain access to your server and steal your bitcoins and OpenBazaar identity (in addition to seeing your purchase/sales history). Follow these three steps exactly to enable SSL.
+This guide is for setting up SSL encryption on the marketplace-go JSON API on Linux-based servers. If you plan on running marketplace-go on a remote server you MUST use SSL otherwise your authentication information will be sent in the clear, allowing attackers to gain access to your server and steal your bitcoins and OpenBazaar identity (in addition to seeing your purchase/sales history). Follow these three steps exactly to enable SSL.
 
 ### Step 1: Generate SSL certificates
 
 If you have an SSL certificate issued to you by a Certificate Authority, you can skip this step.
 
-First, enter the OpenBazaar data directory.
+First, enter the PhoreMarketplace data directory.
 ```
-cd .openbazaar2.0
+cd .PhoreMarketplace
 ```
 Next enter the following commands to generate a self-signed server certificate. If running a remote server, on the fourth line, be sure to replace \<server-ip\> with the ip of your remote server.
 ```
@@ -23,7 +23,7 @@ The above commands will generate three files that are of interest to us: `server
 
 ### Step 2: Edit the config file
 
-You need to edit the openbazaar-go config file (found in the data folder):
+You need to edit the marketplace-go config file (found in the data folder):
 ```
 nano config
 ```
@@ -67,6 +67,6 @@ To download the `OpenBazaar.crt` from your remote server you can use any file tr
 
 Once `OpenBazaar.crt` is on your local computer you should just be able to double click it to install it.
 
-From here you can run openbazaar-go as normal. In the client you will need to check `Use SSL` in the server configuration screen.
+From here you can run marketplace-go as normal. In the client you will need to check `Use SSL` in the server configuration screen.
 
 SSL should now be configured.

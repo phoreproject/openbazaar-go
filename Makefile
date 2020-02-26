@@ -44,23 +44,23 @@ protos: ## Build go files for proto definitions
 ##
 ## Testing
 ##
-OPENBAZAARD_NAME ?= openbazaard-$(GIT_SHA)
+OPENBAZAARD_NAME ?= marketplaced-$(GIT_SHA)
 BITCOIND_PATH ?= .
 
-.PHONY: openbazaard
-openbazaard: ## Build daemon
-	$(info "Building openbazaar daemon...")
+.PHONY: marketplaced
+marketplaced: ## Build daemon
+	$(info "Building marketplace daemon...")
 	go build -o ./$(OPENBAZAARD_NAME) .
 
 .PHONY: qa_test
-qa_test: openbazaard ## Run QA test suite against current working copy
-	$(info "Running QA... (openbazaard: ../$(OPENBAZAARD_NAME) bitcoind: $(BITCOIND_PATH)/bin/bitcoind)")
+qa_test: marketplaced ## Run QA test suite against current working copy
+	$(info "Running QA... (marketplaced: ../$(OPENBAZAARD_NAME) bitcoind: $(BITCOIND_PATH)/bin/bitcoind)")
 	(cd qa && ./runtests.sh ../$(OPENBAZAARD_NAME) $(BITCOIND_PATH)/bin/bitcoind)
 
 ##
 ## Docker
 ##
-PUBLIC_DOCKER_REGISTRY ?= openbazaar
+PUBLIC_DOCKER_REGISTRY ?= phoremarketplace
 QA_DEV_TAG ?= 0.10
 
 DOCKER_SERVER_IMAGE_NAME ?= $(PUBLIC_DOCKER_REGISTRY)/server:$(GIT_TAG)

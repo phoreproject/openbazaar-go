@@ -21,7 +21,7 @@ var (
 )
 
 func main() {
-	var dataPath = "/Users/mg/work/ob/openbazaar-go/config_mobile_test"
+	var dataPath = "/Users/mg/work/ob/PhoreMarketplace/config_mobile_test"
 	if _, err := parser.Parse(); err != nil {
 		if len(os.Args) > 1 && os.Args[1] == "-h" {
 			os.Exit(0)

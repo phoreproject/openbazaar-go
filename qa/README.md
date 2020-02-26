@@ -4,5 +4,5 @@ This package allows us to spin up any number of OpenBazaar nodes and connect the
 
 To run this test suite:
 ```
-./runtests.sh /path/to/openbazaar-go-binary /path/to/bitcoind-binary
+./runtests.sh /path/to/marketplace-go-binary /path/to/bitcoind-binary
 ```

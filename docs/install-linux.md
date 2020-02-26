@@ -43,7 +43,7 @@ source ~/.profile
 
 Go should now be installed.
 
-### Install openbazaar-go from master
+### Install marketplace-go from master
 
 Checkout a copy of the source:
 ```
@@ -64,14 +64,14 @@ To compile and run the source:
 ### To compile and run the source:
 ```
 cd $GOPATH/src/github.com/phoreproject/pm-go
-go run openbazaard.go start
+go run marketplaced.go start
 ```
 
 NOTE FOR NEW GOLANG HACKERS: 
 
 In most projects you usually perform a `git clone` of the repository in order to start hacking. 
 
-With `openbazaar-go` There's no need to manually `git clone` the project, this is done for you when you issue the `go get github.com/phoreproject/pm-go` command, doing a manual `git clone` will only give you a repository that's missing a lot of recursive dependencies and building headaches.
+With `marketplace-go` There's no need to manually `git clone` the project, this is done for you when you issue the `go get github.com/phoreproject/pm-go` command, doing a manual `git clone` will only give you a repository that's missing a lot of recursive dependencies and building headaches.
 
 If you are used to having all your other projects in some other place on disk, just make a symlink from `$GOPATH/src/github.com/phoreproject/pm-go` into your usual workspace folder.
 
@@ -79,5 +79,5 @@ To start hacking and committing to your fork make sure to add your git remote in
 
 ```
 cd $GOPATH/src/github.com/phoreproject/pm-go
-git remote add myusername git@github.com:myusername/openbazaar-go.git
+git remote add myusername git@github.com:myusername/pm-go.git
 ```

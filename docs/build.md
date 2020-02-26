@@ -17,7 +17,7 @@ Multiplatform build use docker and go.
 
 #### Next steps
 1. Start docker daemon
-2. go to openbazaar-go directory `cd $GOPATH/src/github.com/phoreproject/pm-go`
+2. go to marketplace-go directory `cd $GOPATH/src/github.com/phoreproject/pm-go`
 3. start 'build.sh' script `./build.sh`
 
 Compilation can take long time.

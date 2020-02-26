@@ -46,7 +46,7 @@ source ~/.profile
 
 Go should now be installed.
 
-### Install openbazaar-go
+### Install marketplace-go
 
 Checkout a copy of the source:
 ```
@@ -65,5 +65,5 @@ Note: `go get` leaves the repo pointing at `master` which is a branch used for a
 To compile and run the source using the path above, WITHOUT encrypting the database:
 ```
 cd $GOPATH/src/github.com/phoreproject/pm-go
-go run openbazaard.go start
+go run marketplaced.go start
 ```
