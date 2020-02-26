@@ -8,8 +8,8 @@ import (
 	"path"
 	"testing"
 
-	"github.com/phoreproject/openbazaar-go/cmd"
-	"github.com/phoreproject/openbazaar-go/schema"
+	"github.com/phoreproject/pm-go/cmd"
+	"github.com/phoreproject/pm-go/schema"
 )
 
 func buildCertDirectory() (string, func(), error) {

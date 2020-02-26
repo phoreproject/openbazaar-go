@@ -7,7 +7,7 @@ import (
 	peer "gx/ipfs/QmYVXrKrKHDC9FobgmcmshCDyWwdrfwfanNQN4oxJ9Fk3h/go-libp2p-peer"
 	"time"
 
-	"github.com/phoreproject/openbazaar-go/repo"
+	"github.com/phoreproject/pm-go/repo"
 )
 
 var (

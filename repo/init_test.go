@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/phoreproject/openbazaar-go/schema"
+	"github.com/phoreproject/pm-go/schema"
 )
 
 const mnemonicFixture = "fiscal first first inside toe wedding away element response dry attend oxygen"

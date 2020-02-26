@@ -10,7 +10,7 @@ import (
 	"github.com/OpenBazaar/wallet-interface"
 	"github.com/btcsuite/btcd/btcec"
 	"github.com/phoreproject/multiwallet/util"
-	"github.com/phoreproject/openbazaar-go/repo"
+	"github.com/phoreproject/pm-go/repo"
 )
 
 type KeysDB struct {

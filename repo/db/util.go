@@ -1,6 +1,6 @@
 package db
 
-import "github.com/phoreproject/openbazaar-go/pb"
+import "github.com/phoreproject/pm-go/pb"
 
 func PaymentCoinForContract(contract *pb.RicardianContract) string {
 	paymentCoin := contract.BuyerOrder.Payment.Coin

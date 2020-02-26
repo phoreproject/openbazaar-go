@@ -1,9 +1,9 @@
 package mobile_test
 
 import (
-	"github.com/phoreproject/openbazaar-go/ipfs"
-	"github.com/phoreproject/openbazaar-go/mobile"
-	"github.com/phoreproject/openbazaar-go/schema"
+	"github.com/phoreproject/pm-go/ipfs"
+	"github.com/phoreproject/pm-go/mobile"
+	"github.com/phoreproject/pm-go/schema"
 	bitswap "gx/ipfs/QmcSPuzpSbVLU6UHU4e5PwZpm4fHbCn5SbNR5ZNL6Mj63G/go-bitswap/network"
 	"testing"
 )

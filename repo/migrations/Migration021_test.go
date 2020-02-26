@@ -1,8 +1,8 @@
 package migrations_test
 
 import (
-	"github.com/phoreproject/openbazaar-go/repo/migrations"
-	"github.com/phoreproject/openbazaar-go/schema"
+	"github.com/phoreproject/pm-go/repo/migrations"
+	"github.com/phoreproject/pm-go/schema"
 	"io/ioutil"
 	"os"
 	"regexp"

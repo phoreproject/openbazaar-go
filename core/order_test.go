@@ -2,10 +2,10 @@ package core_test
 
 import (
 	"github.com/golang/protobuf/proto"
-	"github.com/phoreproject/openbazaar-go/core"
-	"github.com/phoreproject/openbazaar-go/pb"
-	"github.com/phoreproject/openbazaar-go/test"
-	"github.com/phoreproject/openbazaar-go/test/factory"
+	"github.com/phoreproject/pm-go/core"
+	"github.com/phoreproject/pm-go/pb"
+	"github.com/phoreproject/pm-go/test"
+	"github.com/phoreproject/pm-go/test/factory"
 
 	"fmt"
 	"testing"

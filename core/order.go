@@ -9,7 +9,7 @@ import (
 	"fmt"
 
 	"github.com/golang/protobuf/ptypes/timestamp"
-	"github.com/phoreproject/openbazaar-go/ipfs"
+	"github.com/phoreproject/pm-go/ipfs"
 
 	crypto "gx/ipfs/QmTW4SdgBWq9GjsBsHeUx8WuGxzhgzAf88UMH2w62PC8yK/go-libp2p-crypto"
 	peer "gx/ipfs/QmYVXrKrKHDC9FobgmcmshCDyWwdrfwfanNQN4oxJ9Fk3h/go-libp2p-peer"
@@ -26,8 +26,8 @@ import (
 	hd "github.com/btcsuite/btcutil/hdkeychain"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
-	"github.com/phoreproject/openbazaar-go/pb"
-	"github.com/phoreproject/openbazaar-go/repo"
+	"github.com/phoreproject/pm-go/pb"
+	"github.com/phoreproject/pm-go/repo"
 )
 
 type option struct {

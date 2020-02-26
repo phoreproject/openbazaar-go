@@ -18,12 +18,12 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
-	"github.com/phoreproject/openbazaar-go/core"
-	"github.com/phoreproject/openbazaar-go/ipfs"
-	"github.com/phoreproject/openbazaar-go/net"
-	"github.com/phoreproject/openbazaar-go/pb"
-	"github.com/phoreproject/openbazaar-go/repo"
-	u "github.com/phoreproject/openbazaar-go/util"
+	"github.com/phoreproject/pm-go/core"
+	"github.com/phoreproject/pm-go/ipfs"
+	"github.com/phoreproject/pm-go/net"
+	"github.com/phoreproject/pm-go/pb"
+	"github.com/phoreproject/pm-go/repo"
+	u "github.com/phoreproject/pm-go/util"
 )
 
 var (

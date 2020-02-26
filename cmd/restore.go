@@ -34,11 +34,11 @@ import (
 
 	"github.com/OpenBazaar/wallet-interface"
 	"github.com/phoreproject/multiwallet/util"
-	"github.com/phoreproject/openbazaar-go/ipfs"
-	obnet "github.com/phoreproject/openbazaar-go/net"
-	"github.com/phoreproject/openbazaar-go/repo"
-	"github.com/phoreproject/openbazaar-go/repo/db"
-	"github.com/phoreproject/openbazaar-go/schema"
+	"github.com/phoreproject/pm-go/ipfs"
+	obnet "github.com/phoreproject/pm-go/net"
+	"github.com/phoreproject/pm-go/repo"
+	"github.com/phoreproject/pm-go/repo/db"
+	"github.com/phoreproject/pm-go/schema"
 
 	"github.com/ipfs/go-ipfs/core"
 	ipfscore "github.com/ipfs/go-ipfs/core"

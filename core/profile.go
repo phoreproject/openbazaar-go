@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/phoreproject/openbazaar-go/ipfs"
+	"github.com/phoreproject/pm-go/ipfs"
 
 	cid "gx/ipfs/QmTbxNB1NwDesLmKTscr4udL2tVP7MaxvXnD1D9yX7g3PN/go-cid"
 
@@ -21,7 +21,7 @@ import (
 	"github.com/OpenBazaar/jsonpb"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/imdario/mergo"
-	"github.com/phoreproject/openbazaar-go/pb"
+	"github.com/phoreproject/pm-go/pb"
 )
 
 // ErrorProfileNotFound - profile not found error

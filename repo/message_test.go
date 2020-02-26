@@ -6,8 +6,8 @@ import (
 
 	"github.com/golang/protobuf/ptypes/any"
 
-	"github.com/phoreproject/openbazaar-go/pb"
-	"github.com/phoreproject/openbazaar-go/repo"
+	"github.com/phoreproject/pm-go/pb"
+	"github.com/phoreproject/pm-go/repo"
 )
 
 func TestMessage(t *testing.T) {

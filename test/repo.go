@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/phoreproject/multiwallet/util"
-	"github.com/phoreproject/openbazaar-go/repo"
-	"github.com/phoreproject/openbazaar-go/repo/db"
+	"github.com/phoreproject/pm-go/repo"
+	"github.com/phoreproject/pm-go/repo/db"
 )
 
 // Repository represents a test (temporary/volitile) repository

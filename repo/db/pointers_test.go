@@ -13,10 +13,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/phoreproject/openbazaar-go/ipfs"
-	"github.com/phoreproject/openbazaar-go/repo"
-	"github.com/phoreproject/openbazaar-go/repo/db"
-	"github.com/phoreproject/openbazaar-go/schema"
+	"github.com/phoreproject/pm-go/ipfs"
+	"github.com/phoreproject/pm-go/repo"
+	"github.com/phoreproject/pm-go/repo/db"
+	"github.com/phoreproject/pm-go/schema"
 )
 
 func mustNewPointer() ipfs.Pointer {

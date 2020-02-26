@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	coremock "github.com/ipfs/go-ipfs/core/mock"
-	"github.com/phoreproject/openbazaar-go/core"
+	"github.com/phoreproject/pm-go/core"
 )
 
 func TestSigningingPayload(t *testing.T) {

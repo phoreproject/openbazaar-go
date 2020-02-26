@@ -6,8 +6,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/phoreproject/openbazaar-go/pb"
-	"github.com/phoreproject/openbazaar-go/repo"
+	"github.com/phoreproject/pm-go/pb"
+	"github.com/phoreproject/pm-go/repo"
 )
 
 // MessagesDB represents the messages table

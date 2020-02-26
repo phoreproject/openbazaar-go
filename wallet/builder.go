@@ -22,9 +22,9 @@ import (
 	"github.com/phoreproject/multiwallet/phore"
 	"github.com/phoreproject/multiwallet/util"
 	"github.com/phoreproject/multiwallet/zcash"
-	"github.com/phoreproject/openbazaar-go/repo"
-	"github.com/phoreproject/openbazaar-go/repo/db"
-	"github.com/phoreproject/openbazaar-go/schema"
+	"github.com/phoreproject/pm-go/repo"
+	"github.com/phoreproject/pm-go/repo/db"
+	"github.com/phoreproject/pm-go/schema"
 
 	"github.com/op/go-logging"
 	"golang.org/x/net/proxy"

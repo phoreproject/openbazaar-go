@@ -9,9 +9,9 @@ import (
 	"path"
 	"time"
 
-	"github.com/phoreproject/openbazaar-go/ipfs"
-	"github.com/phoreproject/openbazaar-go/repo/migrations"
-	"github.com/phoreproject/openbazaar-go/schema"
+	"github.com/phoreproject/pm-go/ipfs"
+	"github.com/phoreproject/pm-go/repo/migrations"
+	"github.com/phoreproject/pm-go/schema"
 
 	"github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/namesys"
