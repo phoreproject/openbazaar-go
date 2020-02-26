@@ -774,7 +774,7 @@ func createOpenBazaarNode(node *core.OpenBazaarNode, multiwalletConfig *wallet.W
 
 	if isEncrypted {
 		log.Warning("mnemonic is encrypted")
-		mnemonic, err = waitForDecryptedMnemonic(node)
+		mnemonic = waitForDecryptedMnemonic(node)
 	}
 
 	multiwalletConfig.Mnemonic = mnemonic
@@ -794,7 +794,7 @@ func createOpenBazaarNode(node *core.OpenBazaarNode, multiwalletConfig *wallet.W
 	return nil
 }
 
-func waitForDecryptedMnemonic(node *core.OpenBazaarNode) (string, error) {
+func waitForDecryptedMnemonic(node *core.OpenBazaarNode) string {
 	node.MnemonicChan = make(chan string)
 
 	for {
@@ -806,7 +806,7 @@ func waitForDecryptedMnemonic(node *core.OpenBazaarNode) (string, error) {
 			continue
 		}
 
-		return decryptedMnemonic, nil
+		return decryptedMnemonic
 	}
 }
 

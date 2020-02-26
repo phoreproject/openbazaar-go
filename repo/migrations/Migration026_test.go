@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/phoreproject/pm-go/schema"
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
+	"github.com/phoreproject/pm-go/schema"
 
 	ds "gx/ipfs/QmUadX5EcvrBmxAV9sE7wUWtWSqxns5K84qKJBixmcT1w9/go-datastore"
 )
