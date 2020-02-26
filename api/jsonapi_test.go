@@ -25,7 +25,7 @@ func TestMain(m *testing.M) {
 	defer gateway.Close()
 
 	go func() {
-		err = gateway.Serve()
+		err = gateway.Serve(true)
 		if err != nil {
 			log.Fatal(err)
 		}
