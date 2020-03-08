@@ -871,7 +871,6 @@ func TestResendOrderMessage(t *testing.T) {
 	})
 }
 
-
 func TestManageWallet(t *testing.T) {
 	const unlockWalletResponse = `{"isLocked": "false"}`
 	const lockWalletResponse = `{"isLocked": "true"}`
