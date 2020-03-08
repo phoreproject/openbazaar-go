@@ -432,12 +432,18 @@ func (n *OpenBazaarNode) UnlockWallet(unlockWallet ManageWalletRequest) error {
 		return err
 	}
 
-	// Also checks password
+	// Wallet status unlocked and skip mnemonic unlocking -> nothing to do. TIMESTAMP NOT UPDATED!
+	if !n.WalletLocked && unlockWallet.OmitDecryption {
+		return nil
+	}
+
+	// Checks password, fails when mnemonic in not encrypted!
 	decryptedMnemonic, err := DecryptMnemonic(mnemonic, unlockWallet.WalletPassword)
 	if err != nil {
 		return err
 	}
 
+	// Time lock feature set up.
 	if unlockWallet.UnlockTimestamp != 0 {
 		if n.LockTimer != nil {
 			n.LockTimer.Stop()
@@ -447,11 +453,13 @@ func (n *OpenBazaarNode) UnlockWallet(unlockWallet ManageWalletRequest) error {
 		})
 	}
 
+	// Password is correct, time lock set up, so change wallet status to unlock state.
 	if !isLocked {
 		n.WalletLocked = false
 		return nil
 	}
 
+	// If mnemonic locked and omit decryption not set, additionally decrypt mnemonic in db.
 	if !unlockWallet.OmitDecryption {
 		err = n.Datastore.Config().UpdateMnemonic(decryptedMnemonic, false)
 		if err != nil {
