@@ -320,7 +320,10 @@ const moderatorValidJSON = `{
 // Wallet
 //
 
-const walletMneumonicJSONResponse = `{"mnemonic": "correct horse battery staple"}`
+const walletMneumonicJSONResponse = `{
+    "isEncrypted": "false",
+    "mnemonic": "correct horse battery staple"
+}`
 
 const walletAddressJSONResponse = `{
     "TBCH": "qptj7gckxunjzd0dtjhmllm44we5ry9sv5r05a59v8",

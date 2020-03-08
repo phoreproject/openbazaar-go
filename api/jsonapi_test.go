@@ -871,6 +871,18 @@ func TestResendOrderMessage(t *testing.T) {
 	})
 }
 
+
+func TestManageWallet(t *testing.T) {
+	const unlockWalletResponse = `{"isLocked": "false"}`
+	const lockWalletResponse = `{"isLocked": "true"}`
+
+	runAPITests(t, apiTests{
+		{"POST", "/manage/initwallet", `{"password":"secret"}`, 200, unlockWalletResponse},
+		{"POST", "/manage/unlockwallet", `{"password":"secret"}`, 200, unlockWalletResponse},
+		{"POST", "/manage/lockwallet", `{"password":"secret"}`, 200, lockWalletResponse},
+	})
+}
+
 // TODO: Make NewDisputeCaseRecord return a valid fixture for this valid case to work
 //func TestCloseDisputeReturnsOK(t *testing.T) {
 //dbSetup := func(testRepo *test.Repository) error {
