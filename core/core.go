@@ -36,7 +36,7 @@ import (
 
 const (
 	// VERSION - current version
-	VERSION = "0.13.8"
+	VERSION = "2.4.0"
 	// USERAGENT - user-agent header string
 	USERAGENT = "/Phore-Marketplace-go:" + VERSION + "/"
 )
@@ -417,7 +417,7 @@ func (n *OpenBazaarNode) UnlockMnemonic(unlockWallet ManageWalletRequest) error 
 		select {
 		case n.MnemonicChan <- mnemonic:
 		default:
-			if unlockWallet.OmitDecryption {
+			if unlockWallet.SkipChangeMnemonicState {
 				log.Warning("User is asking to unlock wallet for current run only, but no service is waiting for password to unlock.")
 			}
 		}
@@ -426,21 +426,21 @@ func (n *OpenBazaarNode) UnlockMnemonic(unlockWallet ManageWalletRequest) error 
 	return nil
 }
 
-func (n *OpenBazaarNode) UnlockWallet(unlockWallet ManageWalletRequest) error {
-	mnemonic, isLocked, err := n.Datastore.Config().GetMnemonic()
+func (n *OpenBazaarNode) UnlockWallet(unlockWallet ManageWalletRequest) (bool, bool, error) {
+	mnemonic, isMnemonicEncrypted, err := n.Datastore.Config().GetMnemonic()
 	if err != nil {
-		return err
+		return true, isMnemonicEncrypted, err
 	}
 
 	// Wallet status unlocked and skip mnemonic unlocking -> nothing to do. TIMESTAMP NOT UPDATED!
-	if !n.WalletLocked && unlockWallet.OmitDecryption {
-		return nil
+	if !n.WalletLocked && unlockWallet.SkipChangeMnemonicState {
+		return n.WalletLocked, isMnemonicEncrypted, nil
 	}
 
 	// Checks password, fails when mnemonic in not encrypted!
 	decryptedMnemonic, err := DecryptMnemonic(mnemonic, unlockWallet.WalletPassword)
 	if err != nil {
-		return err
+		return  n.WalletLocked, isMnemonicEncrypted, err
 	}
 
 	// Time lock feature set up.
@@ -454,46 +454,53 @@ func (n *OpenBazaarNode) UnlockWallet(unlockWallet ManageWalletRequest) error {
 	}
 
 	// Password is correct, time lock set up, so change wallet status to unlock state.
-	if !isLocked {
+	if !isMnemonicEncrypted {
 		n.WalletLocked = false
-		return nil
+		return false, isMnemonicEncrypted, nil
 	}
 
 	// If mnemonic locked and omit decryption not set, additionally decrypt mnemonic in db.
-	if !unlockWallet.OmitDecryption {
+	if !unlockWallet.SkipChangeMnemonicState {
 		err = n.Datastore.Config().UpdateMnemonic(decryptedMnemonic, false)
 		if err != nil {
-			return err
+			return  n.WalletLocked, isMnemonicEncrypted, err
 		}
 	}
 
 	n.WalletLocked = false
-	return nil
+	return  n.WalletLocked, isMnemonicEncrypted, nil
 }
 
-func (n *OpenBazaarNode) LockWallet(lockWallet ManageWalletRequest) error {
-	mnemonic, isLocked, err := n.Datastore.Config().GetMnemonic()
+func (n *OpenBazaarNode) LockWallet(lockWallet ManageWalletRequest) (bool, bool, error) {
+	mnemonic, isMnemonicLocked, err := n.Datastore.Config().GetMnemonic()
 	if err != nil {
-		return err
+		return false, isMnemonicLocked, err
 	}
 
-	if isLocked {
+	// wallet is not locked, because have to be encrypted first.
+	if lockWallet.SkipChangeMnemonicState && !isMnemonicLocked {
+		return false, isMnemonicLocked, nil
+	}
+
+	// mnemonic already locked so change wallet state to locked.
+	if isMnemonicLocked {
 		n.WalletLocked = true
-		return nil
+		return true, isMnemonicLocked, nil
 	}
 
+	// mnemonic is unlocked, so encrypt it first.
 	encryptedMnemonic, err := EncryptMnemonic(mnemonic, lockWallet.WalletPassword)
 	if err != nil {
-		return err
+		return false, isMnemonicLocked, err
 	}
 
 	err = n.Datastore.Config().UpdateMnemonic(encryptedMnemonic, true)
 	if err != nil {
-		return err
+		return false, isMnemonicLocked, err
 	}
 
 	n.WalletLocked = true
-	return nil
+	return n.WalletLocked, isMnemonicLocked, nil
 }
 
 // createSlugFor Create a slug from a multi-lang string

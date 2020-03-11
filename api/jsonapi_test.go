@@ -872,7 +872,11 @@ func TestResendOrderMessage(t *testing.T) {
 }
 
 func TestManageWallet(t *testing.T) {
-	const unlockWalletResponse = `{"isLocked": "false"}`
+	const initWalletResponse = `{"isLocked": "false"}`
+	const unlockWalletResponse = `{
+    	"isEncrypted": "false",
+    	"isLocked": "false"
+	}`
 	//const lockWalletResponse = `{"isLocked": "true"}`
 	const unlockFailedResponse = `{
             "success": false,
@@ -881,9 +885,9 @@ func TestManageWallet(t *testing.T) {
 
 	runAPITests(t, apiTests{
 		// init wallet trial
-		{"POST", "/manage/initwallet", `{"password":"secret"}`, 200, unlockWalletResponse},
+		{"POST", "/manage/initwallet", `{"password":"secret"}`, 200, initWalletResponse},
 		// wallet not encrypted and skip mnemonic unlocking procedure
-		{"POST", "/manage/unlockwallet", `{"omitDecryption":true}`, 200, unlockWalletResponse},
+		{"POST", "/manage/unlockwallet", `{"skipCrypt":true}`, 200, unlockWalletResponse},
 		// wallet not encrypted and tries to unlock mnemonic
 		{"POST", "/manage/unlockwallet", `{"password":"secret"}`, 400, unlockFailedResponse},
 		//TODO add lockwallet test, but now it affects another tests.

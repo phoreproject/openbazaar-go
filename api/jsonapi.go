@@ -22,12 +22,12 @@ import (
 	"time"
 
 	ipnspath "gx/ipfs/QmQAgv6Gaoe2tQpcabqwKXKChp2MZ7i3UXv9DqTTaxCaTR/go-path"
-	files "gx/ipfs/QmQmhotPUzVrMEWNK3x1R5jQ5ZHWyL7tVUrmRPjrBrvyCb/go-ipfs-files"
-	cid "gx/ipfs/QmTbxNB1NwDesLmKTscr4udL2tVP7MaxvXnD1D9yX7g3PN/go-cid"
-	ipns "gx/ipfs/QmUwMnKKjH3JwGKNVZ3TcP37W93xzqNA4ECFFiMo6sXkkc/go-ipns"
-	iface "gx/ipfs/QmXLwxifxwfc2bAwq6rdjbYqAsGzWsDE9RM5TWMGtykyj6/interface-go-ipfs-core"
-	peer "gx/ipfs/QmYVXrKrKHDC9FobgmcmshCDyWwdrfwfanNQN4oxJ9Fk3h/go-libp2p-peer"
-	routing "gx/ipfs/QmYxUdYY9S6yg5tSPVin5GFTvtfsLauVcr7reHDD3dM8xf/go-libp2p-routing"
+	"gx/ipfs/QmQmhotPUzVrMEWNK3x1R5jQ5ZHWyL7tVUrmRPjrBrvyCb/go-ipfs-files"
+	"gx/ipfs/QmTbxNB1NwDesLmKTscr4udL2tVP7MaxvXnD1D9yX7g3PN/go-cid"
+	"gx/ipfs/QmUwMnKKjH3JwGKNVZ3TcP37W93xzqNA4ECFFiMo6sXkkc/go-ipns"
+	"gx/ipfs/QmXLwxifxwfc2bAwq6rdjbYqAsGzWsDE9RM5TWMGtykyj6/interface-go-ipfs-core"
+	"gx/ipfs/QmYVXrKrKHDC9FobgmcmshCDyWwdrfwfanNQN4oxJ9Fk3h/go-libp2p-peer"
+	"gx/ipfs/QmYxUdYY9S6yg5tSPVin5GFTvtfsLauVcr7reHDD3dM8xf/go-libp2p-routing"
 	ps "gx/ipfs/QmaCTz9RkrU13bm9kMB54f7atgqM4qkjDZpRwRoJiWXEqs/go-libp2p-peerstore"
 	ggproto "gx/ipfs/QmddjPSGZb3ieihSseFeCfVRpZzcqczPNsD2DvarSwnjJB/gogo-protobuf/proto"
 	mh "gx/ipfs/QmerPMzPk1mJVowm8KgmoknWa4yCYvvugMPsgWmDNUvDLW/go-multihash"
@@ -3954,19 +3954,20 @@ func (i *jsonAPIHandler) POSTUnlockWallet(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	err = i.node.UnlockWallet(data)
+	walletLocked, mnemonicEncrypted, err := i.node.UnlockWallet(data)
 	if err != nil {
 		ErrorResponse(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	if i.node.IsWalletLocked() && !data.OmitDecryption {
+	if i.node.IsWalletLocked() && !data.SkipChangeMnemonicState {
 		// shouldn't be
 		ErrorResponse(w, http.StatusBadRequest, `{"success": "false", "reason":"Unknown error - wallet was not able to unlock'"}`)
 		return
 	}
 
-	SanitizedResponse(w, `{"isLocked": "false"}`)
+	SanitizedResponse(w, fmt.Sprintf(`{"isLocked": "%t", "isEncrypted": "%t"}`,
+		walletLocked, mnemonicEncrypted))
 }
 
 func (i *jsonAPIHandler) POSTLockWallet(w http.ResponseWriter, r *http.Request) {
@@ -3979,18 +3980,14 @@ func (i *jsonAPIHandler) POSTLockWallet(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	err = i.node.LockWallet(data)
+	walletLocked, mnemonicEncrypted, err := i.node.LockWallet(data)
 	if err != nil {
 		ErrorResponse(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	if !i.node.IsWalletLocked() {
-		ErrorResponse(w, http.StatusBadRequest, `{"success": "false", "reason":"Unknown error - wallet was not able to lock'"}`)
-		return
-	}
-
-	SanitizedResponse(w, `{"isLocked": "true"}`)
+	SanitizedResponse(w, fmt.Sprintf(`{"isLocked": "%t", "isEncrypted": "%t"}`,
+		walletLocked, mnemonicEncrypted))
 }
 
 // POSTS

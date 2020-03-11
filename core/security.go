@@ -13,9 +13,9 @@ import (
 
 // Lock / Unlock wallet request
 type ManageWalletRequest struct {
-	WalletPassword  string `json:"password"`
-	UnlockTimestamp int    `json:"unlockTimestamp,omitempty"`
-	OmitDecryption  bool   `json:"omitDecryption,omitempty"`
+	WalletPassword          string `json:"password"`
+	UnlockTimestamp         int    `json:"unlockTimestamp,omitempty"`
+	SkipChangeMnemonicState bool   `json:"skipCrypt,omitempty"`
 }
 
 func hashPassword(password string) ([]byte, error) {
