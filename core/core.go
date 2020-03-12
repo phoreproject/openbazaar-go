@@ -440,7 +440,7 @@ func (n *OpenBazaarNode) UnlockWallet(unlockWallet ManageWalletRequest) (bool, b
 	// Checks password, fails when mnemonic in not encrypted!
 	decryptedMnemonic, err := DecryptMnemonic(mnemonic, unlockWallet.WalletPassword)
 	if err != nil {
-		return  n.WalletLocked, isMnemonicEncrypted, err
+		return n.WalletLocked, isMnemonicEncrypted, err
 	}
 
 	// Time lock feature set up.
@@ -463,12 +463,12 @@ func (n *OpenBazaarNode) UnlockWallet(unlockWallet ManageWalletRequest) (bool, b
 	if !unlockWallet.SkipChangeMnemonicState {
 		err = n.Datastore.Config().UpdateMnemonic(decryptedMnemonic, false)
 		if err != nil {
-			return  n.WalletLocked, isMnemonicEncrypted, err
+			return n.WalletLocked, isMnemonicEncrypted, err
 		}
 	}
 
 	n.WalletLocked = false
-	return  n.WalletLocked, isMnemonicEncrypted, nil
+	return n.WalletLocked, isMnemonicEncrypted, nil
 }
 
 func (n *OpenBazaarNode) LockWallet(lockWallet ManageWalletRequest) (bool, bool, error) {
