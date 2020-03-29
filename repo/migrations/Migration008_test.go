@@ -9,9 +9,9 @@ import (
 	"time"
 
 	"github.com/OpenBazaar/jsonpb"
-	"github.com/phoreproject/openbazaar-go/repo/migrations"
-	"github.com/phoreproject/openbazaar-go/schema"
-	"github.com/phoreproject/openbazaar-go/test/factory"
+	"github.com/phoreproject/pm-go/repo/migrations"
+	"github.com/phoreproject/pm-go/schema"
+	"github.com/phoreproject/pm-go/test/factory"
 )
 
 func TestMigration008(t *testing.T) {

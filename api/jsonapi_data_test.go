@@ -3,7 +3,7 @@ package api
 import (
 	"fmt"
 
-	"github.com/phoreproject/openbazaar-go/pb"
+	"github.com/phoreproject/pm-go/pb"
 )
 
 const notFoundJSON = `{"success": false,"reason": "Not Found"}`

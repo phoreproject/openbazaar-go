@@ -10,8 +10,8 @@ import (
 	_ "github.com/mutecomm/go-sqlcipher"
 	"github.com/op/go-logging"
 	"github.com/phoreproject/multiwallet/util"
-	"github.com/phoreproject/openbazaar-go/repo"
-	"github.com/phoreproject/openbazaar-go/schema"
+	"github.com/phoreproject/pm-go/repo"
+	"github.com/phoreproject/pm-go/schema"
 )
 
 var log = logging.MustGetLogger("db")

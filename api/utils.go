@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/phoreproject/openbazaar-go/pb"
+	"github.com/phoreproject/pm-go/pb"
 )
 
 type TransactionQuery struct {

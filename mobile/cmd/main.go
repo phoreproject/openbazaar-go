@@ -6,7 +6,7 @@ import (
 	"sync"
 
 	"github.com/jessevdk/go-flags"
-	"github.com/phoreproject/openbazaar-go/mobile"
+	"github.com/phoreproject/pm-go/mobile"
 )
 
 type Options struct {

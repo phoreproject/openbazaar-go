@@ -3,7 +3,7 @@ package net
 import (
 	"testing"
 
-	"github.com/phoreproject/openbazaar-go/pb"
+	"github.com/phoreproject/pm-go/pb"
 )
 
 // TestEnsureNoOmissionsInMessageProcessingOrder ensures that

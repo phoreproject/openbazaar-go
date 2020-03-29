@@ -17,7 +17,7 @@ import (
 
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
 	_ "github.com/mutecomm/go-sqlcipher"
-	"github.com/phoreproject/openbazaar-go/ipfs"
+	"github.com/phoreproject/pm-go/ipfs"
 	"github.com/tyler-smith/go-bip39"
 )
 

@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/ptypes"
-	"github.com/phoreproject/openbazaar-go/pb"
+	"github.com/phoreproject/pm-go/pb"
 )
 
 func NewContract() *pb.RicardianContract {

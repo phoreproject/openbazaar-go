@@ -6,8 +6,8 @@ import (
 
 	"github.com/ipfs/go-ipfs/core/corehttp"
 	"github.com/op/go-logging"
-	"github.com/phoreproject/openbazaar-go/core"
-	"github.com/phoreproject/openbazaar-go/schema"
+	"github.com/phoreproject/pm-go/core"
+	"github.com/phoreproject/pm-go/schema"
 )
 
 var log = logging.MustGetLogger("api")

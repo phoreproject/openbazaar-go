@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"path"
 
-	"github.com/phoreproject/openbazaar-go/ipfs"
+	"github.com/phoreproject/pm-go/ipfs"
 
 	u "gx/ipfs/QmNohiVssaPw3KVLZik59DBVGTSm2dGvYT9eoXt5DQ36Yz/go-ipfs-util"
 	ci "gx/ipfs/QmTW4SdgBWq9GjsBsHeUx8WuGxzhgzAf88UMH2w62PC8yK/go-libp2p-crypto"
@@ -18,7 +18,7 @@ import (
 
 	"github.com/ipfs/go-ipfs/repo"
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
-	dhtpb "github.com/phoreproject/openbazaar-go/repo/migrations/helpers/Migration020"
+	dhtpb "github.com/phoreproject/pm-go/repo/migrations/helpers/Migration020"
 )
 
 // Migration020 runs an IPFS migration which migrates the IPNS records in the

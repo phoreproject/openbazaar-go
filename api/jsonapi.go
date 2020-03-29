@@ -40,11 +40,11 @@ import (
 	"github.com/ipfs/go-ipfs/core/coreapi"
 	"github.com/ipfs/go-ipfs/namesys"
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
-	"github.com/phoreproject/openbazaar-go/core"
-	"github.com/phoreproject/openbazaar-go/ipfs"
-	"github.com/phoreproject/openbazaar-go/pb"
-	"github.com/phoreproject/openbazaar-go/repo"
-	"github.com/phoreproject/openbazaar-go/schema"
+	"github.com/phoreproject/pm-go/core"
+	"github.com/phoreproject/pm-go/ipfs"
+	"github.com/phoreproject/pm-go/pb"
+	"github.com/phoreproject/pm-go/repo"
+	"github.com/phoreproject/pm-go/schema"
 )
 
 type JSONAPIConfig struct {

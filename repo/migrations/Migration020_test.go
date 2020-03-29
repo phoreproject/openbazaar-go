@@ -14,10 +14,10 @@ import (
 
 	"gx/ipfs/QmddjPSGZb3ieihSseFeCfVRpZzcqczPNsD2DvarSwnjJB/gogo-protobuf/proto"
 
-	"github.com/phoreproject/openbazaar-go/ipfs"
-	"github.com/phoreproject/openbazaar-go/repo/migrations"
-	dhtpb "github.com/phoreproject/openbazaar-go/repo/migrations/helpers/Migration020"
-	"github.com/phoreproject/openbazaar-go/schema"
+	"github.com/phoreproject/pm-go/ipfs"
+	"github.com/phoreproject/pm-go/repo/migrations"
+	dhtpb "github.com/phoreproject/pm-go/repo/migrations/helpers/Migration020"
+	"github.com/phoreproject/pm-go/schema"
 
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
 )

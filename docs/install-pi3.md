@@ -50,20 +50,20 @@ Go should now be installed.
 
 Checkout a copy of the source:
 ```
-go get github.com/phoreproject/openbazaar-go
+go get github.com/phoreproject/pm-go
 ```
 
-It will use git to checkout the source code into `$GOPATH/src/github.com/phoreproject/openbazaar-go`
+It will use git to checkout the source code into `$GOPATH/src/github.com/phoreproject/pm-go`
 
 Checkout a release version:
 ```
 git checkout v0.13.4
 ```
 
-Note: `go get` leaves the repo pointing at `master` which is a branch used for active development. Running OpenBazaar from `master` is NOT recommended. Check the [release versions](https://github.com/phoreproject/openbazaar-go/releases) for the available versions that you use iin checkout.
+Note: `go get` leaves the repo pointing at `master` which is a branch used for active development. Running OpenBazaar from `master` is NOT recommended. Check the [release versions](https://github.com/phoreproject/pm-go/releases) for the available versions that you use iin checkout.
 
 To compile and run the source using the path above, WITHOUT encrypting the database:
 ```
-cd $GOPATH/src/github.com/phoreproject/openbazaar-go
+cd $GOPATH/src/github.com/phoreproject/pm-go
 go run openbazaard.go start
 ```

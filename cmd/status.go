@@ -6,9 +6,9 @@ import (
 
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
 	"github.com/phoreproject/multiwallet/util"
-	obnet "github.com/phoreproject/openbazaar-go/net"
-	"github.com/phoreproject/openbazaar-go/repo"
-	"github.com/phoreproject/openbazaar-go/repo/db"
+	obnet "github.com/phoreproject/pm-go/net"
+	"github.com/phoreproject/pm-go/repo"
+	"github.com/phoreproject/pm-go/repo/db"
 )
 
 type Status struct {

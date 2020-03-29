@@ -2,7 +2,7 @@ package factory
 
 import (
 	"github.com/golang/protobuf/ptypes/timestamp"
-	"github.com/phoreproject/openbazaar-go/pb"
+	"github.com/phoreproject/pm-go/pb"
 )
 
 func NewListing(slug string) *pb.Listing {

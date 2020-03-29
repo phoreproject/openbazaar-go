@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/phoreproject/openbazaar-go/repo"
+	"github.com/phoreproject/pm-go/repo"
 )
 
 type OfflineMessagesDB struct {

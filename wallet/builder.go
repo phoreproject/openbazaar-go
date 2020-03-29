@@ -26,9 +26,9 @@ import (
 	"github.com/op/go-logging"
 
 	"github.com/btcsuite/btcd/chaincfg"
-	"github.com/phoreproject/openbazaar-go/repo"
-	"github.com/phoreproject/openbazaar-go/repo/db"
-	"github.com/phoreproject/openbazaar-go/schema"
+	"github.com/phoreproject/pm-go/repo"
+	"github.com/phoreproject/pm-go/repo/db"
+	"github.com/phoreproject/pm-go/schema"
 
 	"github.com/OpenBazaar/spvwallet"
 	"github.com/OpenBazaar/wallet-interface"

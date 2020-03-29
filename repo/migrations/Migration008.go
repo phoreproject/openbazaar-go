@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/OpenBazaar/jsonpb"
-	"github.com/phoreproject/openbazaar-go/pb"
+	"github.com/phoreproject/pm-go/pb"
 )
 
 const (

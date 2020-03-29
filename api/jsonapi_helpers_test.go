@@ -17,7 +17,7 @@ import (
 	"github.com/OpenBazaar/jsonpb"
 	"github.com/golang/protobuf/proto"
 	"github.com/op/go-logging"
-	"github.com/phoreproject/openbazaar-go/test"
+	"github.com/phoreproject/pm-go/test"
 )
 
 // testURIRoot is the root http URI to hit for testing

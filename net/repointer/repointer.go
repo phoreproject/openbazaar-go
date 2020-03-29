@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/op/go-logging"
-	"github.com/phoreproject/openbazaar-go/ipfs"
-	"github.com/phoreproject/openbazaar-go/repo"
+	"github.com/phoreproject/pm-go/ipfs"
+	"github.com/phoreproject/pm-go/repo"
 	"golang.org/x/net/context"
 )
 

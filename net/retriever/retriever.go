@@ -22,10 +22,10 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/ipfs/go-ipfs/core"
 	"github.com/op/go-logging"
-	"github.com/phoreproject/openbazaar-go/ipfs"
-	"github.com/phoreproject/openbazaar-go/net"
-	"github.com/phoreproject/openbazaar-go/pb"
-	"github.com/phoreproject/openbazaar-go/repo"
+	"github.com/phoreproject/pm-go/ipfs"
+	"github.com/phoreproject/pm-go/net"
+	"github.com/phoreproject/pm-go/pb"
+	"github.com/phoreproject/pm-go/repo"
 	"golang.org/x/net/proxy"
 )
 

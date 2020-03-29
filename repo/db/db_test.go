@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/phoreproject/multiwallet/util"
-	"github.com/phoreproject/openbazaar-go/schema"
+	"github.com/phoreproject/pm-go/schema"
 )
 
 func buildNewDatastore() (*SQLiteDatastore, func(), error) {

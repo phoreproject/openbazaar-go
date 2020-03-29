@@ -10,8 +10,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/phoreproject/openbazaar-go/ipfs"
-	"github.com/phoreproject/openbazaar-go/pb"
+	"github.com/phoreproject/pm-go/ipfs"
+	"github.com/phoreproject/pm-go/pb"
 )
 
 type messageSender struct {

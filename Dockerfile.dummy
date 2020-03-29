@@ -1,6 +1,6 @@
 # Build stage
 FROM golang:1.8.1
-WORKDIR /go/src/github.com/phoreproject/openbazaar-go
+WORKDIR /go/src/github.com/phoreproject/pm-go
 COPY . .
 RUN go build -o /opt/dummy ./dummy
 

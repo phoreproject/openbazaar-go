@@ -10,8 +10,8 @@ import (
 	"github.com/phoreproject/multiwallet/util"
 
 	"github.com/btcsuite/btcd/wire"
-	"github.com/phoreproject/openbazaar-go/repo"
-	"github.com/phoreproject/openbazaar-go/schema"
+	"github.com/phoreproject/pm-go/repo"
+	"github.com/phoreproject/pm-go/schema"
 )
 
 func buildNewTransactionStore() (repo.TransactionStore, func(), error) {
