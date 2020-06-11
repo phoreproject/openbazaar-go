@@ -46,7 +46,6 @@ import (
 	"github.com/phoreproject/pm-go/repo"
 	"github.com/phoreproject/pm-go/repo/db"
 	"github.com/phoreproject/pm-go/repo/migrations"
-	"github.com/phoreproject/pm-go/schema"
 	apiSchema "github.com/phoreproject/pm-go/schema"
 	"github.com/phoreproject/pm-go/storage/selfhosted"
 	"github.com/phoreproject/pm-go/wallet"
@@ -419,7 +418,7 @@ func (n *Node) start() error {
 	}
 	n.gateway = gateway
 	go func() {
-		if err := gateway.Serve(); err != nil {
+		if err := gateway.Serve(false); err != nil {
 			log.Error(err)
 		}
 	}()

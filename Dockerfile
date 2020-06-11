@@ -3,7 +3,7 @@ FROM golang:1.11
 COPY . /go/src/github.com/phoreproject/pm-go
 RUN go build --ldflags '-extldflags "-static"' -o /opt/marketplaced /go/src/github.com/phoreproject/pm-go
 
-# Final state - Create image containing nothing but the openbazaard binary and
+# Final state - Create image containing nothing but the marketplaced binary and
 # some base settings
 FROM PhoreMarketplace/base:v1.0.0
 

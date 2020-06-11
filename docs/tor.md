@@ -46,20 +46,20 @@ Or the following for dual-stack mode:
 In both cases substituting the onion address above for your onion address found as the prefix of the `.onion_key` file in the same data directory.
 
 ##### Via runtime option
-For Tor-only mode run openbazaar-go with the `--tor` flag.
+For Tor-only mode run marketplace-go with the `--tor` flag.
 Example:
 ```
-./openbazaar-go start --tor
+./marketplace-go start --tor
 ```
 For dual-stack mode use the `--dualstack` flag.
 Example:
 ```
-./openbazaar-go start --dualstack
+./marketplace-go start --dualstack
 ```
 The runtime option will override the swarm address configuration in the config file and use default ports.
 
 ## Advanced Tor configuration
-If you changed the tor control port in your `torrc` file or you require authentication you can set both the control port and your tor control password in the openbazaar-go config file:
+If you changed the tor control port in your `torrc` file or you require authentication you can set both the control port and your tor control password in the marketplace-go config file:
 ```
 "Tor-config": {
     "Password": "yourpassword", 
@@ -69,11 +69,11 @@ If you changed the tor control port in your `torrc` file or you require authenti
 
 Aternatively you can pass the tor control password in as a start up option:
 ```
-./openbazaar-go start --torpassword yourpassword
+./marketplace-go start --torpassword yourpassword
 ```
 
 ## Configuring the client
-The openbazaar-desktop client **must** also be configured to run over Tor as some html tags, such as `IMG`, are allowed in the profile and store data and will trigger the client to make outgoing network calls.
+The pm-desktop client **must** also be configured to run over Tor as some html tags, such as `IMG`, are allowed in the profile and store data and will trigger the client to make outgoing network calls.
 
 To set tor in the reference client select `Manage Servers` from the menu then check `Use Tor` and make sure the socks5 proxy url is correct. 
 
@@ -82,10 +82,10 @@ To set tor in the reference client select `Manage Servers` from the menu then ch
 ### Important Privacy Considerations
 
 All nodes in OpenBazaar are identified by a peer ID such as `QmNgBZN7z1CfMLbwyEwnGoixjbSaBcP9fS5ecMzZwCq3Ku`. Other nodes in the network will associate your peer ID with your
-network addresses (whether IPv4, IPv6, or onion). If you run openbazaar-go in the clear even *once*, you must assume *someone* has recorded the mapping between your
+network addresses (whether IPv4, IPv6, or onion). If you run marketplace-go in the clear even *once*, you must assume *someone* has recorded the mapping between your
 peer ID and your IP address. Therefore using a given peer ID in the clear, *then* switching to Tor-only mode will almost certainly blow your privacy.
 
 Therefore if you wish to run in Tor-only mode, it is *highly recommended* that you use a fresh peer ID which has never been used on the network and has not had a chance
-to get associated with your actual IP address. To get a new peer ID you can just delete your data folder and restart openbazaar-go. It will create a new peer ID on start up.
+to get associated with your actual IP address. To get a new peer ID you can just delete your data folder and restart marketplace-go. It will create a new peer ID on start up.
 
 Finally, as noted in the [bitcoind doc](https://github.com/phoreproject/pm-go/blob/master/docs/bitcoind.md) the default SPV wallet has known privacy issues which may allow attackers to associate your bitcoin transactions with your OpenBazaar peer ID. For those looking to maximize privacy it's recommended you switch out the default wallet for bitcoind. See the bitcoind doc for instructions. 

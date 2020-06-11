@@ -25,7 +25,7 @@ func TestMain(m *testing.M) {
 	defer gateway.Close()
 
 	go func() {
-		err = gateway.Serve()
+		err = gateway.Serve(true)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -868,6 +868,30 @@ func TestResendOrderMessage(t *testing.T) {
 		{"POST", "/ob/resendordermessage", `{"orderID":"123","messageType":"nonexistant"}`, http.StatusBadRequest, errorResponseJSON(fmt.Errorf("unknown messageType (nonexistant)"))},
 		// supports downcased message types, expected not to find order ID
 		{"POST", "/ob/resendordermessage", `{"orderID":"123","messageType":"order"}`, http.StatusInternalServerError, errorResponseJSON(fmt.Errorf("unable to find message for order ID (123) and message type (ORDER)"))},
+	})
+}
+
+func TestManageWallet(t *testing.T) {
+	const initWalletResponse = `{"isLocked": "false"}`
+	const unlockWalletResponse = `{
+    	"isEncrypted": "false",
+    	"isLocked": "false"
+	}`
+	//const lockWalletResponse = `{"isLocked": "true"}`
+	const unlockFailedResponse = `{
+            "success": false,
+            "reason": "cipher: message authentication failed"
+        }`
+
+	runAPITests(t, apiTests{
+		// init wallet trial
+		{"POST", "/manage/initwallet", `{"password":"secret"}`, 200, initWalletResponse},
+		// wallet not encrypted and skip mnemonic unlocking procedure
+		{"POST", "/manage/unlockwallet", `{"skipCrypt":true}`, 200, unlockWalletResponse},
+		// wallet not encrypted and tries to unlock mnemonic
+		{"POST", "/manage/unlockwallet", `{"password":"secret"}`, 400, unlockFailedResponse},
+		//TODO add lockwallet test, but now it affects another tests.
+		//{"POST", "/manage/lockwallet", `{"password":"secret"}`, 200, lockWalletResponse},
 	})
 }
 

@@ -53,7 +53,7 @@ func (x *Status) Execute(args []string) error {
 
 			if !torAvailable {
 				fmt.Println("Initialized - Not Encrypted")
-				if isEncrypted{
+				if isEncrypted {
 					fmt.Println("Seed Words Encrypted")
 					os.Exit(25)
 				} else {
@@ -62,7 +62,7 @@ func (x *Status) Execute(args []string) error {
 			} else {
 				fmt.Println("Initialized - Not Encrypted")
 				fmt.Println("Tor Available")
-				if isEncrypted{
+				if isEncrypted {
 					fmt.Println("Seed Words Encrypted")
 					os.Exit(26)
 				} else {

@@ -9,8 +9,8 @@ import (
 
 	peer "gx/ipfs/QmYVXrKrKHDC9FobgmcmshCDyWwdrfwfanNQN4oxJ9Fk3h/go-libp2p-peer"
 
-	"github.com/phoreproject/pm-go/pb"
 	"github.com/golang/protobuf/ptypes"
+	"github.com/phoreproject/pm-go/pb"
 )
 
 var (

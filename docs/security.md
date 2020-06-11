@@ -4,15 +4,15 @@ The following is a list of security features that it's recommended you take to s
 
 ### Database Encryption
 
-The openbazaar-go daemon stores all of its user data (keys, orders, sales, metadata, etc) in a sqlite database found in the `~/openbazaar2.0/datastore`
+The marketplace-go daemon stores all of its user data (keys, orders, sales, metadata, etc) in a sqlite database found in the `~/PhoreMarketplace/datastore`
 directory. This database can be encrypted using [sqlcipher](https://www.zetetic.net/sqlcipher/).
 
 #### Encrypting the database
 There are several ways to enable database encryption.
 
-1. Running the openbazaar-go `start` or `init` commands the very first time using the `--password` flag (followed by your password) will encrypt the database with that password. Note:
+1. Running the marketplace-go `start` or `init` commands the very first time using the `--password` flag (followed by your password) will encrypt the database with that password. Note:
 the password will be visible in your terminal if you launch from the terminal.
-2. Running the openbazaar-go `encryptdatabase` at any time will enable you to encrypt the database. (Unlike the previous option, the terminal input will be obfuscated.)
+2. Running the marketplace-go `encryptdatabase` at any time will enable you to encrypt the database. (Unlike the previous option, the terminal input will be obfuscated.)
 
 #### Running with an encrypted database
 Again two options:
@@ -26,11 +26,11 @@ You can decrypt the database by running the `decryptdatabase` command. Note: thi
 
 ### API Authentication
 
-If you are running the openbazaar-go daemon on a remote machine you MUST enable API authentication otherwise anyone will be able to log into your
+If you are running the marketplace-go daemon on a remote machine you MUST enable API authentication otherwise anyone will be able to log into your
 node, steal your bitcoins, and view your order/sales history. Additionally, you MUST enable SSL (see below) otherwise your authentication credentials
 will be sent to the remote node in the clear (unencrypted) ― meaning they could be intercepted by anyone viewing your network traffic. 
 
-The settings to enable authentication are found in the config file located in the `openbazaar2.0` data directory. To enable authentication first set the
+The settings to enable authentication are found in the config file located in the `PhoreMarketplace` data directory. To enable authentication first set the
 JSON-API authentication boolean to true:
 ```
 {
@@ -63,7 +63,7 @@ Alternatively, you can use basic authentication by setting a username and passwo
 ```
 The password must be saved as the hex-encoded SHA-256 hash of your password. The password you send to authenticate must be the hash preimage as it will hashed and compared to the hash in the config file.
 
-You can have openbazaar-go hash and save the username and password for you by running the `setapicreds` command.
+You can have marketplace-go hash and save the username and password for you by running the `setapicreds` command.
 
 The username and password need to be included in the request header following [RFC 2617](https://www.ietf.org/rfc/rfc2617.txt) where the username and password are encoded as `base64encode(username + ":" + password)`:
 ```
@@ -86,6 +86,6 @@ You can (and probably should) restrict access to the API to specific IP addresse
     }
 }
 ```
-Or pass them in at start up: `openbazaar-go start -a 69.89.31.226`
+Or pass them in at start up: `marketplace-go start -a 69.89.31.226`
 
 If `AllowIPs` is set to `[]` in the config file and the `-a` flag is omitted at start up, then all IP addresses will be allowed.

@@ -1,6 +1,6 @@
 Using a Bitcoind Wallet
 ========================
-The default openbazaar-go wallet uses [simplified payment verification](https://bitcoin.org/en/developer-guide#simplified-payment-verification-spv) (SPV) to validate incoming bitcoin payments.
+The default marketplace-go wallet uses [simplified payment verification](https://bitcoin.org/en/developer-guide#simplified-payment-verification-spv) (SPV) to validate incoming bitcoin payments.
 The benefit of this operating mode is that it achieves a high level of security without much overhead (bandwidth, CPU, etc) and is suitable for the average user. However, there are some downsides
 to SPV that might warrant switching to a different wallent:
 
@@ -46,7 +46,7 @@ Edit the config file to set a username and password:
 ```
 Note: you must remove the # before saving.
 
-Next, edit the following fields in the openbazaar-go config file found in the openbazaar2.0 data folder:
+Next, edit the following fields in the marketplace-go config file found in the openbazaar2.0 data folder:
 ```
 "Wallet": {
     "Binary": "/path/to/bitcoind",
@@ -57,11 +57,11 @@ Next, edit the following fields in the openbazaar-go config file found in the op
 ```
 Obviously replacing the username and password with the username and password you set in the bitcoind config file.
 
-That's it! Just start openbazaar-go.
+That's it! Just start marketplace-go.
 
 ### Things to consider
-- If bitcoind is running when you start openbazaar-go, it will shut it down and restart it. This is done because bitcoind needs to be run
-with a specific set of options so that openbazaar-go can detect incoming payments. 
-- It's highly recommended you do not run bitcoind independently of openbazaar-go. If you receive a transaction while openbazaar-go is not
-running, it will not be passed into openbazaar-go. Next time you start openbazaar-go it will not detect the payment. You can force it detect
+- If bitcoind is running when you start marketplace-go, it will shut it down and restart it. This is done because bitcoind needs to be run
+with a specific set of options so that marketplace-go can detect incoming payments. 
+- It's highly recommended you do not run bitcoind independently of marketplace-go. If you receive a transaction while marketplace-go is not
+running, it will not be passed into marketplace-go. Next time you start marketplace-go it will not detect the payment. You can force it detect
 the payment by running the resync blockchain API call, but it's a very heavyweight operation. 
