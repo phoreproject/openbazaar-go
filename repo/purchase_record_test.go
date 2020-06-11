@@ -3,8 +3,8 @@ package repo_test
 import (
 	"testing"
 
-	"github.com/phoreproject/openbazaar-go/pb"
-	"github.com/phoreproject/openbazaar-go/test/factory"
+	"github.com/phoreproject/pm-go/pb"
+	"github.com/phoreproject/pm-go/test/factory"
 )
 
 func TestPurchaseRecordIsDisputeable(t *testing.T) {

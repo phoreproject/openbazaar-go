@@ -6,8 +6,8 @@ import (
 	"net/smtp"
 	"strings"
 
-	"github.com/phoreproject/openbazaar-go/core"
-	"github.com/phoreproject/openbazaar-go/repo"
+	"github.com/phoreproject/pm-go/core"
+	"github.com/phoreproject/pm-go/repo"
 )
 
 // Notification manager intercepts data form 'inChan' which is embedded

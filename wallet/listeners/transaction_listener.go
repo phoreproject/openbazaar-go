@@ -10,9 +10,9 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	"github.com/op/go-logging"
 	"github.com/phoreproject/multiwallet"
-	"github.com/phoreproject/openbazaar-go/core"
-	"github.com/phoreproject/openbazaar-go/pb"
-	"github.com/phoreproject/openbazaar-go/repo"
+	"github.com/phoreproject/pm-go/core"
+	"github.com/phoreproject/pm-go/pb"
+	"github.com/phoreproject/pm-go/repo"
 )
 
 var log = logging.MustGetLogger("transaction-listener")

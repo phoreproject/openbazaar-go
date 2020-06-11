@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/phoreproject/openbazaar-go/repo"
+	"github.com/phoreproject/pm-go/repo"
 )
 
 var SettingsNotSetError = errors.New("settings not set")

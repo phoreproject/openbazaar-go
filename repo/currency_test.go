@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/phoreproject/openbazaar-go/repo"
-	"github.com/phoreproject/openbazaar-go/test/factory"
+	"github.com/phoreproject/pm-go/repo"
+	"github.com/phoreproject/pm-go/test/factory"
 )
 
 func mustNewCurrencyValue(t *testing.T, amount, currencyCode string) *repo.CurrencyValue {

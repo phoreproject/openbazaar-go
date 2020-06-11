@@ -3,7 +3,7 @@ package db
 import (
 	"testing"
 
-	"github.com/phoreproject/openbazaar-go/pb"
+	"github.com/phoreproject/pm-go/pb"
 )
 
 func Test_filterQuery(t *testing.T) {

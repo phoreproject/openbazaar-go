@@ -19,12 +19,12 @@ import (
 
 	"github.com/phoreproject/multiwallet"
 
-	"github.com/phoreproject/openbazaar-go/ipfs"
-	"github.com/phoreproject/openbazaar-go/net"
-	rep "github.com/phoreproject/openbazaar-go/net/repointer"
-	ret "github.com/phoreproject/openbazaar-go/net/retriever"
-	"github.com/phoreproject/openbazaar-go/repo"
-	sto "github.com/phoreproject/openbazaar-go/storage"
+	"github.com/phoreproject/pm-go/ipfs"
+	"github.com/phoreproject/pm-go/net"
+	rep "github.com/phoreproject/pm-go/net/repointer"
+	ret "github.com/phoreproject/pm-go/net/retriever"
+	"github.com/phoreproject/pm-go/repo"
+	sto "github.com/phoreproject/pm-go/storage"
 
 	"github.com/btcsuite/btcutil/hdkeychain"
 	"github.com/gosimple/slug"

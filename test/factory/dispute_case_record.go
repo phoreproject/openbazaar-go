@@ -3,8 +3,8 @@ package factory
 import (
 	"time"
 
-	"github.com/phoreproject/openbazaar-go/pb"
-	"github.com/phoreproject/openbazaar-go/repo"
+	"github.com/phoreproject/pm-go/pb"
+	"github.com/phoreproject/pm-go/repo"
 )
 
 func NewDisputeCaseRecord() *repo.DisputeCaseRecord {

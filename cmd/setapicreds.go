@@ -13,8 +13,8 @@ import (
 	"syscall"
 
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
-	"github.com/phoreproject/openbazaar-go/repo"
-	"github.com/phoreproject/openbazaar-go/schema"
+	"github.com/phoreproject/pm-go/repo"
+	"github.com/phoreproject/pm-go/schema"
 	"golang.org/x/crypto/ssh/terminal"
 )
 

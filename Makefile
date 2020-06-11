@@ -22,11 +22,11 @@ help:
 
 .PHONY: ios_framework
 ios_framework: ## Build iOS Framework for mobile
-	gomobile bind -target=ios github.com/phoreproject/openbazaar-go/mobile
+	gomobile bind -target=ios github.com/phoreproject/pm-go/mobile
 
 .PHONY: android_framework
 android_framework: ## Build Android Framework for mobile
-	gomobile bind -target=android github.com/phoreproject/openbazaar-go/mobile
+	gomobile bind -target=android github.com/phoreproject/pm-go/mobile
 
 ##
 ## Protobuf compilation
@@ -44,23 +44,23 @@ protos: ## Build go files for proto definitions
 ##
 ## Testing
 ##
-OPENBAZAARD_NAME ?= openbazaard-$(GIT_SHA)
+MARKETPLACED_NAME ?= marketplaced-$(GIT_SHA)
 BITCOIND_PATH ?= .
 
-.PHONY: openbazaard
-openbazaard: ## Build daemon
-	$(info "Building openbazaar daemon...")
-	go build -o ./$(OPENBAZAARD_NAME) .
+.PHONY: marketplaced
+marketplaced: ## Build daemon
+	$(info "Building Marketplace daemon...")
+	go build -o ./$(MARKETPLACED_NAME) .
 
 .PHONY: qa_test
-qa_test: openbazaard ## Run QA test suite against current working copy
-	$(info "Running QA... (openbazaard: ../$(OPENBAZAARD_NAME) bitcoind: $(BITCOIND_PATH)/bin/bitcoind)")
-	(cd qa && ./runtests.sh ../$(OPENBAZAARD_NAME) $(BITCOIND_PATH)/bin/bitcoind)
+qa_test: marketplaced ## Run QA test suite against current working copy
+	$(info "Running QA... (marketplaced: ../$(MARKETPLACED_NAME) bitcoind: $(BITCOIND_PATH)/bin/bitcoind)")
+	(cd qa && ./runtests.sh ../$(MARKETPLACED_NAME) $(BITCOIND_PATH)/bin/bitcoind)
 
 ##
 ## Docker
 ##
-PUBLIC_DOCKER_REGISTRY ?= openbazaar
+PUBLIC_DOCKER_REGISTRY ?= PhoreMarketplace
 QA_DEV_TAG ?= 0.10
 
 DOCKER_SERVER_IMAGE_NAME ?= $(PUBLIC_DOCKER_REGISTRY)/server:$(GIT_TAG)

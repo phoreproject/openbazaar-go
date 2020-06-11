@@ -9,7 +9,7 @@ import (
 
 	"github.com/btcsuite/btcd/btcec"
 	"github.com/golang/protobuf/proto"
-	"github.com/phoreproject/openbazaar-go/pb"
+	"github.com/phoreproject/pm-go/pb"
 )
 
 var ErrInvalidKey = errors.New("invalid key")

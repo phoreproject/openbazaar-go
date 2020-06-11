@@ -11,10 +11,10 @@ You must run `gofmt` before each commit. Travis will fail if you do not run it. 
 
 All commits are checked with [golangci-lint](https://github.com/golangci/golangci-lint) using the [.golangci.yml](.golangci.yml) config in the repo.
 
-Additionally, we like to keep the [Go Report Card](https://goreportcard.com/report/github.com/phoreproject/openbazaar-go) score at A or better. So keep those other tests in mind when you commit.
+Additionally, we like to keep the [Go Report Card](https://goreportcard.com/report/github.com/phoreproject/pm-go) score at A or better. So keep those other tests in mind when you commit.
 
 ## Tests
-If you add new code, please submit a unit test with it. We might not accept the PR without it. Additionally, you are expected to make the appropriate changes to existing tests if they are affected by your commits. This also includes the integration tests in the [qa package](https://github.com/phoreproject/openbazaar-go/tree/master/qa).
+If you add new code, please submit a unit test with it. We might not accept the PR without it. Additionally, you are expected to make the appropriate changes to existing tests if they are affected by your commits. This also includes the integration tests in the [qa package](https://github.com/phoreproject/pm-go/tree/master/qa).
 
 ## Pull Requests
 If your PR isn't ready to merge make sure you specify this somehow. For example by placing [WIP] in the PR title. Ideally you should include a `task list` in the PR message to track the progress of the PR.

@@ -17,8 +17,8 @@ import (
 	"github.com/OpenBazaar/jsonpb"
 	"github.com/golang/protobuf/proto"
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
-	"github.com/phoreproject/openbazaar-go/pb"
-	"github.com/phoreproject/openbazaar-go/repo/migrations"
+	"github.com/phoreproject/pm-go/pb"
+	"github.com/phoreproject/pm-go/repo/migrations"
 )
 
 const (
