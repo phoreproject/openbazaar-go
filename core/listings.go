@@ -1472,3 +1472,40 @@ func (n *OpenBazaarNode) SetCurrencyOnListings(currencies []string) error {
 
 	return nil
 }
+
+func (n *OpenBazaarNode) SetTermsAndConditionsOnListings(termsAndConditions string) error {
+	absPath, err := filepath.Abs(path.Join(n.RepoPath, "root", "listings"))
+	if err != nil {
+		return err
+	}
+
+	walkpath := func(p string, f os.FileInfo, err error) error {
+		if !f.IsDir() && filepath.Ext(p) == ".json" {
+
+			sl, err := GetSignedListingFromPath(p)
+			if err != nil {
+				return err
+			}
+
+			sl.Listing.TermsAndConditions = termsAndConditions
+
+			err = n.UpdateListing(sl.Listing, false)
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+
+	err = filepath.Walk(absPath, walkpath)
+	if err != nil {
+		return err
+	}
+
+	err = n.SeedNode()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
