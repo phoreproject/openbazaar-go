@@ -299,6 +299,20 @@ const inventoryUpdateJSON = `[{
 const bulkUpdateCurrencyJSON = ` { "currencies":["ZEC", "BTC", "BCH", "LTC"] }`
 
 //
+// Bulk Update Terms and Conditions
+//
+
+const bulkUpdateTermsJSON = ` { "terms":"NEW TERMS" }`
+
+
+//
+// Bulk Update Return Policy
+//
+
+const bulkUpdateReturnPolicyJSON = ` { "returnPolicy":"NEW RETURN POLICY" }`
+
+
+//
 // Moderation
 //
 

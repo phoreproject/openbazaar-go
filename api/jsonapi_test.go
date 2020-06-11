@@ -315,6 +315,8 @@ func TestListings(t *testing.T) {
 
 		// Bulk update currency in listings
 		{"POST", "/ob/bulkupdatecurrency", bulkUpdateCurrencyJSON, 200, `{"success": "true"}`},
+		{"POST", "/ob/bulkupdateterms", bulkUpdateTermsJSON, 200, `{"success": "true"}`},
+		{"POST", "/ob/bulkupdatereturnpolicy", bulkUpdateReturnPolicyJSON, 200, `{"success": "true"}`},
 	})
 }
 
