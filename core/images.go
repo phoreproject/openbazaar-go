@@ -19,15 +19,9 @@ import (
 	ipath "gx/ipfs/QmQAgv6Gaoe2tQpcabqwKXKChp2MZ7i3UXv9DqTTaxCaTR/go-path"
 	cid "gx/ipfs/QmTbxNB1NwDesLmKTscr4udL2tVP7MaxvXnD1D9yX7g3PN/go-cid"
 
-<<<<<<< HEAD
 	"github.com/disintegration/imaging"
-	"github.com/phoreproject/openbazaar-go/ipfs"
-	"github.com/phoreproject/openbazaar-go/pb"
-=======
-	"github.com/nfnt/resize"
 	"github.com/phoreproject/pm-go/ipfs"
 	"github.com/phoreproject/pm-go/pb"
->>>>>>> dcd745605... Rename repository.
 )
 
 // SetAvatarImages - set avatar image from the base64 encoded image string

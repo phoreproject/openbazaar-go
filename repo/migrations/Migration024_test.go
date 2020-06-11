@@ -6,8 +6,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/phoreproject/openbazaar-go/repo/migrations"
-	"github.com/phoreproject/openbazaar-go/schema"
+	"github.com/phoreproject/pm-go/repo/migrations"
+	"github.com/phoreproject/pm-go/schema"
 )
 
 func TestMigration024(t *testing.T) {

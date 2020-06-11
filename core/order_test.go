@@ -2,19 +2,13 @@ package core_test
 
 import (
 	"github.com/golang/protobuf/proto"
-<<<<<<< HEAD
-	"github.com/phoreproject/openbazaar-go/core"
-	"github.com/phoreproject/openbazaar-go/pb"
-	"github.com/phoreproject/openbazaar-go/test"
-	"github.com/phoreproject/openbazaar-go/test/factory"
-
-	"fmt"
-	"testing"
-=======
 	"github.com/phoreproject/pm-go/core"
 	"github.com/phoreproject/pm-go/pb"
 	"github.com/phoreproject/pm-go/test"
->>>>>>> dcd745605... Rename repository.
+	"github.com/phoreproject/pm-go/test/factory"
+
+	"fmt"
+	"testing"
 )
 
 func TestOpenBazaarNode_CalculateOrderTotal(t *testing.T) {

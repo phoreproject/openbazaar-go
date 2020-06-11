@@ -6,7 +6,7 @@ import (
 
 	"github.com/golang/protobuf/ptypes/any"
 
-	"github.com/phoreproject/openbazaar-go/pb"
+	"github.com/phoreproject/pm-go/pb"
 )
 
 // ErrUnknownMessage - notify an invalid message

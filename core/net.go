@@ -14,14 +14,9 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
-<<<<<<< HEAD
-	"github.com/phoreproject/openbazaar-go/ipfs"
-	"github.com/phoreproject/openbazaar-go/pb"
-	"github.com/phoreproject/openbazaar-go/repo"
-=======
 	"github.com/phoreproject/pm-go/ipfs"
 	"github.com/phoreproject/pm-go/pb"
->>>>>>> dcd745605... Rename repository.
+	"github.com/phoreproject/pm-go/repo"
 	"golang.org/x/net/context"
 )
 

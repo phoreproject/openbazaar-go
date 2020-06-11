@@ -19,7 +19,7 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/phoreproject/pm-go/core"
-	"github.com/phoreproject/openbazaar-go/ipfs"
+	"github.com/phoreproject/pm-go/ipfs"
 	"github.com/phoreproject/pm-go/net"
 	"github.com/phoreproject/pm-go/pb"
 	"github.com/phoreproject/pm-go/repo"

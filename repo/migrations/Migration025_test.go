@@ -1,7 +1,7 @@
 package migrations
 
 import (
-	"github.com/phoreproject/openbazaar-go/schema"
+	"github.com/phoreproject/pm-go/schema"
 	"testing"
 )
 
