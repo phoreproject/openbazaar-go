@@ -3948,6 +3948,29 @@ func (i *jsonAPIHandler) POSTBulkUpdateTerms(w http.ResponseWriter, r *http.Requ
 	SanitizedResponse(w, `{"success": "true"}`)
 }
 
+func (i *jsonAPIHandler) POSTBulkUpdateReturnPolicy(w http.ResponseWriter, r *http.Request) {
+	// Retrieve attribute and values to update
+	type BulkUpdateRequest struct {
+		ReturnPolicy string `json:"returnPolicy"`
+	}
+
+	var bulkUpdate BulkUpdateRequest
+	err := json.NewDecoder(r.Body).Decode(&bulkUpdate)
+	if err != nil {
+		http.Error(w, err.Error(), 400)
+		return
+	}
+
+	log.Info("Updating return policy for all listings to: ", bulkUpdate.ReturnPolicy)
+	err = i.node.SetReturnPolicyOnListings(bulkUpdate.ReturnPolicy)
+	if err != nil {
+		http.Error(w, err.Error(), 400)
+		return
+	}
+
+	SanitizedResponse(w, `{"success": "true"}`)
+}
+
 func (i *jsonAPIHandler) POSTInitWallet(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
 	var data core.ManageWalletRequest

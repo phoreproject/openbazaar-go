@@ -1509,3 +1509,41 @@ func (n *OpenBazaarNode) SetTermsAndConditionsOnListings(termsAndConditions stri
 
 	return nil
 }
+
+
+func (n *OpenBazaarNode) SetReturnPolicyOnListings(returnPolicy string) error {
+	absPath, err := filepath.Abs(path.Join(n.RepoPath, "root", "listings"))
+	if err != nil {
+		return err
+	}
+
+	walkpath := func(p string, f os.FileInfo, err error) error {
+		if !f.IsDir() && filepath.Ext(p) == ".json" {
+
+			sl, err := GetSignedListingFromPath(p)
+			if err != nil {
+				return err
+			}
+
+			sl.Listing.RefundPolicy = returnPolicy
+
+			err = n.UpdateListing(sl.Listing, false)
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+
+	err = filepath.Walk(absPath, walkpath)
+	if err != nil {
+		return err
+	}
+
+	err = n.SeedNode()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

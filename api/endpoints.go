@@ -115,6 +115,8 @@ func post(i *jsonAPIHandler, path string, w http.ResponseWriter, r *http.Request
 		i.POSTBulkUpdateCurrency(w, r)
 	case strings.HasPrefix(path, "/ob/bulkupdateterms"):
 		i.POSTBulkUpdateTerms(w, r)
+	case strings.HasPrefix(path, "/ob/bulkupdatereturnpolicy"):
+		i.POSTBulkUpdateReturnPolicy(w, r)
 	case strings.HasPrefix(path, "/ob/resendordermessage"):
 		i.POSTResendOrderMessage(w, r)
 	case strings.HasPrefix(path, "/manage/initwallet"):
