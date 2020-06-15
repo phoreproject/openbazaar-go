@@ -1507,11 +1507,22 @@ func (n *OpenBazaarNode) SetTermsAndConditionsOnListings(termsAndConditions stri
 		return err
 	}
 
+	profile, err := n.GetProfile()
+	if err != nil {
+		return err
+	}
+	profile.TermsAndConditions = termsAndConditions
+
+	err = n.UpdateProfile(&profile)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
 
-func (n *OpenBazaarNode) SetRefundPolicyOnListings(returnPolicy string) error {
+func (n *OpenBazaarNode) SetRefundPolicyOnListings(refundPolicy string) error {
 	absPath, err := filepath.Abs(path.Join(n.RepoPath, "root", "listings"))
 	if err != nil {
 		return err
@@ -1525,7 +1536,7 @@ func (n *OpenBazaarNode) SetRefundPolicyOnListings(returnPolicy string) error {
 				return err
 			}
 
-			sl.Listing.RefundPolicy = returnPolicy
+			sl.Listing.RefundPolicy = refundPolicy
 
 			err = n.UpdateListing(sl.Listing, false)
 			if err != nil {
@@ -1541,6 +1552,17 @@ func (n *OpenBazaarNode) SetRefundPolicyOnListings(returnPolicy string) error {
 	}
 
 	err = n.SeedNode()
+	if err != nil {
+		return err
+	}
+
+	profile, err := n.GetProfile()
+	if err != nil {
+		return err
+	}
+	profile.RefundPolicy = refundPolicy
+
+	err = n.UpdateProfile(&profile)
 	if err != nil {
 		return err
 	}
@@ -1581,6 +1603,18 @@ func (n *OpenBazaarNode) SetShippingDetailsOnListings(shippingDetails []*pb.List
 	if err != nil {
 		return err
 	}
+
+	profile, err := n.GetProfile()
+	if err != nil {
+		return err
+	}
+	profile.ShippingOptions = shippingDetails
+
+	err = n.UpdateProfile(&profile)
+	if err != nil {
+		return err
+	}
+
 
 	return nil
 }

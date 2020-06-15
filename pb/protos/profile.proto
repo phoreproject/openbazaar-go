@@ -4,6 +4,7 @@ option go_package = "pb";
 
 import "google/protobuf/timestamp.proto";
 import "moderator.proto";
+import "contracts.proto";
 
 message Profile {
     string peerID                          = 1;
@@ -36,7 +37,13 @@ message Profile {
 
     repeated string currencies             = 18;
 
-    uint32 version                         = 19;
+    string refundPolicy                    = 19;
+
+    string termsAndConditions              = 20;
+
+    repeated Listing.ShippingOption shippingOptions = 21;
+
+    uint32 version                         = 22;
 
     message Contact {
         string website                = 1;
