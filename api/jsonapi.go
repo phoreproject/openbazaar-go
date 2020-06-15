@@ -3928,7 +3928,7 @@ func (i *jsonAPIHandler) POSTBulkUpdateCurrency(w http.ResponseWriter, r *http.R
 func (i *jsonAPIHandler) POSTBulkUpdateTerms(w http.ResponseWriter, r *http.Request) {
 	// Retrieve attribute and values to update
 	type BulkUpdateRequest struct {
-		TermsAndConditions string `json:"terms"`
+		TermsAndConditions string `json:"termsAndConditions"`
 	}
 
 	var bulkUpdate BulkUpdateRequest
@@ -3948,10 +3948,10 @@ func (i *jsonAPIHandler) POSTBulkUpdateTerms(w http.ResponseWriter, r *http.Requ
 	SanitizedResponse(w, `{"success": "true"}`)
 }
 
-func (i *jsonAPIHandler) POSTBulkUpdateReturnPolicy(w http.ResponseWriter, r *http.Request) {
+func (i *jsonAPIHandler) POSTBulkUpdateRefundPolicy(w http.ResponseWriter, r *http.Request) {
 	// Retrieve attribute and values to update
 	type BulkUpdateRequest struct {
-		ReturnPolicy string `json:"returnPolicy"`
+		RefundPolicy string `json:"refundPolicy"`
 	}
 
 	var bulkUpdate BulkUpdateRequest
@@ -3961,8 +3961,27 @@ func (i *jsonAPIHandler) POSTBulkUpdateReturnPolicy(w http.ResponseWriter, r *ht
 		return
 	}
 
-	log.Info("Updating return policy for all listings to: ", bulkUpdate.ReturnPolicy)
-	err = i.node.SetReturnPolicyOnListings(bulkUpdate.ReturnPolicy)
+	log.Info("Updating return policy for all listings to: ", bulkUpdate.RefundPolicy)
+	err = i.node.SetRefundPolicyOnListings(bulkUpdate.RefundPolicy)
+	if err != nil {
+		http.Error(w, err.Error(), 400)
+		return
+	}
+
+	SanitizedResponse(w, `{"success": "true"}`)
+}
+
+func (i *jsonAPIHandler) POSTBulkUpdateShippingDetails(w http.ResponseWriter, r *http.Request) {
+	// Retrieve attribute and values to update
+	ld := new(pb.Listing)
+	err := jsonpb.Unmarshal(r.Body, ld)
+	if err != nil {
+		ErrorResponse(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	log.Info("Updating shipping details for all listings")
+	err = i.node.SetShippingDetailsOnListings(ld.ShippingOptions)
 	if err != nil {
 		http.Error(w, err.Error(), 400)
 		return

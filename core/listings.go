@@ -1511,7 +1511,7 @@ func (n *OpenBazaarNode) SetTermsAndConditionsOnListings(termsAndConditions stri
 }
 
 
-func (n *OpenBazaarNode) SetReturnPolicyOnListings(returnPolicy string) error {
+func (n *OpenBazaarNode) SetRefundPolicyOnListings(returnPolicy string) error {
 	absPath, err := filepath.Abs(path.Join(n.RepoPath, "root", "listings"))
 	if err != nil {
 		return err
@@ -1526,6 +1526,43 @@ func (n *OpenBazaarNode) SetReturnPolicyOnListings(returnPolicy string) error {
 			}
 
 			sl.Listing.RefundPolicy = returnPolicy
+
+			err = n.UpdateListing(sl.Listing, false)
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+
+	err = filepath.Walk(absPath, walkpath)
+	if err != nil {
+		return err
+	}
+
+	err = n.SeedNode()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (n *OpenBazaarNode) SetShippingDetailsOnListings(shippingDetails []*pb.Listing_ShippingOption) error {
+	absPath, err := filepath.Abs(path.Join(n.RepoPath, "root", "listings"))
+	if err != nil {
+		return err
+	}
+
+	walkpath := func(p string, f os.FileInfo, err error) error {
+		if !f.IsDir() && filepath.Ext(p) == ".json" {
+
+			sl, err := GetSignedListingFromPath(p)
+			if err != nil {
+				return err
+			}
+
+			sl.Listing.ShippingOptions = shippingDetails
 
 			err = n.UpdateListing(sl.Listing, false)
 			if err != nil {
