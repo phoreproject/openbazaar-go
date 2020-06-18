@@ -276,10 +276,12 @@ func (m *CaseRespApi) GetResolution() *DisputeResolution {
 
 type TransactionRecord struct {
 	Txid                 string               `protobuf:"bytes,1,opt,name=txid,proto3" json:"txid,omitempty"`
-	Value                int64                `protobuf:"varint,2,opt,name=value,proto3" json:"value,omitempty"`
+	Value                int64                `protobuf:"varint,2,opt,name=value,proto3" json:"value,omitempty"` // Deprecated: Do not use.
 	Confirmations        uint32               `protobuf:"varint,3,opt,name=confirmations,proto3" json:"confirmations,omitempty"`
 	Height               uint32               `protobuf:"varint,4,opt,name=height,proto3" json:"height,omitempty"`
 	Timestamp            *timestamp.Timestamp `protobuf:"bytes,5,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	Currency             *CurrencyDefinition  `protobuf:"bytes,6,opt,name=currency,proto3" json:"currency,omitempty"`
+	BigValue             string               `protobuf:"bytes,7,opt,name=bigValue,proto3" json:"bigValue,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
 	XXX_unrecognized     []byte               `json:"-"`
 	XXX_sizecache        int32                `json:"-"`
@@ -317,6 +319,7 @@ func (m *TransactionRecord) GetTxid() string {
 	return ""
 }
 
+// Deprecated: Do not use.
 func (m *TransactionRecord) GetValue() int64 {
 	if m != nil {
 		return m.Value
@@ -345,6 +348,20 @@ func (m *TransactionRecord) GetTimestamp() *timestamp.Timestamp {
 	return nil
 }
 
+func (m *TransactionRecord) GetCurrency() *CurrencyDefinition {
+	if m != nil {
+		return m.Currency
+	}
+	return nil
+}
+
+func (m *TransactionRecord) GetBigValue() string {
+	if m != nil {
+		return m.BigValue
+	}
+	return ""
+}
+
 type PeerAndProfile struct {
 	PeerId               string   `protobuf:"bytes,1,opt,name=peerId,proto3" json:"peerId,omitempty"`
 	Profile              *Profile `protobuf:"bytes,2,opt,name=profile,proto3" json:"profile,omitempty"`
@@ -357,7 +374,7 @@ func (m *PeerAndProfile) Reset()         { *m = PeerAndProfile{} }
 func (m *PeerAndProfile) String() string { return proto.CompactTextString(m) }
 func (*PeerAndProfile) ProtoMessage()    {}
 func (*PeerAndProfile) Descriptor() ([]byte, []int) {
-	return fileDescriptor_00212fb1f9d3bf1c, []int{4}
+	return fileDescriptor_api_691aa1834ba6a6f4, []int{4}
 }
 
 func (m *PeerAndProfile) XXX_Unmarshal(b []byte) error {

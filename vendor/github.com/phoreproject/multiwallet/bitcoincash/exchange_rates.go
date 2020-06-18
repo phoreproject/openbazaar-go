@@ -10,6 +10,9 @@ import (
 	"reflect"
 	"sync"
 	"time"
+
+	"github.com/OpenBazaar/multiwallet/util"
+	"golang.org/x/net/proxy"
 )
 
 type ExchangeRateProvider struct {
@@ -43,7 +46,6 @@ func NewBitcoinCashPriceFetcher(dialer proxy.Dialer) *BitcoinCashPriceFetcher {
 	} else {
 		client = &http.Client{Timeout: time.Minute}
 	}
-
 
 	b.providers = []*ExchangeRateProvider{
 		{"https://ticker.openbazaar.org/api", b.cache, client, OpenBazaarDecoder{}},
@@ -88,7 +90,7 @@ func (b *BitcoinCashPriceFetcher) GetAllRates(cacheOK bool) (map[string]float64,
 	return b.cache, nil
 }
 
-func (b *BitcoinCashPriceFetcher) UnitsPerCoin() int {
+func (b *BitcoinCashPriceFetcher) UnitsPerCoin() int64 {
 	return 100000000
 }
 

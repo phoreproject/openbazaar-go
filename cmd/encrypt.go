@@ -29,7 +29,7 @@ func (x *EncryptDatabase) Execute(args []string) error {
 	var testnet bool
 	var err error
 	if x.DataDir == "" {
-		repoPath, err = repo.GetRepoPath(false)
+		repoPath, err = repo.GetRepoPath(false, "")
 		if err != nil {
 			fmt.Println(err)
 			return nil
@@ -121,7 +121,11 @@ func (x *EncryptDatabase) Execute(args []string) error {
 		return err
 	}
 
-	tmpDB.InitTables(pw)
+	err = tmpDB.InitTables(pw)
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
 	if err := sqlliteDB.Copy(path.Join(tmpPath, "datastore", filename), pw); err != nil {
 		log.Error(err)
 		fmt.Println(err)

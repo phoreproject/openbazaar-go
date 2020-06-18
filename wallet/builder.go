@@ -98,7 +98,7 @@ func NewMultiWallet(cfg *WalletConfig) (multiwallet.MultiWallet, error) {
 	if cfg.ConfigFile.LTC != nil && cfg.ConfigFile.LTC.Type == "API" {
 		enableAPIWallet[util.ExtendCoinType(wallet.Litecoin)] = cfg.ConfigFile.LTC
 	}
-	enableAPIWallet[util.ExtendCoinType(wallet.Ethereum)] = nil
+	enableAPIWallet[util.ExtendCoinType(wallet.Ethereum)] = cfg.ConfigFile.ETH
 
 	var newMultiwallet = make(multiwallet.MultiWallet)
 	for coin, coinConfig := range enableAPIWallet {
@@ -198,13 +198,18 @@ func createAPIWallet(coin util.ExtCoinType, coinConfigOverrides *schema.CoinConf
 			return InvalidCoinType, nil, err
 		}
 		return actualCoin, w, nil
-		//case wallet.Ethereum:
-		//	actualCoin = wallet.Ethereum
-		//	w, err := eth.NewEthereumWallet(*coinConfig, cfg.Mnemonic, cfg.Proxy)
-		//	if err != nil {
-		//		return InvalidCoinType, nil, err
-		//	}
-		//	return actualCoin, w, nil
+	case wallet.Ethereum:
+		if testnet {
+			actualCoin = wallet.TestnetEthereum
+		} else {
+			actualCoin = wallet.Ethereum
+		}
+		//actualCoin = wallet.Ethereum
+		w, err := eth.NewEthereumWallet(*coinConfig, cfg.Params, cfg.Mnemonic, cfg.Proxy)
+		if err != nil {
+			return InvalidCoinType, nil, err
+		}
+		return actualCoin, w, nil
 	}
 	return InvalidCoinType, nil, fmt.Errorf("unable to create wallet for unknown coin %s", coin.String())
 }

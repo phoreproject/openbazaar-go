@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	eth "github.com/OpenBazaar/go-ethwallet/wallet"
 	"github.com/OpenBazaar/wallet-interface"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/op/go-logging"
@@ -105,12 +106,16 @@ func NewMultiWallet(cfg *config.Config) (MultiWallet, error) {
 			} else {
 				multiwallet[util.ExtendCoinType(wallet.TestnetLitecoin)] = w
 			}
-			//case wallet.Ethereum:
-			//w, err = eth.NewEthereumWallet(coin, cfg.Mnemonic, cfg.Proxy)
-			//if err != nil {
-			//return nil, err
-			//}
-			//multiwallet[coin.CoinType] = w
+		case wallet.Ethereum:
+			w, err = eth.NewEthereumWallet(coin, cfg.Params, cfg.Mnemonic, cfg.Proxy)
+			if err != nil {
+				return nil, err
+			}
+			if cfg.Params.Name == chaincfg.MainNetParams.Name {
+				multiwallet[wallet.Ethereum] = w
+			} else {
+				multiwallet[wallet.TestnetEthereum] = w
+			}
 		}
 	}
 	return multiwallet, nil

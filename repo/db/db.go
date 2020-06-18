@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"fmt"
 	"path"
 	"sync"
 	"time"
@@ -55,7 +56,10 @@ func Create(repoPath, password string, testnet bool, coinType util.ExtCoinType) 
 	}
 	if password != "" {
 		p := "pragma key='" + password + "';"
-		conn.Exec(p)
+		_, err := conn.Exec(p)
+		if err != nil {
+			log.Error(err)
+		}
 	}
 	l := new(sync.Mutex)
 	return NewSQLiteDatastore(conn, l, coinType), nil
@@ -63,7 +67,7 @@ func Create(repoPath, password string, testnet bool, coinType util.ExtCoinType) 
 
 func NewSQLiteDatastore(db *sql.DB, l *sync.Mutex, coinType util.ExtCoinType) *SQLiteDatastore {
 	return &SQLiteDatastore{
-		config:          &ConfigDB{db: db, lock: l},
+		config:          &ConfigDB{modelStore{db: db, lock: l}},
 		followers:       NewFollowerStore(db, l),
 		following:       NewFollowingStore(db, l),
 		offlineMessages: NewOfflineMessageStore(db, l),
@@ -239,8 +243,7 @@ func initDatabaseTables(db *sql.DB, password string) (err error) {
 }
 
 type ConfigDB struct {
-	db   *sql.DB
-	lock *sync.Mutex
+	modelStore
 }
 
 func (c *ConfigDB) Init(mnemonic string, identityKey []byte, password string, creationDate time.Time) error {
@@ -249,51 +252,44 @@ func (c *ConfigDB) Init(mnemonic string, identityKey []byte, password string, cr
 	if err := initDatabaseTables(c.db, password); err != nil {
 		return err
 	}
-	tx, err := c.db.Begin()
-	if err != nil {
-		return err
-	}
-	stmt, err := tx.Prepare("insert into config(key, value) values(?,?)")
+	stmt, err := c.PrepareQuery("insert into config(key, value) values(?,?)")
 	if err != nil {
 		return err
 	}
 	defer stmt.Close()
+
 	_, err = stmt.Exec("mnemonic", mnemonic)
 	if err != nil {
-		tx.Rollback()
-		return err
+		return fmt.Errorf("set mnemonic: %s", err.Error())
 	}
 	_, err = stmt.Exec("identityKey", identityKey)
 	if err != nil {
-		tx.Rollback()
-		return err
+		return fmt.Errorf("set identity key: %s", err.Error())
 	}
 	_, err = stmt.Exec("creationDate", creationDate.Format(time.RFC3339))
 	if err != nil {
-		tx.Rollback()
-		return err
+		return fmt.Errorf("set creation date: %s", err.Error())
 	}
-	tx.Commit()
 	return nil
 }
 
 func (c *ConfigDB) GetMnemonic() (string, bool, error) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	selectMnemonicStmt, err := c.db.Prepare("select value from config where key=?")
+	stmt, err := c.PrepareQuery("select value from config where key=?")
 	if err != nil {
 		log.Fatal(err)
 		return "", false, err
 	}
-	defer selectMnemonicStmt.Close()
+	defer stmt.Close()
 	var mnemonic string
-	err = selectMnemonicStmt.QueryRow("mnemonic").Scan(&mnemonic)
+	err = stmt.QueryRow("mnemonic").Scan(&mnemonic)
 	if err != nil {
 		return "", false, err
 	}
 
 	// is mnemonic locked
-	isMnemonicEncryptedStmt, err := c.db.Prepare("select value from config where key=?")
+	isMnemonicEncryptedStmt, err := c.PrepareQuery("select value from config where key=?")
 	if err != nil {
 		return "", false, err
 	}
@@ -314,7 +310,7 @@ func (c *ConfigDB) UpdateMnemonic(mnemonic string, isEncrypted bool) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
-	tx, err := c.db.Begin()
+	tx, err := c.BeginTransaction()
 	if err != nil {
 		return err
 	}
@@ -342,7 +338,7 @@ func (c *ConfigDB) UpdateMnemonic(mnemonic string, isEncrypted bool) error {
 func (c *ConfigDB) GetIdentityKey() ([]byte, error) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	stmt, err := c.db.Prepare("select value from config where key=?")
+	stmt, err := c.PrepareQuery("select value from config where key=?")
 	if err != nil {
 		return nil, err
 	}
@@ -359,7 +355,7 @@ func (c *ConfigDB) GetCreationDate() (time.Time, error) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	var t time.Time
-	stmt, err := c.db.Prepare("select value from config where key=?")
+	stmt, err := c.PrepareQuery("select value from config where key=?")
 	if err != nil {
 		return t, err
 	}
@@ -376,6 +372,6 @@ func (c *ConfigDB) IsEncrypted() bool {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	pwdCheck := "select count(*) from sqlite_master;"
-	_, err := c.db.Exec(pwdCheck) // Fails if wrong password is entered
+	_, err := c.ExecuteQuery(pwdCheck) // Fails if wrong password is entered
 	return err != nil
 }
