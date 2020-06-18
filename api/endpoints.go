@@ -127,6 +127,8 @@ func post(i *jsonAPIHandler, path string, w http.ResponseWriter, r *http.Request
 		i.POSTUnlockWallet(w, r)
 	case strings.HasPrefix(path, "/manage/lockwallet"):
 		i.POSTLockWallet(w, r)
+	case strings.HasPrefix(path, "/ob/hashmessage"):
+		i.POSTHashMessage(w, r)
 	default:
 		ErrorResponse(w, http.StatusNotFound, "Not Found")
 	}

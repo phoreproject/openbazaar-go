@@ -70,10 +70,26 @@ const postMigration016Config = `{
 			"TrustedPeer": "",
 			"WalletOptions": null
 		},
-		"BCH": null,
-		"LTC": null,
-		"ZEC": null,
-		"ETH": null
+		"ETH": {
+			"Type": "API",
+			"API": [
+				"https://mainnet.infura.io"
+			],
+			"APITestnet": [
+				"https://rinkeby.infura.io"
+			],
+			"MaxFee": 200,
+			"FeeAPI": "",
+			"HighFeeDefault": 30,
+			"MediumFeeDefault": 15,
+			"LowFeeDefault": 7,
+			"TrustedPeer": "",
+			"WalletOptions": {
+				"RegistryAddress": "0x403d907982474cdd51687b09a8968346159378f3",
+				"RinkebyRegistryAddress": "0x403d907982474cdd51687b09a8968346159378f3",
+				"RopstenRegistryAddress": "0x403d907982474cdd51687b09a8968346159378f3"
+			}
+		}
 	}
 }`
 
@@ -137,7 +153,7 @@ func TestMigration016(t *testing.T) {
 
 	var re = regexp.MustCompile(`\s`)
 	if re.ReplaceAllString(string(configBytes), "") != re.ReplaceAllString(string(postMigration016Config), "") {
-		t.Logf("actual: %s", re.ReplaceAllString(string(configBytes), ""))
+		t.Logf("actual: %s, expected %s", re.ReplaceAllString(string(configBytes), ""), re.ReplaceAllString(string(postMigration016Config), ""))
 		t.Fatal("incorrect post-migration config")
 	}
 
