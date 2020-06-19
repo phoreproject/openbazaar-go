@@ -3471,7 +3471,7 @@ func (i *jsonAPIHandler) GETEstimateFee(w http.ResponseWriter, r *http.Request) 
 	var feeLevel wallet.FeeLevel
 	switch strings.ToUpper(fl) {
 	case "PRIORITY":
-		feeLevel = wallet.PRIOIRTY
+		feeLevel = wallet.PRIORITY
 	case "NORMAL":
 		feeLevel = wallet.NORMAL
 	case "ECONOMIC":
@@ -3529,7 +3529,7 @@ func (i *jsonAPIHandler) GETFees(w http.ResponseWriter, r *http.Request) {
 	if coinType == "fees" {
 		ret := make(map[string]interface{})
 		for ct, wal := range i.node.Multiwallet {
-			priority := wal.GetFeePerByte(wallet.PRIOIRTY)
+			priority := wal.GetFeePerByte(wallet.PRIORITY)
 			normal := wal.GetFeePerByte(wallet.NORMAL)
 			economic := wal.GetFeePerByte(wallet.ECONOMIC)
 			superEconomic := wal.GetFeePerByte(wallet.SUPER_ECONOMIC)
@@ -3558,7 +3558,7 @@ func (i *jsonAPIHandler) GETFees(w http.ResponseWriter, r *http.Request) {
 		ErrorResponse(w, http.StatusBadRequest, "Unknown wallet type")
 		return
 	}
-	priority := wal.GetFeePerByte(wallet.PRIOIRTY)
+	priority := wal.GetFeePerByte(wallet.PRIORITY)
 	normal := wal.GetFeePerByte(wallet.NORMAL)
 	economic := wal.GetFeePerByte(wallet.ECONOMIC)
 	superEconomic := wal.GetFeePerByte(wallet.SUPER_ECONOMIC)
@@ -4117,6 +4117,35 @@ func (i *jsonAPIHandler) GETPeerInfo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	SanitizedResponse(w, string(out))
+}
+
+// Enable bulk updating prices for your listings by percentage
+func (i *jsonAPIHandler) POSTBulkUpdatePrices(w http.ResponseWriter, r *http.Request) {
+	type BulkUpdatePriceRequest struct {
+		Percentage float64 `json:"percentage"`
+	}
+
+	var bulkUpdate BulkUpdatePriceRequest
+	err := json.NewDecoder(r.Body).Decode(&bulkUpdate)
+	if err != nil {
+		http.Error(w, err.Error(), 400)
+		return
+	}
+
+	// Check for bad input
+	if bulkUpdate.Percentage == 0 {
+		SanitizedResponse(w, `{"success": "true"}`)
+		return
+	}
+
+	log.Infof("Updating all listing prices by %v percent\n", bulkUpdate.Percentage)
+	err = i.node.SetPriceOnListings(bulkUpdate.Percentage)
+	if err != nil {
+		http.Error(w, err.Error(), 400)
+		return
+	}
+
+	SanitizedResponse(w, `{"success": "true"}`)
 }
 
 func (i *jsonAPIHandler) POSTBulkUpdateCurrency(w http.ResponseWriter, r *http.Request) {
