@@ -646,6 +646,13 @@ func (n *OpenBazaarNode) GetListingFromSlug(slug string) (*pb.SignedListing, err
 			}
 		}
 	}
+
+	for _, s := range sl.Listing.Item.Skus {
+		if s.BigSurcharge == "" {
+			s.BigSurcharge = "0"
+		}
+	}
+
 	return sl, nil
 }
 
@@ -655,7 +662,6 @@ func (n *OpenBazaarNode) SetCurrencyOnListings(currencies []string) error {
 	if err != nil {
 		return err
 	}
-
 	walkpath := func(p string, f os.FileInfo, err error) error {
 		if !f.IsDir() && filepath.Ext(p) == ".json" {
 			signedProto, err := GetSignedListingFromPath(p)
@@ -672,7 +678,6 @@ func (n *OpenBazaarNode) SetCurrencyOnListings(currencies []string) error {
 			if l.GetContractType() == pb.Listing_Metadata_CRYPTOCURRENCY.String() {
 				return nil
 			}
-
 			if err := l.SetAcceptedCurrencies(currencies...); err != nil {
 				return err
 			}
