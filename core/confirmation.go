@@ -5,16 +5,18 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/phoreproject/pm-go/repo"
 	"math/big"
 	"strings"
 	"time"
+
+	"github.com/phoreproject/pm-go/repo"
 
 	crypto "gx/ipfs/QmTW4SdgBWq9GjsBsHeUx8WuGxzhgzAf88UMH2w62PC8yK/go-libp2p-crypto"
 
 	"github.com/OpenBazaar/wallet-interface"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
+
 	"github.com/phoreproject/pm-go/pb"
 )
 
@@ -102,7 +104,13 @@ func (n *OpenBazaarNode) ConfirmOfflineOrder(oldState pb.OrderState, contract *p
 	if err != nil {
 		return err
 	}
-	wal, err := n.Multiwallet.WalletForCurrencyCode(confirmedContract.BuyerOrder.Payment.AmountCurrency.Code)
+
+	order, err := repo.ToV5Order(contract.BuyerOrder, n.LookupCurrency)
+	if err != nil {
+		return err
+	}
+
+	wal, err := n.Multiwallet.WalletForCurrencyCode(order.Payment.AmountCurrency.Code)
 	if err != nil {
 		return err
 	}
