@@ -247,6 +247,7 @@ func createSPVWallet(coin util.ExtCoinType, coinConfigOverrides *schema.CoinConf
 			Mnemonic:             cfg.Mnemonic,
 			Params:               cfg.Params,
 			MaxFee:               coinConfigOverrides.MaxFee,
+			SuperLowFee:          coinConfigOverrides.SuperLowFeeDefault,
 			LowFee:               coinConfigOverrides.LowFeeDefault,
 			MediumFee:            coinConfigOverrides.MediumFeeDefault,
 			HighFee:              coinConfigOverrides.HighFeeDefault,
@@ -344,15 +345,16 @@ func prepareAPICoinConfig(coin util.ExtCoinType, override *schema.CoinConfig, wa
 	}
 
 	var preparedConfig = &mwConfig.CoinConfig{
-		ClientAPIs: overrideWalletEndpoints,
-		CoinType:   coin,
-		DB:         CreateWalletDB(walletConfig.DB, coin),
-		FeeAPI:     override.FeeAPI,
-		HighFee:    override.HighFeeDefault,
-		LowFee:     override.LowFeeDefault,
-		MaxFee:     override.MaxFee,
-		MediumFee:  override.MediumFeeDefault,
-		Options:    override.WalletOptions,
+		ClientAPIs:  overrideWalletEndpoints,
+		CoinType:    coin,
+		DB:          CreateWalletDB(walletConfig.DB, coin),
+		FeeAPI:      override.FeeAPI,
+		HighFee:     override.HighFeeDefault,
+		SuperLowFee: override.SuperLowFeeDefault,
+		LowFee:      override.LowFeeDefault,
+		MaxFee:      override.MaxFee,
+		MediumFee:   override.MediumFeeDefault,
+		Options:     override.WalletOptions,
 	}
 
 	if preparedConfig.HighFee == 0 {

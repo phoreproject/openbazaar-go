@@ -1787,7 +1787,7 @@ func (i *jsonAPIHandler) POSTRefund(w http.ResponseWriter, r *http.Request) {
 		ErrorResponse(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	_, state, _, records, _, _, err := i.node.Datastore.Sales().GetByOrderId(can.OrderID)
+	contract, state, _, records, _, _, err := i.node.Datastore.Sales().GetByOrderId(can.OrderID)
 	if err != nil {
 		ErrorResponse(w, http.StatusNotFound, "order not found")
 		return
@@ -1812,7 +1812,7 @@ func (i *jsonAPIHandler) POSTRefund(w http.ResponseWriter, r *http.Request) {
 		//contract.BuyerOrder.Payment.Coin = paymentCoin.String()
 	}
 
-	err = i.node.RefundOrder(v5contract, records)
+	err = i.node.RefundOrder(contract, records)
 	if err != nil {
 		ErrorResponse(w, http.StatusInternalServerError, err.Error())
 		return
@@ -1998,7 +1998,7 @@ func (i *jsonAPIHandler) POSTOrderFulfill(w http.ResponseWriter, r *http.Request
 		ErrorResponse(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	_, state, _, records, _, _, err := i.node.Datastore.Sales().GetByOrderId(fulfill.OrderId)
+	contract, state, _, records, _, _, err := i.node.Datastore.Sales().GetByOrderId(fulfill.OrderId)
 	if err != nil {
 		ErrorResponse(w, http.StatusNotFound, "order not found")
 		return
@@ -2023,7 +2023,7 @@ func (i *jsonAPIHandler) POSTOrderFulfill(w http.ResponseWriter, r *http.Request
 		ErrorResponse(w, http.StatusBadRequest, "order must be in state AWAITING_FULFILLMENT or PARTIALLY_FULFILLED to fulfill")
 		return
 	}
-	err = i.node.FulfillOrder(&fulfill, v5contract, records)
+	err = i.node.FulfillOrder(&fulfill, contract, records)
 	if err != nil {
 		ErrorResponse(w, http.StatusInternalServerError, err.Error())
 		return
@@ -3476,6 +3476,8 @@ func (i *jsonAPIHandler) GETEstimateFee(w http.ResponseWriter, r *http.Request) 
 		feeLevel = wallet.NORMAL
 	case "ECONOMIC":
 		feeLevel = wallet.ECONOMIC
+	case "SUPER_ECONOMIC":
+		feeLevel = wallet.SUPER_ECONOMIC
 	default:
 		ErrorResponse(w, http.StatusBadRequest, "Unknown feeLevel")
 		return
@@ -3519,9 +3521,10 @@ func (i *jsonAPIHandler) GETEstimateFee(w http.ResponseWriter, r *http.Request) 
 func (i *jsonAPIHandler) GETFees(w http.ResponseWriter, r *http.Request) {
 	_, coinType := path.Split(r.URL.Path)
 	type fees struct {
-		Priority *repo.CurrencyValue `json:"priority"`
-		Normal   *repo.CurrencyValue `json:"normal"`
-		Economic *repo.CurrencyValue `json:"economic"`
+		Priority      *repo.CurrencyValue `json:"priority"`
+		Normal        *repo.CurrencyValue `json:"normal"`
+		Economic      *repo.CurrencyValue `json:"economic"`
+		SuperEconomic *repo.CurrencyValue `json:"superEconomic"`
 	}
 	if coinType == "fees" {
 		ret := make(map[string]interface{})
@@ -3529,15 +3532,17 @@ func (i *jsonAPIHandler) GETFees(w http.ResponseWriter, r *http.Request) {
 			priority := wal.GetFeePerByte(wallet.PRIOIRTY)
 			normal := wal.GetFeePerByte(wallet.NORMAL)
 			economic := wal.GetFeePerByte(wallet.ECONOMIC)
+			superEconomic := wal.GetFeePerByte(wallet.SUPER_ECONOMIC)
 			defn, err := i.node.LookupCurrency(wal.CurrencyCode())
 			if err != nil {
 				ErrorResponse(w, http.StatusInternalServerError, err.Error())
 				return
 			}
 			ret[ct.CurrencyCode()] = fees{
-				Priority: &repo.CurrencyValue{Currency: defn, Amount: &priority},
-				Normal:   &repo.CurrencyValue{Currency: defn, Amount: &normal},
-				Economic: &repo.CurrencyValue{Currency: defn, Amount: &economic},
+				Priority:      &repo.CurrencyValue{Currency: defn, Amount: &priority},
+				Normal:        &repo.CurrencyValue{Currency: defn, Amount: &normal},
+				Economic:      &repo.CurrencyValue{Currency: defn, Amount: &economic},
+				SuperEconomic: &repo.CurrencyValue{Currency: defn, Amount: &superEconomic},
 			}
 		}
 		out, err := json.MarshalIndent(ret, "", "    ")
@@ -3556,15 +3561,17 @@ func (i *jsonAPIHandler) GETFees(w http.ResponseWriter, r *http.Request) {
 	priority := wal.GetFeePerByte(wallet.PRIOIRTY)
 	normal := wal.GetFeePerByte(wallet.NORMAL)
 	economic := wal.GetFeePerByte(wallet.ECONOMIC)
+	superEconomic := wal.GetFeePerByte(wallet.SUPER_ECONOMIC)
 	defn, err := i.node.LookupCurrency(wal.CurrencyCode())
 	if err != nil {
 		ErrorResponse(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 	f := fees{
-		Priority: &repo.CurrencyValue{Currency: defn, Amount: &priority},
-		Normal:   &repo.CurrencyValue{Currency: defn, Amount: &normal},
-		Economic: &repo.CurrencyValue{Currency: defn, Amount: &economic},
+		Priority:      &repo.CurrencyValue{Currency: defn, Amount: &priority},
+		Normal:        &repo.CurrencyValue{Currency: defn, Amount: &normal},
+		Economic:      &repo.CurrencyValue{Currency: defn, Amount: &economic},
+		SuperEconomic: &repo.CurrencyValue{Currency: defn, Amount: &superEconomic},
 	}
 	out, err := json.MarshalIndent(f, "", "    ")
 	if err != nil {
