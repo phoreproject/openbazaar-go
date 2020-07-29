@@ -85,7 +85,7 @@ func NewPhoreWallet(cfg config.CoinConfig, mnemonic string, params *chaincfg.Par
 		return nil, err
 	}
 
-	fp := spvwallet.NewFeeProvider(cfg.MaxFee, cfg.HighFee, cfg.MediumFee, cfg.LowFee, cfg.FeeAPI, proxy)
+	fp := spvwallet.NewFeeProvider(cfg.MaxFee, cfg.HighFee, cfg.MediumFee, cfg.LowFee, cfg.SuperLowFee, cfg.FeeAPI, proxy)
 
 	return &RPCWallet{
 		db:            cfg.DB,

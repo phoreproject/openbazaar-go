@@ -10,9 +10,6 @@ import (
 	"reflect"
 	"sync"
 	"time"
-
-	"github.com/OpenBazaar/multiwallet/util"
-	"golang.org/x/net/proxy"
 )
 
 type ExchangeRateProvider struct {

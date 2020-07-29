@@ -5,7 +5,6 @@ import (
 
 	"github.com/OpenBazaar/wallet-interface"
 	"github.com/phoreproject/multiwallet/util"
-	"github.com/phoreproject/wallet-interface"
 	"github.com/phoreproject/pm-go/repo"
 )
 
