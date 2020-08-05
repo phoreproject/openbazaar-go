@@ -34,6 +34,8 @@ import (
 	"github.com/OpenBazaar/go-ethwallet/util"
 )
 
+var _ = wi.Wallet(&EthereumWallet{})
+
 const (
 	// InfuraAPIKey is the hard coded Infura API key
 	InfuraAPIKey = "openbazaar"
@@ -390,6 +392,13 @@ func (wallet *EthereumWallet) GetTransaction(txid chainhash.Hash) (wi.Txn, error
 		Timestamp: time.Now(),
 		WatchOnly: false,
 		Bytes:     tx.Data(),
+		Outputs: []wi.TransactionOutput{
+			{
+				Address: wallet.address,
+				Value:   tx.Value().Int64(),
+				Index:   1,
+			},
+		},
 	}, nil
 }
 
@@ -472,7 +481,7 @@ func (wallet *EthereumWallet) Spend(amount int64, addr btcutil.Address, feeLevel
 			// but valid txn like some contract condition causing revert
 			if rcpt.Status > 0 {
 				// all good to update order state
-				go wallet.callListeners(wallet.createTxnCallback(hash.Hex(), referenceID, amount, time.Now()))
+				go wallet.AssociateTransactionWithOrder(wallet.createTxnCallback(hash.Hex(), referenceID, amount, time.Now()))
 			} else {
 				// there was some error processing this txn
 				nonce, err := wallet.client.GetTxnNonce(hash.Hex())
@@ -519,7 +528,7 @@ func (wallet *EthereumWallet) createTxnCallback(txID, orderID string, value int6
 	}
 }
 
-func (wallet *EthereumWallet) callListeners(txnCB wi.TransactionCallback) {
+func (wallet *EthereumWallet) AssociateTransactionWithOrder(txnCB wi.TransactionCallback) {
 	for _, l := range wallet.listeners {
 		go l(txnCB)
 	}
@@ -546,7 +555,7 @@ func (wallet *EthereumWallet) CheckTxnRcpt(hash *common.Hash, data []byte) (*com
 				return nil, err
 			}
 			wallet.db.Txns().Delete(chash)
-			go wallet.callListeners(wallet.createTxnCallback(hash.Hex(), pTxn.OrderID, pTxn.Amount, time.Now()))
+			go wallet.AssociateTransactionWithOrder(wallet.createTxnCallback(hash.Hex(), pTxn.OrderID, pTxn.Amount, time.Now()))
 		}
 	}
 
@@ -948,8 +957,8 @@ func (wallet *EthereumWallet) Multisign(ins []wi.TransactionInput, outs []wi.Tra
 	return ret, err
 }
 
-// AddWatchedAddress - Add a script to the wallet and get notifications back when coins are received or spent from it
-func (wallet *EthereumWallet) AddWatchedAddress(address btcutil.Address) error {
+// AddWatchedAddresses - Add a script to the wallet and get notifications back when coins are received or spent from it
+func (wallet *EthereumWallet) AddWatchedAddresses(addrs ...btcutil.Address) error {
 	// the reason eth wallet cannot use this as of now is because only the address
 	// is insufficient, the redeemScript is also required
 	return nil

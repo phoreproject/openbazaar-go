@@ -1,6 +1,6 @@
-# openbazaar-go for mobile
+# pm-go for mobile
 ## Purpose
-This target allows a version of openbazaar-go to be compiled for use with Android or iOS. The primary changes are shorter timeouts around network requests and tighter resource management with a few details which allows a native frontend to speak with the server process.
+This target allows a version of marketplace-go to be compiled for use with Android or iOS. The primary changes are shorter timeouts around network requests and tighter resource management with a few details which allows a native frontend to speak with the server process.
 
 ## Prepare
 There are a few dependencies which must be installed and setup before a build can be completed.
@@ -20,8 +20,8 @@ There are a few dependencies which must be installed and setup before a build ca
 
 ### iOS 
 
-- Execute `make ios_framework` in your local openbazaar-go repo. This should produce a `Mobile.framework` file which may be included in your iOS project.
+- Execute `make ios_framework` in your local marketplace-go repo. This should produce a `Mobile.framework` file which may be included in your iOS project.
 
 ### Android
 
-- Execute `make android_framework` in your local openbazaar-go repo. These must be executed from the root of the project and cannot be built inside a virtualized container or process.
+- Execute `make android_framework` in your local marketplace-go repo. These must be executed from the root of the project and cannot be built inside a virtualized container or process.

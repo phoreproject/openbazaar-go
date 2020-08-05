@@ -134,6 +134,6 @@ func (x *EncryptDatabase) Execute(args []string) error {
 		return err
 	}
 	os.RemoveAll(path.Join(tmpPath))
-	fmt.Println("Success! You must now run openbazaard start with a password.")
+	fmt.Println("Success! You must now run marketplaced start with a password.")
 	return nil
 }

@@ -36,7 +36,7 @@ func post(i *jsonAPIHandler, path string, w http.ResponseWriter, r *http.Request
 	case strings.HasPrefix(path, "/ob/images"):
 		i.POSTImage(w, r)
 	case strings.HasPrefix(path, "/wallet/spend"):
-		i.POSTSpendCoins(w, r)
+		checkWalletRequest(i, path, w, r, i.POSTSpendCoins)
 	case strings.HasPrefix(path, "/ob/settings"):
 		i.POSTSettings(w, r)
 	case strings.HasPrefix(path, "/ob/inventory"):
@@ -58,9 +58,9 @@ func post(i *jsonAPIHandler, path string, w http.ResponseWriter, r *http.Request
 	case strings.HasPrefix(path, "/ob/refund"):
 		blockingStartupMiddleware(i, w, r, i.POSTRefund)
 	case strings.HasPrefix(path, "/wallet/resyncblockchain"):
-		i.POSTResyncBlockchain(w, r)
+		checkWalletRequest(i, path, w, r, i.POSTResyncBlockchain)
 	case strings.HasPrefix(path, "/wallet/bumpfee"):
-		i.POSTBumpFee(w, r)
+		checkWalletRequest(i, path, w, r, i.POSTBumpFee)
 	case strings.HasPrefix(path, "/ob/opendispute"):
 		blockingStartupMiddleware(i, w, r, i.POSTOpenDispute)
 	case strings.HasPrefix(path, "/ob/closedispute"):
@@ -113,6 +113,14 @@ func post(i *jsonAPIHandler, path string, w http.ResponseWriter, r *http.Request
 		i.POSTPost(w, r)
 	case strings.HasPrefix(path, "/ob/bulkupdatecurrency"):
 		i.POSTBulkUpdateCurrency(w, r)
+	case strings.HasPrefix(path, "/ob/resendordermessage"):
+		i.POSTResendOrderMessage(w, r)
+	case strings.HasPrefix(path, "/manage/initwallet"):
+		i.POSTInitWallet(w, r)
+	case strings.HasPrefix(path, "/manage/unlockwallet"):
+		i.POSTUnlockWallet(w, r)
+	case strings.HasPrefix(path, "/manage/lockwallet"):
+		i.POSTLockWallet(w, r)
 	default:
 		ErrorResponse(w, http.StatusNotFound, "Not Found")
 	}
@@ -195,12 +203,18 @@ func get(i *jsonAPIHandler, path string, w http.ResponseWriter, r *http.Request)
 		i.GETWalletStatus(w, r)
 	case strings.HasPrefix(path, "/ob/ipns"):
 		i.GETIPNS(w, r)
+	case strings.HasPrefix(path, "/ob/resolveipns"):
+		i.GETResolveIPNS(w, r)
 	case strings.HasPrefix(path, "/ob/peerinfo"):
 		i.GETPeerInfo(w, r)
 	case strings.HasPrefix(path, "/ob/posts"):
 		i.GETPosts(w, r)
 	case strings.HasPrefix(path, "/ob/post"):
 		i.GETPost(w, r)
+	case strings.HasPrefix(path, "/ob/scanofflinemessages"):
+		i.GETScanOfflineMessages(w, r)
+	case strings.HasPrefix(path, "/manage/iswalletlocked"):
+		i.GETIsWalletLocked(w, r)
 	default:
 		ErrorResponse(w, http.StatusNotFound, "Not Found")
 	}
@@ -255,6 +269,16 @@ func gatewayAllowedPath(path, method string) bool {
 		}
 	}
 	return false
+}
+
+func checkWalletRequest(i *jsonAPIHandler, path string, w http.ResponseWriter, r *http.Request, requestFunc func(w http.ResponseWriter, r *http.Request)) {
+	if i.node.IsWalletLocked() {
+		log.Errorf("Request to %s 403", path)
+		ErrorResponse(w, http.StatusPreconditionFailed, "Unlock wallet first.")
+		return
+	}
+
+	requestFunc(w, r)
 }
 
 func blockingStartupMiddleware(i *jsonAPIHandler, w http.ResponseWriter, r *http.Request, requestFunc func(w http.ResponseWriter, r *http.Request)) {

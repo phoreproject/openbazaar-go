@@ -63,7 +63,7 @@ class OpenBazaarTestFramework(object):
             return self.send_bitcoin_cmd(*args)
 
     def configure_node(self, n):
-        dir_path = os.path.join(self.temp_dir, "openbazaar-go", str(n))
+        dir_path = os.path.join(self.temp_dir, "marketplace-go", str(n))
         args = [self.binary, "init", "-d", dir_path, "--testnet"]
         if n < 3:
             args.extend(["-m", BOOTSTAP_MNEMONICS[n]])
@@ -128,7 +128,7 @@ class OpenBazaarTestFramework(object):
 
     def start_bitcoind(self):
         SelectParams('regtest')
-        dir_path = os.path.join(self.temp_dir, "openbazaar-go", "bitcoin")
+        dir_path = os.path.join(self.temp_dir, "marketplace-go", "bitcoin")
         if not os.path.exists(dir_path):
             os.makedirs(dir_path)
         btc_conf_file = os.path.join(dir_path, "bitcoin.conf")
@@ -182,7 +182,7 @@ class OpenBazaarTestFramework(object):
                     description="OpenBazaar Test Framework",
                     usage="python3 test_framework.py [options]"
         )
-        parser.add_argument('-b', '--binary', required=True, help="the openbazaar-go binary")
+        parser.add_argument('-b', '--binary', required=True, help="the marketplace-go binary")
         parser.add_argument('-d', '--bitcoind', help="the bitcoind binary")
         parser.add_argument('-t', '--tempdir', action='store_true', help="temp directory to store the data folders", default="/tmp/")
         parser.add_argument('-c', '--cointype', help="cointype to test", action='store_true', default="BTC")
@@ -194,7 +194,7 @@ class OpenBazaarTestFramework(object):
         self.options = options
 
         try:
-            shutil.rmtree(os.path.join(self.temp_dir, "openbazaar-go"))
+            shutil.rmtree(os.path.join(self.temp_dir, "marketplace-go"))
         except:
             pass
 

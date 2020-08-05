@@ -24,8 +24,6 @@ import (
 	"github.com/phoreproject/pm-go/pb"
 )
 
-const KeyCachePrefix = "/pubkey/"
-
 // ErrorProfileNotFound - profile not found error
 var ErrorProfileNotFound = errors.New("profile not found")
 
@@ -67,6 +65,10 @@ func (n *OpenBazaarNode) UpdateProfile(profile *pb.Profile) error {
 
 	if err := ValidateProfile(profile); err != nil {
 		return err
+	}
+
+	if profile.GetVersion() == 0 {
+		profile.Version = ListingVersion
 	}
 
 	profile.BitcoinPubkey = hex.EncodeToString(mPubkey.SerializeCompressed())

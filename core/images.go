@@ -3,14 +3,12 @@ package core
 import (
 	"bytes"
 	"encoding/base64"
-	"gx/ipfs/QmTbxNB1NwDesLmKTscr4udL2tVP7MaxvXnD1D9yX7g3PN/go-cid"
-	"image" // load gif
+	"image"
 	_ "image/gif"
-	"image/jpeg" // load png
+	jpeg "image/jpeg"
 	_ "image/png"
 	"io"
 	"io/ioutil"
-	"net"
 	"net/http"
 	netUrl "net/url"
 	"os"
@@ -19,8 +17,9 @@ import (
 	"time"
 
 	ipath "gx/ipfs/QmQAgv6Gaoe2tQpcabqwKXKChp2MZ7i3UXv9DqTTaxCaTR/go-path"
+	cid "gx/ipfs/QmTbxNB1NwDesLmKTscr4udL2tVP7MaxvXnD1D9yX7g3PN/go-cid"
 
-	"github.com/nfnt/resize"
+	"github.com/disintegration/imaging"
 	"github.com/phoreproject/pm-go/ipfs"
 	"github.com/phoreproject/pm-go/pb"
 )
@@ -71,27 +70,27 @@ func (n *OpenBazaarNode) SetProductImages(base64ImageData, filename string) (*pb
 	return n.resizeImage(base64ImageData, filename, 120, 120)
 }
 
-func (n *OpenBazaarNode) resizeImage(base64ImageData, filename string, baseWidth, baseHeight uint) (*pb.Profile_Image, error) {
-	img, imgCfg, err := decodeImageData(base64ImageData)
+func (n *OpenBazaarNode) resizeImage(base64ImageData, filename string, baseWidth, baseHeight int) (*pb.Profile_Image, error) {
+	img, err := decodeImageData(base64ImageData)
 	if err != nil {
 		return nil, err
 	}
 
 	imgPath := path.Join(n.RepoPath, "root", "images")
 
-	t, err := n.addResizedImage(img, imgCfg, 1*baseWidth, 1*baseHeight, path.Join(imgPath, "tiny", filename))
+	t, err := n.addResizedImage(img, 1*baseWidth, 1*baseHeight, path.Join(imgPath, "tiny", filename))
 	if err != nil {
 		return nil, err
 	}
-	s, err := n.addResizedImage(img, imgCfg, 2*baseWidth, 2*baseHeight, path.Join(imgPath, "small", filename))
+	s, err := n.addResizedImage(img, 2*baseWidth, 2*baseHeight, path.Join(imgPath, "small", filename))
 	if err != nil {
 		return nil, err
 	}
-	m, err := n.addResizedImage(img, imgCfg, 4*baseWidth, 4*baseHeight, path.Join(imgPath, "medium", filename))
+	m, err := n.addResizedImage(img, 4*baseWidth, 4*baseHeight, path.Join(imgPath, "medium", filename))
 	if err != nil {
 		return nil, err
 	}
-	l, err := n.addResizedImage(img, imgCfg, 8*baseWidth, 8*baseHeight, path.Join(imgPath, "large", filename))
+	l, err := n.addResizedImage(img, 8*baseWidth, 8*baseHeight, path.Join(imgPath, "large", filename))
 	if err != nil {
 		return nil, err
 	}
@@ -113,27 +112,22 @@ func (n *OpenBazaarNode) addImage(img image.Image, imgPath string) (string, erro
 	return ipfs.AddFile(n.IpfsNode, imgPath)
 }
 
-func (n *OpenBazaarNode) addResizedImage(img image.Image, imgCfg *image.Config, w, h uint, imgPath string) (string, error) {
-	width, height := getImageAttributes(w, h, uint(imgCfg.Width), uint(imgCfg.Height))
-	newImg := resize.Resize(width, height, img, resize.Lanczos3)
+func (n *OpenBazaarNode) addResizedImage(img image.Image, w, h int, imgPath string) (string, error) {
+	width, height := getImageAttributes(w, h, img.Bounds().Max.X, img.Bounds().Max.Y)
+	newImg := imaging.Resize(img, width, height, imaging.Lanczos)
 	return n.addImage(newImg, imgPath)
 }
 
-func decodeImageData(base64ImageData string) (image.Image, *image.Config, error) {
+func decodeImageData(base64ImageData string) (image.Image, error) {
 	reader := base64.NewDecoder(base64.StdEncoding, strings.NewReader(base64ImageData))
-	img, _, err := image.Decode(reader)
+	img, err := imaging.Decode(reader, imaging.AutoOrientation(true))
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
-	reader = base64.NewDecoder(base64.StdEncoding, strings.NewReader(base64ImageData))
-	imgCfg, _, err := image.DecodeConfig(reader)
-	if err != nil {
-		return nil, nil, err
-	}
-	return img, &imgCfg, err
+	return img, err
 }
 
-func getImageAttributes(targetWidth, targetHeight, imgWidth, imgHeight uint) (width, height uint) {
+func getImageAttributes(targetWidth, targetHeight, imgWidth, imgHeight int) (width, height int) {
 	targetRatio := float32(targetWidth) / float32(targetHeight)
 	imageRatio := float32(imgWidth) / float32(imgHeight)
 	var h, w float32
@@ -144,7 +138,7 @@ func getImageAttributes(targetWidth, targetHeight, imgWidth, imgHeight uint) (wi
 		w = float32(targetWidth)
 		h = float32(targetWidth) * (float32(imgHeight) / float32(imgWidth))
 	}
-	return uint(w), uint(h)
+	return int(w), int(h)
 }
 
 // FetchAvatar - fetch image avatar from ipfs
@@ -169,12 +163,14 @@ func (n *OpenBazaarNode) FetchImage(peerID string, imageType string, size string
 
 // GetBase64Image - fetch the image and return it as base64 encoded string
 func (n *OpenBazaarNode) GetBase64Image(url string) (base64ImageData, filename string, err error) {
-	dial := net.Dial
+	var client *http.Client
 	if n.TorDialer != nil {
-		dial = n.TorDialer.Dial
+		tbTransport := &http.Transport{Dial: n.TorDialer.Dial}
+		client = &http.Client{Transport: tbTransport, Timeout: time.Second * 30}
+	} else {
+		client = &http.Client{Timeout: time.Second * 30}
 	}
-	tbTransport := &http.Transport{Dial: dial}
-	client := &http.Client{Transport: tbTransport, Timeout: time.Second * 30}
+
 	resp, err := client.Get(url)
 	if err != nil {
 		return "", "", err
@@ -215,28 +211,28 @@ func (n *OpenBazaarNode) maybeMigrateImageHashes(listing *pb.Listing) error {
 	}
 
 	var err error
-	for i, image := range listing.Item.Images {
-		image.Large, err = maybeMigrateImage(image.Large, "large", image.Filename)
+	for i, img := range listing.Item.Images {
+		img.Large, err = maybeMigrateImage(img.Large, "large", img.Filename)
 		if err != nil {
 			return err
 		}
-		image.Medium, err = maybeMigrateImage(image.Medium, "medium", image.Filename)
+		img.Medium, err = maybeMigrateImage(img.Medium, "medium", img.Filename)
 		if err != nil {
 			return err
 		}
-		image.Small, err = maybeMigrateImage(image.Small, "small", image.Filename)
+		img.Small, err = maybeMigrateImage(img.Small, "small", img.Filename)
 		if err != nil {
 			return err
 		}
-		image.Tiny, err = maybeMigrateImage(image.Tiny, "tiny", image.Filename)
+		img.Tiny, err = maybeMigrateImage(img.Tiny, "tiny", img.Filename)
 		if err != nil {
 			return err
 		}
-		image.Original, err = maybeMigrateImage(image.Original, "original", image.Filename)
+		img.Original, err = maybeMigrateImage(img.Original, "original", img.Filename)
 		if err != nil {
 			return err
 		}
-		listing.Item.Images[i] = image
+		listing.Item.Images[i] = img
 	}
 	return nil
 }

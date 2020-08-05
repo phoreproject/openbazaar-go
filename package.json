@@ -1,7 +1,7 @@
 {
-  "name": "openbazaar-go",
+  "name": "marketplace-go",
   "author": "Phore Blockchain Company",
-  "version": "0.13.4",
+  "version": "0.13.8",
   "language": "english",
   "license": "",
   "bugs": {
@@ -9,3 +9,4 @@
   },
   "gxVersion": "0.11.0"
 }
+

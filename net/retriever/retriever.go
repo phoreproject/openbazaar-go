@@ -8,13 +8,11 @@ import (
 	libp2p "gx/ipfs/QmTW4SdgBWq9GjsBsHeUx8WuGxzhgzAf88UMH2w62PC8yK/go-libp2p-crypto"
 	ma "gx/ipfs/QmTZBfrPJmjWsCvHEtX5FE6KimVJhsJg5sBbqEFYf4UZtL/go-multiaddr"
 	"gx/ipfs/QmTbxNB1NwDesLmKTscr4udL2tVP7MaxvXnD1D9yX7g3PN/go-cid"
-	"gx/ipfs/QmUadX5EcvrBmxAV9sE7wUWtWSqxns5K84qKJBixmcT1w9/go-datastore"
 	"gx/ipfs/QmYVXrKrKHDC9FobgmcmshCDyWwdrfwfanNQN4oxJ9Fk3h/go-libp2p-peer"
 	ps "gx/ipfs/QmaCTz9RkrU13bm9kMB54f7atgqM4qkjDZpRwRoJiWXEqs/go-libp2p-peerstore"
 	"gx/ipfs/QmerPMzPk1mJVowm8KgmoknWa4yCYvvugMPsgWmDNUvDLW/go-multihash"
 
 	"io/ioutil"
-	gonet "net"
 	"net/http"
 	"sync"
 	"time"
@@ -29,10 +27,7 @@ import (
 	"golang.org/x/net/proxy"
 )
 
-const (
-	DefaultPointerPrefixLength = 14
-	KeyCachePrefix             = "/pubkey/"
-)
+const DefaultPointerPrefixLength = 14
 
 var log = logging.MustGetLogger("retriever")
 
@@ -72,13 +67,13 @@ type offlineMessage struct {
 }
 
 func NewMessageRetriever(cfg MRConfig) *MessageRetriever {
-	dial := gonet.Dial
+	var client *http.Client
 	if cfg.Dialer != nil {
-		dial = cfg.Dialer.Dial
+		tbTransport := &http.Transport{Dial: cfg.Dialer.Dial}
+		client = &http.Client{Transport: tbTransport, Timeout: time.Second * 30}
+	} else {
+		client = &http.Client{Timeout: time.Second * 30}
 	}
-
-	tbTransport := &http.Transport{Dial: dial}
-	client := &http.Client{Transport: tbTransport, Timeout: time.Second * 30}
 	mr := MessageRetriever{
 		db:         cfg.Db,
 		node:       cfg.IPFSNode,
@@ -116,6 +111,14 @@ func (m *MessageRetriever) Run() {
 			go m.fetchPointers(false)
 		}
 	}
+}
+
+// RunOnce - used to fetch messages only once
+func (m *MessageRetriever) RunOnce() {
+	m.Add(1)
+	go m.fetchPointers(true)
+	m.Add(1)
+	go m.fetchPointers(false)
 }
 
 func (m *MessageRetriever) fetchPointers(useDHT bool) {
@@ -243,11 +246,14 @@ func (m *MessageRetriever) fetchIPFS(pid peer.ID, n *core.IpfsNode, addr ma.Mult
 	select {
 	case <-c:
 		if err != nil {
-			log.Errorf("Error retrieving offline message from %s, %s", addr.String(), err.Error())
+			log.Errorf("Error retrieving offline message from: %s, Error: %s", addr.String(), err.Error())
 			return
 		}
-		log.Debugf("Successfully downloaded offline message from %s", addr.String())
-		m.db.OfflineMessages().Put(addr.String())
+		log.Debugf("Successfully downloaded offline message %s from: %s", addr.String(), pid.Pretty())
+		err = m.db.OfflineMessages().Put(addr.String())
+		if err != nil {
+			log.Error(err)
+		}
 		m.attemptDecrypt(ciphertext, pid, addr)
 	case <-m.DoneChan:
 		return
@@ -299,7 +305,7 @@ func (m *MessageRetriever) attemptDecrypt(ciphertext []byte, pid peer.ID, addr m
 	// Decrypt and unmarshal plaintext
 	plaintext, err := net.Decrypt(m.node.PrivateKey, ciphertext)
 	if err != nil {
-		log.Warning("Unable to decrypt offline message from %s: %s", addr.String(), err.Error())
+		log.Warningf("Unable to decrypt cipher text to plain text, CID: %s: Error:%s\n", addr.String(), err.Error())
 		return
 	}
 
@@ -307,41 +313,48 @@ func (m *MessageRetriever) attemptDecrypt(ciphertext []byte, pid peer.ID, addr m
 	env := pb.Envelope{}
 	err = proto.Unmarshal(plaintext, &env)
 	if err != nil {
-		log.Warning("Unable to decrypt offline message from %s: %s", addr.String(), err.Error())
+		log.Warningf("Unable to unmarshal plaintext to encrypted Envelope, CID: %s: Error:%s\n", addr.String(), err.Error())
 		return
 	}
 
 	// Validate the signature
 	ser, err := proto.Marshal(env.Message)
 	if err != nil {
-		log.Warning("Unable to decrypt offline message from %s: %s", addr.String(), err.Error())
+		log.Warningf("Unable to serialize the encrypted message, CID: %s: Error:%s\n", addr.String(), err.Error())
 		return
 	}
 	pubkey, err := libp2p.UnmarshalPublicKey(env.Pubkey)
 	if err != nil {
-		log.Warning("Unable to decrypt offline message from %s: %s", addr.String(), err.Error())
+		log.Warningf("Unable to unmarshal the public key from, CID: %s: Error:%s\n", addr.String(), err.Error())
 		return
 	}
 
 	valid, err := pubkey.Verify(ser, env.Signature)
 	if err != nil || !valid {
-		log.Warning("Unable to decrypt offline message from %s: %s", addr.String(), err.Error())
+		log.Warningf("Unable to verify message signature, CID: %s: Error:%s\n", addr.String(), err.Error())
 		return
 	}
 
 	id, err := peer.IDFromPublicKey(pubkey)
 	if err != nil {
-		log.Warning("Unable to decrypt offline message from %s: %s", addr.String(), err.Error())
+		log.Warningf("Unable to get a peer ID from the pubkey, CID: %s: Error:%s\n", addr.String(), err.Error())
 		return
 	}
+
+	log.Debugf("Received offline message %s from: %s\n", addr.String(), id.Pretty())
 
 	if m.bm.IsBanned(id) {
-		log.Warning("Received and dropped offline message from banned user: %s ", id.String())
+		log.Warningf("Received and dropped offline message from banned user: %s\n", id.Pretty())
 		return
 	}
 
-	m.node.Peerstore.AddPubKey(id, pubkey)
-	m.node.Repo.Datastore().Put(datastore.NewKey(KeyCachePrefix+id.Pretty()), env.Pubkey)
+	if err := m.node.Peerstore.AddPubKey(id, pubkey); err != nil {
+		log.Errorf("adding pubkey to peerstore: %s", err.Error())
+	}
+	store := m.node.Repo.Datastore()
+	if err := ipfs.PutCachedPubkey(store, id.Pretty(), env.Pubkey); err != nil {
+		log.Errorf("caching pubkey: %s", err.Error())
+	}
 
 	// Respond with an ACK
 	if env.Message.MessageType != pb.Message_OFFLINE_ACK {
@@ -408,6 +421,7 @@ var MessageProcessingOrder = []pb.Message_MessageType{
 	pb.Message_ORDER_CANCEL,
 	pb.Message_ORDER_REJECT,
 	pb.Message_ORDER_CONFIRMATION,
+	pb.Message_ORDER_PAYMENT,
 	pb.Message_ORDER_FULFILLMENT,
 	pb.Message_ORDER_COMPLETION,
 	pb.Message_DISPUTE_OPEN,
@@ -421,6 +435,7 @@ var MessageProcessingOrder = []pb.Message_MessageType{
 	pb.Message_MODERATOR_ADD,
 	pb.Message_MODERATOR_REMOVE,
 	pb.Message_OFFLINE_ACK,
+	pb.Message_OFFLINE_RELAY,
 }
 
 // processQueuedMessages loads all the saved messaged from the database for processing. For each message it sorts them into a

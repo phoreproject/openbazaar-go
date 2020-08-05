@@ -44,7 +44,7 @@ source ~/.profile
 
 Go should now be ready.
 
-### Install openbazaar-go from master
+### Install marketplace-go from master
 
 Checkout a copy of the source:
 ```
@@ -56,12 +56,12 @@ It will use git to checkout the source code into `$GOPATH/src/github.com/phorepr
 
 Checkout a release version:
 ```
-git checkout v0.13.4
+git checkout v0.13.8
 ```
 
 Note: `go get` leaves the repo pointing at `master` which is a branch used for active development. Running OpenBazaar from `master` is NOT recommended. Check the [release versions](https://github.com/phoreproject/pm-go/releases) for the available versions that you use in checkout.
 
-### Install openbazaar-go from other branch
+### Install marketplace-go from other branch
 ```
 cd $GOPATH/src/github.com/phoreproject
 git clone --recursive -b BRANCH_NAME git@github.com:phoreproject/pm-go
@@ -70,25 +70,25 @@ git clone --recursive -b BRANCH_NAME git@github.com:phoreproject/pm-go
 ### To compile and run the source:
 ```
 cd $GOPATH/src/github.com/phoreproject/pm-go
-go run openbazaard.go start
+go run marketplaced.go start
 ```
 
 NOTE: If you have Xcode installed you may get the response `signal: killed`. If you do try running the following instead.
 
 ```
-go run --ldflags -s openbazaard.go start -t
+go run --ldflags -s marketplaced.go start -t
 ```
 
 NOTE FOR NEW GOLANG HACKERS: 
 
 In most projects you usually perform a `git clone` of the repository in order to start hacking. 
 
-With `openbazaar-go` There's no need to manually `git clone` the project, this is done for you when you issue the `go get github.com/phoreproject/pm-go` command, doing a manual `git clone` will only give you a repository that's missing a lot of recursive dependencies and building headaches.
+With `marketplace-go` There's no need to manually `git clone` the project, this is done for you when you issue the `go get github.com/phoreproject/pm-go` command, doing a manual `git clone` will only give you a repository that's missing a lot of recursive dependencies and building headaches.
 
 If you are used to having all your other projects in some other place on disk, just make a symlink from `$GOPATH/src/github.com/phoreproject/pm-go` into your usual workspace folder.
 
 To start hacking make sure to add your git remote into the `$GOPATH/src/github.com/phoreproject/pm-go` folder with:
 ```
 cd $GOPATH/src/github.com/phoreproject/pm-go
-git remote add myusername git@github.com:myusername/openbazaar-go.git
+git remote add myusername git@github.com:myusername/pm-go.git
 ```

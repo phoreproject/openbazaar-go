@@ -23,12 +23,10 @@ import (
 	dht "gx/ipfs/QmSY3nkMNLzh9GdbFKK5tT7YMfLpf52iUZ8ZRkr29MJaa5/go-libp2p-kad-dht"
 	ma "gx/ipfs/QmTZBfrPJmjWsCvHEtX5FE6KimVJhsJg5sBbqEFYf4UZtL/go-multiaddr"
 	config "gx/ipfs/QmUAuYuiafnJRZxDDX7MuruMNsicYNuyub5vUeAcupUBNs/go-ipfs-config"
-	ipnspb "gx/ipfs/QmUwMnKKjH3JwGKNVZ3TcP37W93xzqNA4ECFFiMo6sXkkc/go-ipns/pb"
 	peer "gx/ipfs/QmYVXrKrKHDC9FobgmcmshCDyWwdrfwfanNQN4oxJ9Fk3h/go-libp2p-peer"
 	oniontp "gx/ipfs/QmYv2MbwHn7qcvAPFisZ94w85crQVpwUuv8G7TuUeBnfPb/go-onion-transport"
 	ipfslogging "gx/ipfs/QmbkT7eMTyXfpeyB3ZMxxcxg7XH8t6uXp49jqzz4HB7BGF/go-log/writer"
 	manet "gx/ipfs/Qmc85NSvmSG4Frn9Vb2cBc1rMyULH6D3TNVEfCzSKoUpip/go-multiaddr-net"
-	proto "gx/ipfs/QmddjPSGZb3ieihSseFeCfVRpZzcqczPNsD2DvarSwnjJB/gogo-protobuf/proto"
 
 	wi "github.com/OpenBazaar/wallet-interface"
 	"github.com/btcsuite/btcd/chaincfg"
@@ -38,7 +36,6 @@ import (
 	"github.com/ipfs/go-ipfs/commands"
 	ipfscore "github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/core/corehttp"
-	"github.com/ipfs/go-ipfs/namesys"
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
 	"github.com/natefinch/lumberjack"
 	"github.com/op/go-logging"
@@ -65,11 +62,11 @@ import (
 )
 
 var stdoutLogFormat = logging.MustStringFormatter(
-	`%{color:reset}%{color}%{time:15:04:05.000} [%{level}] [%{module}/%{shortfunc}] %{message}`,
+	`%{color:reset}%{color}%{time:2006-01-02 15:04:05.000} [%{level}] [%{module}/%{shortfunc}] %{message}`,
 )
 
 var fileLogFormat = logging.MustStringFormatter(
-	`%{time:15:04:05.000} [%{level}] [%{module}/%{shortfunc}] %{message}`,
+	`%{time:2006-01-02 15:04:05.000} [%{level}] [%{module}/%{shortfunc}] %{message}`,
 )
 
 var ErrNoGateways = errors.New("no gateway addresses configured")
@@ -408,12 +405,8 @@ func (x *Start) Execute(args []string) error {
 	}
 	var dhtRouting *dht.IpfsDHT
 	for _, router := range tiered.Routers {
-		if r, ok := router.(*ipfs.CachingRouter); ok {
-			r.APIRouter().Start(torDialer)
-			dhtRouting, err = r.DHT()
-			if err != nil {
-				return err
-			}
+		if r, ok := router.(*dht.IpfsDHT); ok {
+			dhtRouting = r
 		}
 	}
 	if dhtRouting == nil {
@@ -421,29 +414,22 @@ func (x *Start) Execute(args []string) error {
 	}
 
 	// Get current directory root hash
-	ipnskey := namesys.IpnsDsKey(nd.Identity)
-	ival, hasherr := nd.Repo.Datastore().Get(ipnskey)
+	cachedIPNSRecord, hasherr := ipfs.GetCachedIPNSRecord(nd.Repo.Datastore(), nd.Identity)
 	if hasherr != nil {
-		log.Error("get ipns key:", hasherr)
-	}
-	ourIpnsRecord := new(ipnspb.IpnsEntry)
-	err = proto.Unmarshal(ival, ourIpnsRecord)
-	if err != nil {
-		log.Error("unmarshal record value", err)
-		nd.Repo.Datastore().Delete(ipnskey)
+		log.Warning(err)
+		if err := ipfs.DeleteCachedIPNSRecord(nd.Repo.Datastore(), nd.Identity); err != nil {
+			log.Errorf("deleting invalid IPNS record: %s", err.Error())
+		}
 	}
 
 	if x.ForceKeyCachePurge {
 		log.Infof("forcing key purge from namesys cache...")
-		nd.Repo.Datastore().Delete(ipnskey)
+		if err := ipfs.DeleteCachedIPNSRecord(nd.Repo.Datastore(), nd.Identity); err != nil {
+			log.Errorf("force-purging IPNS record: %s", err.Error())
+		}
 	}
 
-	// Wallet
-	mn, err := sqliteDB.Config().GetMnemonic()
-	if err != nil {
-		log.Error("get config mnemonic:", err)
-		return err
-	}
+	//Wallet
 	var params chaincfg.Params
 	if x.Testnet {
 		params = chaincfg.TestNet3Params
@@ -451,46 +437,6 @@ func (x *Start) Execute(args []string) error {
 		params = chaincfg.RegressionNetParams
 	} else {
 		params = chaincfg.MainNetParams
-	}
-
-	// Multiwallet setup
-	var walletLogWriter io.Writer
-	if x.NoLogFiles {
-		walletLogWriter = &DummyWriter{}
-	} else {
-		walletLogWriter = &lumberjack.Logger{
-			Filename:   path.Join(repoPath, "logs", "wallet.log"),
-			MaxSize:    10, // Megabytes
-			MaxBackups: 3,
-			MaxAge:     30, // Days
-		}
-	}
-	walletLogFile := logging.NewLogBackend(walletLogWriter, "", 0)
-	walletFileFormatter := logging.NewBackendFormatter(walletLogFile, fileLogFormat)
-	walletLogger := logging.MultiLogger(walletFileFormatter)
-	multiwalletConfig := &wallet.WalletConfig{
-		ConfigFile:           walletsConfig,
-		DB:                   sqliteDB.DB(),
-		Params:               &params,
-		RepoPath:             repoPath,
-		Logger:               walletLogger,
-		Proxy:                torDialer,
-		WalletCreationDate:   creationDate,
-		Mnemonic:             mn,
-		DisableExchangeRates: x.DisableExchangeRates,
-	}
-	mw, err := wallet.NewMultiWallet(multiwalletConfig)
-	if err != nil {
-		return err
-	}
-	resyncManager := resync.NewResyncManager(sqliteDB.Sales(), mw)
-
-	// Master key setup
-	seed := bip39.NewSeed(mn, "")
-	mPrivKey, err := hdkeychain.NewMaster(seed, &params)
-	if err != nil {
-		log.Error(err)
-		return err
 	}
 
 	// Push nodes
@@ -588,27 +534,81 @@ func (x *Start) Execute(args []string) error {
 	subscriber := ipfs.NewPubsubSubscriber(context.Background(), nd.PeerHost, nd.Routing, nd.Repo.Datastore(), nd.PubSub)
 	ps := ipfs.Pubsub{Publisher: publisher, Subscriber: subscriber}
 
+	var rootHash string
+	if cachedIPNSRecord != nil {
+		rootHash = string(cachedIPNSRecord.Value)
+	}
+
 	// OpenBazaar node setup
-	core.Node = &core.OpenBazaarNode{
+	var obPartialNode = &core.OpenBazaarNode{
 		AcceptStoreRequests:           dataSharing.AcceptStoreRequests,
 		BanManager:                    bm,
 		Datastore:                     sqliteDB,
 		IpfsNode:                      nd,
 		DHT:                           dhtRouting,
-		MasterPrivateKey:              mPrivKey,
-		Multiwallet:                   mw,
+		MasterPrivateKey:              nil,
+		Multiwallet:                   nil,
 		OfflineMessageFailoverTimeout: 30 * time.Second,
 		Pubsub:                        ps,
 		PushNodes:                     pushNodes,
 		RegressionTestEnable:          x.Regtest,
 		RepoPath:                      repoPath,
-		RootHash:                      string(ourIpnsRecord.Value),
+		RootHash:                      rootHash,
 		TestnetEnable:                 x.Testnet,
 		TorDialer:                     torDialer,
 		UserAgent:                     core.USERAGENT,
 		IPNSQuorumSize:                uint(ipnsExtraConfig.DHTQuorumSize),
+		WalletLocked:                  true,
 	}
-	core.PublishLock.Lock()
+	obPartialNode.PublishLock.Lock()
+
+	//Multiwallet setup
+	var walletLogWriter io.Writer
+	if x.NoLogFiles {
+		walletLogWriter = &DummyWriter{}
+	} else {
+		walletLogWriter = &lumberjack.Logger{
+			Filename:   path.Join(repoPath, "logs", "wallet.log"),
+			MaxSize:    10, // Megabytes
+			MaxBackups: 3,
+			MaxAge:     30, // Days
+		}
+	}
+	walletLogFile := logging.NewLogBackend(walletLogWriter, "", 0)
+	walletFileFormatter := logging.NewBackendFormatter(walletLogFile, fileLogFormat)
+	walletLogger := logging.MultiLogger(walletFileFormatter)
+	multiwalletConfig := &wallet.WalletConfig{
+		ConfigFile:           walletsConfig,
+		DB:                   sqliteDB.DB(),
+		Params:               &params,
+		RepoPath:             repoPath,
+		Logger:               walletLogger,
+		Proxy:                torDialer,
+		WalletCreationDate:   creationDate,
+		Mnemonic:             "",
+		DisableExchangeRates: x.DisableExchangeRates,
+	}
+
+	gateway, err := newHTTPGateway(obPartialNode, ctx, authCookie, *apiConfig, false)
+	if err != nil {
+		log.Error(err)
+		return err
+	}
+
+	err = gateway.Serve(false)
+	if err != nil {
+		return err
+	}
+
+	err = createOpenBazaarNode(obPartialNode, multiwalletConfig, params)
+	if err != nil {
+		log.Error(err)
+		return err
+	}
+
+	core.Node = obPartialNode
+
+	resyncManager := resync.NewResyncManager(sqliteDB.Sales(), sqliteDB.Purchases(), core.Node.Multiwallet)
 
 	// Offline messaging storage
 	var storage sto.OfflineMessagingStorage
@@ -644,12 +644,6 @@ func (x *Start) Execute(args []string) error {
 		return errors.New("SSL cert and key files must be set when SSL is enabled")
 	}
 
-	gateway, err := newHTTPGateway(core.Node, ctx, authCookie, *apiConfig, x.NoLogFiles)
-	if err != nil {
-		log.Error(err)
-		return err
-	}
-
 	if len(cfg.Addresses.API) > 0 && cfg.Addresses.API[0] != "" {
 		if _, err := serveHTTPApi(&ctx); err != nil {
 			log.Error(err)
@@ -664,15 +658,15 @@ func (x *Start) Execute(args []string) error {
 				core.Node.WaitForMessageRetrieverCompletion()
 			}
 			TL := lis.NewTransactionListener(core.Node.Multiwallet, core.Node.Datastore, core.Node.Broadcast)
-			for ct, wal := range mw {
+			for ct, wal := range core.Node.Multiwallet {
 				WL := lis.NewWalletListener(core.Node.Datastore, core.Node.Broadcast, ct)
 				wal.AddTransactionListener(WL.OnTransactionReceived)
 				wal.AddTransactionListener(TL.OnTransactionReceived)
 			}
 			log.Info("Starting multiwallet...")
-			su := wallet.NewStatusUpdater(mw, core.Node.Broadcast, nd.Context())
+			su := wallet.NewStatusUpdater(core.Node.Multiwallet, core.Node.Broadcast, nd.Context())
 			go su.Start()
-			go mw.Start()
+			go core.Node.Multiwallet.Start()
 			if resyncManager != nil {
 				go resyncManager.Start()
 				go func() {
@@ -683,18 +677,18 @@ func (x *Start) Execute(args []string) error {
 		}
 		core.Node.Service = service.New(core.Node, sqliteDB)
 		core.Node.Service.WaitForReady()
-		log.Info("OpenBazaar Service Ready")
+		log.Info("Marketplace Service Ready")
 
 		core.Node.StartMessageRetriever()
 		core.Node.StartPointerRepublisher()
 		core.Node.StartRecordAgingNotifier()
 
-		core.PublishLock.Unlock()
+		core.Node.PublishLock.Unlock()
 		err = core.Node.UpdateFollow()
 		if err != nil {
 			log.Error(err)
 		}
-		if !core.InitalPublishComplete {
+		if !core.Node.InitalPublishComplete {
 			err = core.Node.SeedNode()
 			if err != nil {
 				log.Error(err)
@@ -704,7 +698,7 @@ func (x *Start) Execute(args []string) error {
 	}()
 
 	// Start gateway
-	err = gateway.Serve()
+	err = gateway.Serve(true)
 	if err != nil {
 		log.Error(err)
 	}
@@ -766,6 +760,54 @@ func (d *DummyListener) Accept() (net.Conn, error) {
 
 func (d *DummyListener) Close() error {
 	return nil
+}
+
+func createOpenBazaarNode(node *core.OpenBazaarNode, multiwalletConfig *wallet.WalletConfig,
+	params chaincfg.Params) error {
+
+	mnemonic, isEncrypted, err := node.Datastore.Config().GetMnemonic()
+	if err != nil {
+		log.Error("get config mnemonic:", err)
+		return err
+	}
+	node.WalletLocked = isEncrypted
+
+	if isEncrypted {
+		log.Warning("mnemonic is encrypted")
+		mnemonic = waitForDecryptedMnemonic(node)
+	}
+
+	multiwalletConfig.Mnemonic = mnemonic
+	node.Multiwallet, err = wallet.NewMultiWallet(multiwalletConfig)
+	if err != nil {
+		return err
+	}
+
+	// Master key setup
+	seed := bip39.NewSeed(mnemonic, "")
+	node.MasterPrivateKey, err = hdkeychain.NewMaster(seed, &params)
+	if err != nil {
+		log.Error(err)
+		return err
+	}
+
+	return nil
+}
+
+func waitForDecryptedMnemonic(node *core.OpenBazaarNode) string {
+	node.MnemonicChan = make(chan string)
+
+	for {
+		log.Warning("Waiting for mnemonic password")
+		decryptedMnemonic := <-node.MnemonicChan
+
+		if !bip39.IsMnemonicValid(decryptedMnemonic) {
+			log.Warning("Mnemonic not correct")
+			continue
+		}
+
+		return decryptedMnemonic
+	}
 }
 
 // Collects options, creates listener, prints status message and starts serving requests
@@ -834,7 +876,6 @@ func newHTTPGateway(node *core.OpenBazaarNode, ctx commands.Context, authCookie 
 	apiFile := logging.NewLogBackend(w4, "", 0)
 	apiFileFormatter := logging.NewBackendFormatter(apiFile, fileLogFormat)
 	ml := logging.MultiLogger(apiFileFormatter)
-
 	return api.NewGateway(node, authCookie, manet.NetListener(gwLis), config, ml, opts...)
 }
 

@@ -205,8 +205,7 @@ func (n *OpenBazaarNode) CompleteOrder(orderRatings *OrderRatings, contract *pb.
 		if err != nil {
 			return err
 		}
-		mPrivKey := n.MasterPrivateKey
-		mECKey, err := mPrivKey.ECPrivKey()
+		mECKey, err := n.MasterPrivateKey.ECPrivKey()
 		if err != nil {
 			return err
 		}
@@ -350,12 +349,15 @@ func (n *OpenBazaarNode) ReleaseFundsAfterTimeout(contract *pb.RicardianContract
 		}
 	}
 
+	if len(txInputs) == 0 {
+		return errors.New("there are no inputs available for this transaction")
+	}
+
 	chaincode, err := hex.DecodeString(contract.BuyerOrder.Payment.Chaincode)
 	if err != nil {
 		return err
 	}
-	mPrivKey := n.MasterPrivateKey
-	mECKey, err := mPrivKey.ECPrivKey()
+	mECKey, err := n.MasterPrivateKey.ECPrivKey()
 	if err != nil {
 		return err
 	}
@@ -392,7 +394,6 @@ func (n *OpenBazaarNode) SignOrderCompletion(contract *pb.RicardianContract) (*p
 	}
 	s := new(pb.Signature)
 	s.Section = pb.Signature_ORDER_COMPLETION
-
 	guidSig, err := n.IpfsNode.PrivateKey.Sign(serializedOrderFulfil)
 	if err != nil {
 		return contract, err

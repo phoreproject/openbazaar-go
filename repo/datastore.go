@@ -28,6 +28,7 @@ type Datastore interface {
 	Coupons() CouponStore
 	TxMetadata() TransactionMetadataStore
 	ModeratedStores() ModeratedStore
+	Messages() MessageStore
 	Ping() error
 	Close()
 }
@@ -47,7 +48,10 @@ type Config interface {
 	Init(mnemonic string, identityKey []byte, password string, creationDate time.Time) error
 
 	// Return the mnemonic string
-	GetMnemonic() (string, error)
+	GetMnemonic() (string, bool, error)
+
+	// Update mnemonic in database - used to encrypt / decrypt it
+	UpdateMnemonic(string, bool) error
 
 	// Return the identity key
 	GetIdentityKey() ([]byte, error)
@@ -206,6 +210,9 @@ type PurchaseStore interface {
 	// Return the metadata for all purchases. Also returns the original size of the query.
 	GetAll(stateFilter []pb.OrderState, searchTerm string, sortByAscending bool, sortByRead bool, limit int, exclude []string) ([]Purchase, int, error)
 
+	// Return unfunded orders.
+	GetUnfunded() ([]UnfundedOrder, error)
+
 	// Return the number of purchases in the database
 	Count() int
 
@@ -251,11 +258,8 @@ type SaleStore interface {
 	// Return the metadata for all sales. Also returns the original size of the query.
 	GetAll(stateFilter []pb.OrderState, searchTerm string, sortByAscending bool, sortByRead bool, limit int, exclude []string) ([]Sale, int, error)
 
-	// Return unfunded orders which failed to detect funding because the chain was synced passed the block containing the transaction when the order was recorded.
-	GetNeedsResync() ([]UnfundedSale, error)
-
-	// Set whether the given order needs a blockchain resync
-	SetNeedsResync(orderID string, needsResync bool) error
+	// Return unfunded orders.
+	GetUnfunded() ([]UnfundedOrder, error)
 
 	// Return the number of sales in the database
 	Count() int
@@ -434,4 +438,15 @@ type UnspentTransactionOutputStore interface {
 type WatchedScriptStore interface {
 	Queryable
 	wallet.WatchedScripts
+}
+
+// MessageStore is the messages table interface
+type MessageStore interface {
+	Queryable
+
+	// Save a new message
+	Put(messageID, orderID string, mType pb.Message_MessageType, peerID string, msg Message) error
+
+	// GetByOrderIDType returns the message for specified order and type
+	GetByOrderIDType(orderID string, mType pb.Message_MessageType) (*Message, string, error)
 }
