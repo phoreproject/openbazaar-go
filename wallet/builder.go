@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/op/go-logging"
 	"github.com/phoreproject/multiwallet"
 	"github.com/phoreproject/multiwallet/bitcoin"
 	"github.com/phoreproject/multiwallet/bitcoincash"
@@ -19,7 +20,6 @@ import (
 	"github.com/phoreproject/multiwallet/phore"
 	"github.com/phoreproject/multiwallet/util"
 	"github.com/phoreproject/multiwallet/zcash"
-	"github.com/op/go-logging"
 
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/phoreproject/pm-go/repo"
