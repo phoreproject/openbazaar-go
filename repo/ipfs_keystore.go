@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/ipfs/go-ipfs/core"
-	"github.com/phoreproject/openbazaar-go/ipfs"
+	"github.com/phoreproject/pm-go/ipfs"
 )
 
 var (

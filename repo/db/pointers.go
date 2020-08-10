@@ -12,8 +12,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/phoreproject/openbazaar-go/ipfs"
-	"github.com/phoreproject/openbazaar-go/repo"
+	"github.com/phoreproject/pm-go/ipfs"
+	"github.com/phoreproject/pm-go/repo"
 )
 
 type PointersDB struct {

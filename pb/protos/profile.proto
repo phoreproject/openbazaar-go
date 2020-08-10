@@ -36,6 +36,10 @@ message Profile {
 
     repeated string currencies             = 18;
 
+    uint32 walletAutoLockTime              = 19;
+
+    uint32 version                         = 20;
+
     message Contact {
         string website                = 1;
         string email                  = 2;

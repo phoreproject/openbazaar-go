@@ -1,6 +1,6 @@
 package factory
 
-import "github.com/phoreproject/openbazaar-go/pb"
+import "github.com/phoreproject/pm-go/pb"
 
 func NewImage() *pb.Listing_Item_Image {
 	return &pb.Listing_Item_Image{

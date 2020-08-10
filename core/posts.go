@@ -15,8 +15,8 @@ import (
 
 	"github.com/OpenBazaar/jsonpb"
 	"github.com/golang/protobuf/proto"
-	"github.com/phoreproject/openbazaar-go/ipfs"
-	"github.com/phoreproject/openbazaar-go/pb"
+	"github.com/phoreproject/pm-go/ipfs"
+	"github.com/phoreproject/pm-go/pb"
 )
 
 // Constants for validation

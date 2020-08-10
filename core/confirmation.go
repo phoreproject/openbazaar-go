@@ -12,7 +12,7 @@ import (
 	"github.com/OpenBazaar/wallet-interface"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
-	"github.com/phoreproject/openbazaar-go/pb"
+	"github.com/phoreproject/pm-go/pb"
 )
 
 // NewOrderConfirmation - add order confirmation to the contract
@@ -136,8 +136,7 @@ func (n *OpenBazaarNode) ConfirmOfflineOrder(contract *pb.RicardianContract, rec
 		if err != nil {
 			return err
 		}
-		mPrivKey := n.MasterPrivateKey
-		mECKey, err := mPrivKey.ECPrivKey()
+		mECKey, err := n.MasterPrivateKey.ECPrivKey()
 		if err != nil {
 			return err
 		}
@@ -216,8 +215,7 @@ func (n *OpenBazaarNode) RejectOfflineOrder(contract *pb.RicardianContract, reco
 		if err != nil {
 			return fmt.Errorf("decode buyer chaincode: %s", err.Error())
 		}
-		mPrivKey := n.MasterPrivateKey
-		mECKey, err := mPrivKey.ECPrivKey()
+		mECKey, err := n.MasterPrivateKey.ECPrivKey()
 		if err != nil {
 			return fmt.Errorf("generate ec private key: %s", err.Error())
 		}
@@ -317,7 +315,6 @@ func (n *OpenBazaarNode) SignOrderConfirmation(contract *pb.RicardianContract) (
 	}
 	s := new(pb.Signature)
 	s.Section = pb.Signature_ORDER_CONFIRMATION
-
 	guidSig, err := n.IpfsNode.PrivateKey.Sign(serializedOrderConf)
 	if err != nil {
 		return contract, err

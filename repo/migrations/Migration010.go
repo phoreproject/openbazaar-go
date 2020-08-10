@@ -5,7 +5,7 @@ import (
 
 	"github.com/OpenBazaar/jsonpb"
 	_ "github.com/mutecomm/go-sqlcipher"
-	"github.com/phoreproject/openbazaar-go/pb"
+	"github.com/phoreproject/pm-go/pb"
 )
 
 type Migration010 struct{}

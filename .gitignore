@@ -40,7 +40,7 @@ dist
 debug
 .vscode
 config*
-openbazaar-go*
+marketplace-go*
 
 # macOS
 .DS_Store

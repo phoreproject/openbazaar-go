@@ -9,7 +9,7 @@ import (
 	"fmt"
 
 	"github.com/golang/protobuf/ptypes/timestamp"
-	"github.com/phoreproject/openbazaar-go/ipfs"
+	"github.com/phoreproject/pm-go/ipfs"
 
 	crypto "gx/ipfs/QmTW4SdgBWq9GjsBsHeUx8WuGxzhgzAf88UMH2w62PC8yK/go-libp2p-crypto"
 	peer "gx/ipfs/QmYVXrKrKHDC9FobgmcmshCDyWwdrfwfanNQN4oxJ9Fk3h/go-libp2p-peer"
@@ -26,8 +26,8 @@ import (
 	hd "github.com/btcsuite/btcutil/hdkeychain"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
-	"github.com/phoreproject/openbazaar-go/pb"
-	"github.com/phoreproject/openbazaar-go/repo"
+	"github.com/phoreproject/pm-go/pb"
+	"github.com/phoreproject/pm-go/repo"
 )
 
 type option struct {
@@ -77,6 +77,64 @@ const (
 	// CryptocurrencyPurchasePaymentAddressMaxLength - max permissible length for an address
 	CryptocurrencyPurchasePaymentAddressMaxLength = 512
 )
+
+// GetOrder - provide API response order object by orderID
+func (n *OpenBazaarNode) GetOrder(orderID string) (*pb.OrderRespApi, error) {
+	var (
+		err         error
+		isSale      bool
+		contract    *pb.RicardianContract
+		state       pb.OrderState
+		funded      bool
+		records     []*wallet.TransactionRecord
+		read        bool
+		paymentCoin *repo.CurrencyCode
+	)
+	contract, state, funded, records, read, paymentCoin, err = n.Datastore.Purchases().GetByOrderId(orderID)
+	if err != nil {
+		contract, state, funded, records, read, paymentCoin, err = n.Datastore.Sales().GetByOrderId(orderID)
+		if err != nil {
+			return nil, errors.New("order not found")
+		}
+		isSale = true
+	}
+	resp := new(pb.OrderRespApi)
+	resp.Contract = contract
+	resp.Funded = funded
+	resp.Read = read
+	resp.State = state
+
+	// TODO: Remove once broken contracts are migrated
+	lookupCoin := contract.BuyerOrder.Payment.Coin
+	_, err = repo.LoadCurrencyDefinitions().Lookup(lookupCoin)
+	if err != nil {
+		log.Warningf("invalid BuyerOrder.Payment.Coin (%s) on order (%s)", lookupCoin, orderID)
+		contract.BuyerOrder.Payment.Coin = paymentCoin.String()
+	}
+
+	paymentTxs, refundTx, err := n.BuildTransactionRecords(contract, records, state)
+	if err != nil {
+		log.Errorf(err.Error())
+		return nil, err
+	}
+	resp.PaymentAddressTransactions = paymentTxs
+	resp.RefundAddressTransaction = refundTx
+
+	unread, err := n.Datastore.Chat().GetUnreadCount(orderID)
+	if err != nil {
+		log.Errorf(err.Error())
+		return nil, err
+	}
+	resp.UnreadChatMessages = uint64(unread)
+
+	if isSale {
+		n.Datastore.Sales().MarkAsRead(orderID)
+	} else {
+		n.Datastore.Purchases().MarkAsRead(orderID)
+	}
+
+	return resp, nil
+}
 
 // Purchase - add ricardian contract
 func (n *OpenBazaarNode) Purchase(data *PurchaseData) (orderID string, paymentAddress string, paymentAmount uint64, vendorOnline bool, err error) {
@@ -213,7 +271,7 @@ func prepareModeratedOrderContract(data *PurchaseData, n *OpenBazaarNode, contra
 	payment.Chaincode = hex.EncodeToString(chaincode)
 	contract.BuyerOrder.RefundFee = wal.GetFeePerByte(wallet.NORMAL)
 
-	err = wal.AddWatchedAddress(addr)
+	err = wal.AddWatchedAddresses(addr)
 	if err != nil {
 		return nil, err
 	}
@@ -250,7 +308,7 @@ func processOnlineDirectOrder(resp *pb.Message, n *OpenBazaarNode, wal wallet.Wa
 	if err != nil {
 		return "", "", 0, false, err
 	}
-	err = wal.AddWatchedAddress(addr)
+	err = wal.AddWatchedAddresses(addr)
 	if err != nil {
 		return "", "", 0, false, err
 	}
@@ -298,7 +356,7 @@ func processOfflineDirectOrder(n *OpenBazaarNode, wal wallet.Wallet, contract *p
 	payment.RedeemScript = hex.EncodeToString(redeemScript)
 	payment.Chaincode = hex.EncodeToString(chaincode)
 
-	err = wal.AddWatchedAddress(addr)
+	err = wal.AddWatchedAddresses(addr)
 	if err != nil {
 		return "", "", 0, false, err
 	}
@@ -791,8 +849,7 @@ func (n *OpenBazaarNode) CancelOfflineOrder(contract *pb.RicardianContract, reco
 	if err != nil {
 		return err
 	}
-	mPrivKey := n.MasterPrivateKey
-	mECKey, err := mPrivKey.ECPrivKey()
+	mECKey, err := n.MasterPrivateKey.ECPrivKey()
 	if err != nil {
 		return err
 	}

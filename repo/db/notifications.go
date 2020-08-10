@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/phoreproject/openbazaar-go/repo"
+	"github.com/phoreproject/pm-go/repo"
 )
 
 type NotficationsDB struct {
@@ -117,7 +117,7 @@ func (n *NotficationsDB) GetAll(offsetID string, limit int, typeFilter []string)
 			read = true
 		}
 		notification.IsRead = read
-		notification.CreatedAt = time.Unix(int64(timestampInt), 0).UTC()
+		notification.CreatedAt = repo.NewAPITime(time.Unix(int64(timestampInt), 0).UTC())
 		// END
 
 		ret = append(ret, notification)

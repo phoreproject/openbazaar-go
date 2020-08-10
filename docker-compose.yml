@@ -7,7 +7,7 @@ services:
       dockerfile: Dockerfile.dev
     volumes:
       - obdata_dev:/var/lib/openbazaar
-      - .:/go/src/github.com/phoreproject/openbazaar-go
+      - .:/go/src/github.com/phoreproject/pm-go
     ports:
       - "5001:5001"
       - "5002:5002"
@@ -15,7 +15,7 @@ services:
     security_opt:
       - seccomp:unconfined #req: delve for golang
   server:
-    image: openbazaar/server
+    image: phoremarketplace/server
     ports:
       - 5001
       - 5002

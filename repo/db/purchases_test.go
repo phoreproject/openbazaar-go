@@ -2,6 +2,7 @@ package db_test
 
 import (
 	"reflect"
+	"strconv"
 	"sync"
 	"testing"
 	"time"
@@ -11,11 +12,11 @@ import (
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcutil"
 	"github.com/golang/protobuf/ptypes"
-	"github.com/phoreproject/openbazaar-go/pb"
-	"github.com/phoreproject/openbazaar-go/repo"
-	"github.com/phoreproject/openbazaar-go/repo/db"
-	"github.com/phoreproject/openbazaar-go/schema"
-	"github.com/phoreproject/openbazaar-go/test/factory"
+	"github.com/phoreproject/pm-go/pb"
+	"github.com/phoreproject/pm-go/repo"
+	"github.com/phoreproject/pm-go/repo/db"
+	"github.com/phoreproject/pm-go/schema"
+	"github.com/phoreproject/pm-go/test/factory"
 )
 
 func buildNewPurchaseStore() (repo.PurchaseStore, func(), error) {
@@ -451,6 +452,51 @@ func TestPurchasesDB_GetAll(t *testing.T) {
 	}
 	if ct != 1 {
 		t.Error("Returned incorrect number of query purchases")
+	}
+}
+
+func TestPurchasesDB_GetUnfunded(t *testing.T) {
+	var purdb, teardown, err = buildNewPurchaseStore()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer teardown()
+
+	contract := factory.NewContract()
+	if err := purdb.Put("orderID", *contract, 1, false); err != nil {
+		t.Fatal(err)
+	}
+	if err := purdb.Put("orderID1", *contract, 1, false); err != nil {
+		t.Fatal(err)
+	}
+	if err := purdb.Put("x0", *contract, 0, false); err != nil {
+		t.Fatal(err)
+	}
+	for i := 2; i < 15; i++ {
+		if err := purdb.Put("x"+strconv.Itoa(i), *contract, pb.OrderState(i), false); err != nil {
+			t.Fatal(err)
+		}
+	}
+	unfunded, err := purdb.GetUnfunded()
+	if err != nil {
+		t.Error(err)
+	}
+	if len(unfunded) != 2 {
+		t.Error("Return incorrect number of unfunded orders")
+	}
+	var a, b bool
+	for _, uf := range unfunded {
+		if uf.OrderId == "orderID" {
+			a = true
+		} else if uf.OrderId == "orderID1" {
+			b = true
+		}
+		if uf.PaymentAddress != contract.BuyerOrder.Payment.Address {
+			t.Errorf("Incorrect payment address. Expected %s, got %s", contract.BuyerOrder.Payment.Address, uf.PaymentAddress)
+		}
+	}
+	if !a || !b {
+		t.Error("Failed to return correct unfunded orders")
 	}
 }
 

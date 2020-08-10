@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/phoreproject/openbazaar-go/repo/migrations"
+	"github.com/phoreproject/pm-go/repo/migrations"
 )
 
 type Migration interface {
@@ -43,6 +43,10 @@ var (
 		migrations.Migration020{},
 		migrations.Migration021{},
 		migrations.Migration022{},
+		migrations.Migration023{},
+		migrations.Migration024{},
+		migrations.Migration025{},
+		migrations.Migration026{},
 	}
 )
 

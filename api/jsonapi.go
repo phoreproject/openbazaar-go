@@ -8,8 +8,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"gx/ipfs/QmQmhotPUzVrMEWNK3x1R5jQ5ZHWyL7tVUrmRPjrBrvyCb/go-ipfs-files"
-	"gx/ipfs/QmXLwxifxwfc2bAwq6rdjbYqAsGzWsDE9RM5TWMGtykyj6/interface-go-ipfs-core"
 	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
@@ -24,10 +22,14 @@ import (
 	"time"
 
 	ipnspath "gx/ipfs/QmQAgv6Gaoe2tQpcabqwKXKChp2MZ7i3UXv9DqTTaxCaTR/go-path"
-	cid "gx/ipfs/QmTbxNB1NwDesLmKTscr4udL2tVP7MaxvXnD1D9yX7g3PN/go-cid"
-	datastore "gx/ipfs/QmUadX5EcvrBmxAV9sE7wUWtWSqxns5K84qKJBixmcT1w9/go-datastore"
-	peer "gx/ipfs/QmYVXrKrKHDC9FobgmcmshCDyWwdrfwfanNQN4oxJ9Fk3h/go-libp2p-peer"
+	"gx/ipfs/QmQmhotPUzVrMEWNK3x1R5jQ5ZHWyL7tVUrmRPjrBrvyCb/go-ipfs-files"
+	"gx/ipfs/QmTbxNB1NwDesLmKTscr4udL2tVP7MaxvXnD1D9yX7g3PN/go-cid"
+	"gx/ipfs/QmUwMnKKjH3JwGKNVZ3TcP37W93xzqNA4ECFFiMo6sXkkc/go-ipns"
+	"gx/ipfs/QmXLwxifxwfc2bAwq6rdjbYqAsGzWsDE9RM5TWMGtykyj6/interface-go-ipfs-core"
+	"gx/ipfs/QmYVXrKrKHDC9FobgmcmshCDyWwdrfwfanNQN4oxJ9Fk3h/go-libp2p-peer"
+	"gx/ipfs/QmYxUdYY9S6yg5tSPVin5GFTvtfsLauVcr7reHDD3dM8xf/go-libp2p-routing"
 	ps "gx/ipfs/QmaCTz9RkrU13bm9kMB54f7atgqM4qkjDZpRwRoJiWXEqs/go-libp2p-peerstore"
+	ggproto "gx/ipfs/QmddjPSGZb3ieihSseFeCfVRpZzcqczPNsD2DvarSwnjJB/gogo-protobuf/proto"
 	mh "gx/ipfs/QmerPMzPk1mJVowm8KgmoknWa4yCYvvugMPsgWmDNUvDLW/go-multihash"
 
 	"github.com/OpenBazaar/jsonpb"
@@ -38,13 +40,12 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/ipfs/go-ipfs/core/coreapi"
-	"github.com/ipfs/go-ipfs/namesys"
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
-	"github.com/phoreproject/openbazaar-go/core"
-	"github.com/phoreproject/openbazaar-go/ipfs"
-	"github.com/phoreproject/openbazaar-go/pb"
-	"github.com/phoreproject/openbazaar-go/repo"
-	"github.com/phoreproject/openbazaar-go/schema"
+	"github.com/phoreproject/pm-go/core"
+	"github.com/phoreproject/pm-go/ipfs"
+	"github.com/phoreproject/pm-go/pb"
+	"github.com/phoreproject/pm-go/repo"
+	"github.com/phoreproject/pm-go/schema"
 )
 
 type JSONAPIConfig struct {
@@ -62,6 +63,10 @@ type jsonAPIHandler struct {
 	config JSONAPIConfig
 	node   *core.OpenBazaarNode
 }
+
+var lastManualScan time.Time
+
+const OfflineMessageScanInterval = 1 * time.Minute
 
 func newJSONAPIHandler(node *core.OpenBazaarNode, authCookie http.Cookie, config schema.APIConfig) *jsonAPIHandler {
 	allowedIPs := make(map[string]bool)
@@ -692,12 +697,15 @@ func (i *jsonAPIHandler) GETAddress(w http.ResponseWriter, r *http.Request) {
 }
 
 func (i *jsonAPIHandler) GETMnemonic(w http.ResponseWriter, r *http.Request) {
-	mn, err := i.node.Datastore.Config().GetMnemonic()
+	mnemonic, isEncrypted, err := i.node.Datastore.Config().GetMnemonic()
 	if err != nil {
 		ErrorResponse(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	SanitizedResponse(w, fmt.Sprintf(`{"mnemonic": "%s"}`, mn))
+	if isEncrypted {
+		mnemonic = hex.EncodeToString([]byte(mnemonic))
+	}
+	SanitizedResponse(w, fmt.Sprintf(`{"mnemonic": "%s", "isEncrypted": "%s"}`, mnemonic, strconv.FormatBool(isEncrypted)))
 }
 
 func (i *jsonAPIHandler) GETBalance(w http.ResponseWriter, r *http.Request) {
@@ -757,6 +765,17 @@ func (i *jsonAPIHandler) POSTSpendCoinsForOrder(w http.ResponseWriter, r *http.R
 	if err != nil {
 		ErrorResponse(w, http.StatusBadRequest, err.Error())
 		return
+	}
+	msg := pb.OrderPaymentTxn{
+		Coin:          spendArgs.Wallet,
+		OrderID:       result.OrderID,
+		TransactionID: result.Txid,
+		WithInput:     false,
+	}
+
+	err = i.node.SendOrderPayment(result.PeerID, &msg)
+	if err != nil {
+		log.Errorf("error sending order with id %s payment: %v", result.OrderID, err)
 	}
 
 	ser, err := json.MarshalIndent(result, "", "    ")
@@ -852,6 +871,7 @@ func (i *jsonAPIHandler) POSTSettings(w http.ResponseWriter, r *http.Request) {
 				continue
 			}
 			blockedIds = append(blockedIds, id)
+			i.node.Service.DisconnectFromPeer(id)
 		}
 		i.node.BanManager.SetBlockedIds(blockedIds)
 	}
@@ -908,6 +928,7 @@ func (i *jsonAPIHandler) PUTSettings(w http.ResponseWriter, r *http.Request) {
 				continue
 			}
 			blockedIds = append(blockedIds, id)
+			i.node.Service.DisconnectFromPeer(id)
 		}
 		i.node.BanManager.SetBlockedIds(blockedIds)
 	}
@@ -989,6 +1010,7 @@ func (i *jsonAPIHandler) PATCHSettings(w http.ResponseWriter, r *http.Request) {
 				continue
 			}
 			blockedIds = append(blockedIds, id)
+			i.node.Service.DisconnectFromPeer(id)
 		}
 		i.node.BanManager.SetBlockedIds(blockedIds)
 	}
@@ -1475,7 +1497,7 @@ func (i *jsonAPIHandler) GETProfile(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if profile.PeerID != peerID {
-			ErrorResponse(w, http.StatusNotFound, "")
+			ErrorResponse(w, http.StatusNotFound, "invalid profile: peer id mismatch on found profile")
 			return
 		}
 		w.Header().Set("Cache-Control", "public, max-age=600, immutable")
@@ -1617,53 +1639,12 @@ func (i *jsonAPIHandler) POSTResyncBlockchain(w http.ResponseWriter, r *http.Req
 
 func (i *jsonAPIHandler) GETOrder(w http.ResponseWriter, r *http.Request) {
 	_, orderID := path.Split(r.URL.Path)
-	var (
-		err         error
-		isSale      bool
-		contract    *pb.RicardianContract
-		state       pb.OrderState
-		funded      bool
-		records     []*wallet.TransactionRecord
-		read        bool
-		paymentCoin *repo.CurrencyCode
-	)
-	contract, state, funded, records, read, paymentCoin, err = i.node.Datastore.Purchases().GetByOrderId(orderID)
-	if err != nil {
-		contract, state, funded, records, read, paymentCoin, err = i.node.Datastore.Sales().GetByOrderId(orderID)
-		if err != nil {
-			ErrorResponse(w, http.StatusNotFound, "Order not found")
-			return
-		}
-		isSale = true
-	}
-	resp := new(pb.OrderRespApi)
-	resp.Contract = contract
-	resp.Funded = funded
-	resp.Read = read
-	resp.State = state
 
-	// TODO: Remove once broken contracts are migrated
-	lookupCoin := contract.BuyerOrder.Payment.Coin
-	_, err = repo.LoadCurrencyDefinitions().Lookup(lookupCoin)
+	resp, err := i.node.GetOrder(orderID)
 	if err != nil {
-		log.Warningf("invalid BuyerOrder.Payment.Coin (%s) on order (%s)", lookupCoin, orderID)
-		contract.BuyerOrder.Payment.Coin = paymentCoin.String()
-	}
-
-	paymentTxs, refundTx, err := i.node.BuildTransactionRecords(contract, records, state)
-	if err != nil {
-		ErrorResponse(w, http.StatusInternalServerError, err.Error())
+		ErrorResponse(w, http.StatusNotFound, "Order not found")
 		return
 	}
-	resp.PaymentAddressTransactions = paymentTxs
-	resp.RefundAddressTransaction = refundTx
-
-	unread, err := i.node.Datastore.Chat().GetUnreadCount(orderID)
-	if err != nil {
-		ErrorResponse(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-	resp.UnreadChatMessages = uint64(unread)
 
 	m := jsonpb.Marshaler{
 		EnumsAsInts:  false,
@@ -1676,11 +1657,7 @@ func (i *jsonAPIHandler) GETOrder(w http.ResponseWriter, r *http.Request) {
 		ErrorResponse(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	if isSale {
-		i.node.Datastore.Sales().MarkAsRead(orderID)
-	} else {
-		i.node.Datastore.Purchases().MarkAsRead(orderID)
-	}
+
 	SanitizedResponseM(w, out, new(pb.OrderRespApi))
 }
 
@@ -1884,7 +1861,7 @@ func (i *jsonAPIHandler) GETModerators(w http.ResponseWriter, r *http.Request) {
 						if err != nil {
 							return
 						}
-						i.node.Broadcast <- repo.PremarshalledNotifier{b}
+						i.node.Broadcast <- repo.PremarshalledNotifier{Payload: b}
 					} else {
 						type wsResp struct {
 							ID     string `json:"id"`
@@ -1895,7 +1872,7 @@ func (i *jsonAPIHandler) GETModerators(w http.ResponseWriter, r *http.Request) {
 						if err != nil {
 							return
 						}
-						i.node.Broadcast <- repo.PremarshalledNotifier{data}
+						i.node.Broadcast <- repo.PremarshalledNotifier{Payload: data}
 					}
 				}(p)
 			}
@@ -2819,7 +2796,7 @@ func (i *jsonAPIHandler) POSTFetchProfiles(w http.ResponseWriter, r *http.Reques
 						if err != nil {
 							return
 						}
-						i.node.Broadcast <- repo.PremarshalledNotifier{ret}
+						i.node.Broadcast <- repo.PremarshalledNotifier{Payload: ret}
 					}
 
 					pro, err := i.node.FetchProfile(pid, useCache)
@@ -2844,7 +2821,7 @@ func (i *jsonAPIHandler) POSTFetchProfiles(w http.ResponseWriter, r *http.Reques
 						respondWithError("error Marshalling to JSON")
 						return
 					}
-					i.node.Broadcast <- repo.PremarshalledNotifier{b}
+					i.node.Broadcast <- repo.PremarshalledNotifier{Payload: b}
 				}(p)
 			}
 		}()
@@ -2864,18 +2841,18 @@ func (i *jsonAPIHandler) GETTransactions(w http.ResponseWriter, r *http.Request)
 	}
 	offsetID := r.URL.Query().Get("offsetId")
 	type Tx struct {
-		Txid          string    `json:"txid"`
-		Value         int64     `json:"value"`
-		Address       string    `json:"address"`
-		Status        string    `json:"status"`
-		ErrorMessage  string    `json:"errorMessage"`
-		Memo          string    `json:"memo"`
-		Timestamp     time.Time `json:"timestamp"`
-		Confirmations int32     `json:"confirmations"`
-		Height        int32     `json:"height"`
-		OrderID       string    `json:"orderId"`
-		Thumbnail     string    `json:"thumbnail"`
-		CanBumpFee    bool      `json:"canBumpFee"`
+		Txid          string        `json:"txid"`
+		Value         int64         `json:"value"`
+		Address       string        `json:"address"`
+		Status        string        `json:"status"`
+		ErrorMessage  string        `json:"errorMessage"`
+		Memo          string        `json:"memo"`
+		Timestamp     *repo.APITime `json:"timestamp"`
+		Confirmations int32         `json:"confirmations"`
+		Height        int32         `json:"height"`
+		OrderID       string        `json:"orderId"`
+		Thumbnail     string        `json:"thumbnail"`
+		CanBumpFee    bool          `json:"canBumpFee"`
 	}
 	wal, err := i.node.Multiwallet.WalletForCurrencyCode(coinType)
 	if err != nil {
@@ -2899,7 +2876,7 @@ func (i *jsonAPIHandler) GETTransactions(w http.ResponseWriter, r *http.Request)
 		tx := Tx{
 			Txid:          t.Txid,
 			Value:         t.Value,
-			Timestamp:     t.Timestamp,
+			Timestamp:     repo.NewAPITime(t.Timestamp),
 			Confirmations: int32(t.Confirmations),
 			Height:        t.Height,
 			Status:        string(t.Status),
@@ -3182,6 +3159,7 @@ func (i *jsonAPIHandler) POSTBlockNode(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	i.node.BanManager.AddBlockedId(pid)
+	i.node.Service.DisconnectFromPeer(pid)
 	SanitizedResponse(w, `{}`)
 }
 
@@ -3268,12 +3246,12 @@ func (i *jsonAPIHandler) POSTBumpFee(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	type response struct {
-		Txid               string    `json:"txid"`
-		Amount             int64     `json:"amount"`
-		ConfirmedBalance   int64     `json:"confirmedBalance"`
-		UnconfirmedBalance int64     `json:"unconfirmedBalance"`
-		Timestamp          time.Time `json:"timestamp"`
-		Memo               string    `json:"memo"`
+		Txid               string        `json:"txid"`
+		Amount             int64         `json:"amount"`
+		ConfirmedBalance   int64         `json:"confirmedBalance"`
+		UnconfirmedBalance int64         `json:"unconfirmedBalance"`
+		Timestamp          *repo.APITime `json:"timestamp"`
+		Memo               string        `json:"memo"`
 	}
 	confirmed, unconfirmed := wal.Balance()
 	txn, err := wal.GetTransaction(*newTxid)
@@ -3281,12 +3259,13 @@ func (i *jsonAPIHandler) POSTBumpFee(w http.ResponseWriter, r *http.Request) {
 		ErrorResponse(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+	t := repo.NewAPITime(txn.Timestamp)
 	resp := &response{
 		Txid:               newTxid.String(),
 		ConfirmedBalance:   confirmed,
 		UnconfirmedBalance: unconfirmed,
 		Amount:             -(txn.Value),
-		Timestamp:          txn.Timestamp,
+		Timestamp:          t,
 		Memo:               fmt.Sprintf("Fee bump of %s", txid),
 	}
 	ser, err := json.MarshalIndent(resp, "", "    ")
@@ -3594,7 +3573,7 @@ func (i *jsonAPIHandler) POSTFetchRatings(w http.ResponseWriter, r *http.Request
 					if err != nil {
 						return
 					}
-					i.node.Broadcast <- repo.PremarshalledNotifier{ret}
+					i.node.Broadcast <- repo.PremarshalledNotifier{Payload: ret}
 				}
 				ratingBytes, err := ipfs.Cat(i.node.IpfsNode, rid, time.Minute)
 				if err != nil {
@@ -3633,7 +3612,7 @@ func (i *jsonAPIHandler) POSTFetchRatings(w http.ResponseWriter, r *http.Request
 					respondWithError("error marshalling rating")
 					return
 				}
-				i.node.Broadcast <- repo.PremarshalledNotifier{b}
+				i.node.Broadcast <- repo.PremarshalledNotifier{Payload: b}
 			}(r)
 		}
 	}
@@ -3756,6 +3735,7 @@ func (i *jsonAPIHandler) GETWalletStatus(w http.ResponseWriter, r *http.Request)
 }
 
 func (i *jsonAPIHandler) GETIPNS(w http.ResponseWriter, r *http.Request) {
+	ipfsStore := i.node.IpfsNode.Repo.Datastore()
 	_, peerID := path.Split(r.URL.Path)
 
 	pid, err := peer.IDB58Decode(peerID)
@@ -3764,7 +3744,7 @@ func (i *jsonAPIHandler) GETIPNS(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	val, err := i.node.IpfsNode.Repo.Datastore().Get(namesys.IpnsDsKey(pid))
+	peerIPNSRecord, err := ipfs.GetCachedIPNSRecord(ipfsStore, pid)
 	if err != nil { // No record in datastore
 		ErrorResponse(w, http.StatusNotFound, err.Error())
 		return
@@ -3773,7 +3753,7 @@ func (i *jsonAPIHandler) GETIPNS(w http.ResponseWriter, r *http.Request) {
 	var keyBytes []byte
 	pubkey := i.node.IpfsNode.Peerstore.PubKey(pid)
 	if pubkey == nil || !pid.MatchesPublicKey(pubkey) {
-		keyval, err := i.node.IpfsNode.Repo.Datastore().Get(datastore.NewKey(core.KeyCachePrefix + peerID))
+		keyval, err := ipfs.GetCachedPubkey(ipfsStore, peerID)
 		if err != nil {
 			ErrorResponse(w, http.StatusNotFound, err.Error())
 			return
@@ -3791,8 +3771,13 @@ func (i *jsonAPIHandler) GETIPNS(w http.ResponseWriter, r *http.Request) {
 		Pubkey string `json:"pubkey"`
 		Record string `json:"record"`
 	}
+	peerIPNSBytes, err := ggproto.Marshal(peerIPNSRecord)
+	if err != nil {
+		ErrorResponse(w, http.StatusInternalServerError, fmt.Sprintf("marshaling IPNS record: %s", err.Error()))
+		return
+	}
 
-	ret := KeyAndRecord{hex.EncodeToString(keyBytes), string(val)}
+	ret := KeyAndRecord{hex.EncodeToString(keyBytes), string(peerIPNSBytes)}
 	retBytes, err := json.MarshalIndent(ret, "", "    ")
 	if err != nil {
 		ErrorResponse(w, http.StatusInternalServerError, err.Error())
@@ -3800,6 +3785,74 @@ func (i *jsonAPIHandler) GETIPNS(w http.ResponseWriter, r *http.Request) {
 	}
 	go ipfs.Resolve(i.node.IpfsNode, pid, time.Minute, i.node.IPNSQuorumSize, false)
 	fmt.Fprint(w, string(retBytes))
+}
+
+func (i *jsonAPIHandler) GETResolveIPNS(w http.ResponseWriter, r *http.Request) {
+	_, peerID := path.Split(r.URL.Path)
+	if len(peerID) == 0 || peerID == "resolveipns" {
+		peerID = i.node.IpfsNode.Identity.Pretty()
+	}
+
+	type respType struct {
+		PeerID string `json:"peerid"`
+		Record struct {
+			Hex string `json:"hex"`
+		} `json:"record"`
+	}
+	var response = respType{PeerID: peerID}
+
+	if i.node.IpfsNode.Identity.Pretty() == peerID {
+		rec, err := ipfs.GetCachedIPNSRecord(i.node.IpfsNode.Repo.Datastore(), i.node.IpfsNode.Identity)
+		if err != nil {
+			ErrorResponse(w, http.StatusInternalServerError, fmt.Sprintf("retrieving self: %s", err))
+			return
+		}
+		ipnsBytes, err := proto.Marshal(rec)
+		if err != nil {
+			ErrorResponse(w, http.StatusInternalServerError, fmt.Sprintf("marshaling self: %s", err))
+			return
+		}
+		response.Record.Hex = hex.EncodeToString(ipnsBytes)
+		b, err := json.MarshalIndent(response, "", "    ")
+		if err != nil {
+			ErrorResponse(w, http.StatusInternalServerError, fmt.Sprintf("marshal json error: %s", err))
+			return
+		}
+
+		SanitizedResponse(w, string(b))
+		return
+	}
+
+	pid, err := peer.IDB58Decode(peerID)
+	if err != nil {
+		ErrorResponse(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*180)
+	_, err = routing.GetPublicKey(i.node.IpfsNode.Routing, ctx, pid)
+	cancel()
+	if err != nil {
+		ErrorResponse(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	ctx, cancel = context.WithTimeout(context.Background(), time.Second*180)
+	ipnsBytes, err := i.node.IpfsNode.Routing.GetValue(ctx, ipns.RecordKey(pid))
+	cancel()
+	if err != nil {
+		ErrorResponse(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	response.Record.Hex = hex.EncodeToString(ipnsBytes)
+	b, err := json.MarshalIndent(response, "", "    ")
+	if err != nil {
+		ErrorResponse(w, http.StatusInternalServerError, fmt.Sprintf("marshal json error: %s", err))
+		return
+	}
+
+	SanitizedResponse(w, string(b))
 }
 
 func (i *jsonAPIHandler) POSTTestEmailNotifications(w http.ResponseWriter, r *http.Request) {
@@ -3870,6 +3923,71 @@ func (i *jsonAPIHandler) POSTBulkUpdateCurrency(w http.ResponseWriter, r *http.R
 	}
 
 	SanitizedResponse(w, `{"success": "true"}`)
+}
+
+func (i *jsonAPIHandler) POSTInitWallet(w http.ResponseWriter, r *http.Request) {
+	decoder := json.NewDecoder(r.Body)
+	var data core.ManageWalletRequest
+
+	err := decoder.Decode(&data)
+	if err != nil {
+		ErrorResponse(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	err = i.node.UnlockMnemonic(data)
+	if err != nil {
+		ErrorResponse(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	SanitizedResponse(w, `{"isLocked": "false"}`)
+}
+
+func (i *jsonAPIHandler) POSTUnlockWallet(w http.ResponseWriter, r *http.Request) {
+	decoder := json.NewDecoder(r.Body)
+	var data core.ManageWalletRequest
+
+	err := decoder.Decode(&data)
+	if err != nil {
+		ErrorResponse(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	walletLocked, mnemonicEncrypted, err := i.node.UnlockWallet(data)
+	if err != nil {
+		ErrorResponse(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if i.node.IsWalletLocked() && !data.SkipChangeMnemonicState {
+		// shouldn't be
+		ErrorResponse(w, http.StatusBadRequest, `{"success": "false", "reason":"Unknown error - wallet was not able to unlock'"}`)
+		return
+	}
+
+	SanitizedResponse(w, fmt.Sprintf(`{"isLocked": "%t", "isEncrypted": "%t"}`,
+		walletLocked, mnemonicEncrypted))
+}
+
+func (i *jsonAPIHandler) POSTLockWallet(w http.ResponseWriter, r *http.Request) {
+	decoder := json.NewDecoder(r.Body)
+	var data core.ManageWalletRequest
+
+	err := decoder.Decode(&data)
+	if err != nil {
+		ErrorResponse(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	walletLocked, mnemonicEncrypted, err := i.node.LockWallet(data)
+	if err != nil {
+		ErrorResponse(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	SanitizedResponse(w, fmt.Sprintf(`{"isLocked": "%t", "isEncrypted": "%t"}`,
+		walletLocked, mnemonicEncrypted))
 }
 
 // POSTS
@@ -4149,4 +4267,60 @@ func (i *jsonAPIHandler) GETPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	SanitizedResponseM(w, out, new(pb.SignedPost))
+}
+
+// POSTSendOrderMessage - used to manually send an order message
+func (i *jsonAPIHandler) POSTResendOrderMessage(w http.ResponseWriter, r *http.Request) {
+	type sendRequest struct {
+		OrderID     string `json:"orderID"`
+		MessageType string `json:"messageType"`
+	}
+
+	var args sendRequest
+	decoder := json.NewDecoder(r.Body)
+	err := decoder.Decode(&args)
+	if err != nil {
+		ErrorResponse(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if args.MessageType == "" {
+		ErrorResponse(w, http.StatusBadRequest, fmt.Sprintf("missing messageType argument"))
+		return
+	}
+	if args.OrderID == "" {
+		ErrorResponse(w, http.StatusBadRequest, fmt.Sprintf("missing orderID argument"))
+		return
+	}
+
+	msgInt, ok := pb.Message_MessageType_value[strings.ToUpper(args.MessageType)]
+	if !ok {
+		ErrorResponse(w, http.StatusBadRequest, fmt.Sprintf("unknown messageType (%s)", args.MessageType))
+		return
+	}
+
+	if err := i.node.ResendCachedOrderMessage(args.OrderID, pb.Message_MessageType(msgInt)); err != nil {
+		ErrorResponse(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	SanitizedResponse(w, `{}`)
+}
+
+// GETScanOfflineMessages - used to manually trigger offline message scan
+func (i *jsonAPIHandler) GETScanOfflineMessages(w http.ResponseWriter, r *http.Request) {
+	if lastManualScan.IsZero() {
+		lastManualScan = time.Now()
+	} else {
+		if time.Since(lastManualScan) >= OfflineMessageScanInterval {
+			i.node.MessageRetriever.RunOnce()
+			lastManualScan = time.Now()
+		}
+	}
+	SanitizedResponse(w, `{}`)
+}
+
+func (i *jsonAPIHandler) GETIsWalletLocked(w http.ResponseWriter, r *http.Request) {
+	SanitizedResponse(w, fmt.Sprintf(`{"isLocked": "%s", "isInitialized": "%s"}`,
+		strconv.FormatBool(i.node.IsWalletLocked()), strconv.FormatBool(i.node.Multiwallet != nil)))
 }

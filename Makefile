@@ -3,10 +3,10 @@
 ##
 
 ios_framework:
-	gomobile bind -target=ios github.com/phoreproject/openbazaar-go/mobile
+	gomobile bind -target=ios github.com/phoreproject/pm-go/mobile
 
 android_framework:
-	gomobile bind -target=android github.com/phoreproject/openbazaar-go/mobile
+	gomobile bind -target=android github.com/phoreproject/pm-go/mobile
 
 ##
 ## Protobuf compilation

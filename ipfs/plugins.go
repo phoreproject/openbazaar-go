@@ -8,7 +8,7 @@ import (
 var pluginOnce sync.Once
 
 // InstallDatabasePlugins installs the default database plugins
-// used by openbazaar-go. This function is guarded by a sync.Once
+// used by marketplace-go. This function is guarded by a sync.Once
 // so it isn't accidentally called more than once.
 func InstallDatabasePlugins() {
 	pluginOnce.Do(func() {

@@ -8,21 +8,21 @@ import (
 	"os"
 	"testing"
 
-	"github.com/phoreproject/openbazaar-go/schema"
+	"github.com/phoreproject/pm-go/schema"
 
 	coremock "github.com/ipfs/go-ipfs/core/mock"
-	"github.com/phoreproject/openbazaar-go/pb"
-	"github.com/phoreproject/openbazaar-go/test/factory"
+	"github.com/phoreproject/pm-go/pb"
+	"github.com/phoreproject/pm-go/test/factory"
 )
 
 func TestImageFormats(t *testing.T) {
 	for _, image := range []string{jpgImageB64, gifImageB64, pngImageB64} {
-		_, cfg, err := decodeImageData(image)
+		img, err := decodeImageData(image)
 		if err != nil {
 			t.Error(err)
 		}
 		jpgImageB64 = "jfkdjfkd"
-		if cfg.Width != 50 || cfg.Height != 50 {
+		if img.Bounds().Max.X != 50 || img.Bounds().Max.Y != 50 {
 			t.Error("Incorrect sizes decoded")
 		}
 	}

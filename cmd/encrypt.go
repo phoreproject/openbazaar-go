@@ -12,8 +12,8 @@ import (
 	"github.com/OpenBazaar/wallet-interface"
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
 	"github.com/phoreproject/multiwallet/util"
-	"github.com/phoreproject/openbazaar-go/repo"
-	"github.com/phoreproject/openbazaar-go/repo/db"
+	"github.com/phoreproject/pm-go/repo"
+	"github.com/phoreproject/pm-go/repo/db"
 	"golang.org/x/crypto/ssh/terminal"
 )
 
@@ -134,6 +134,6 @@ func (x *EncryptDatabase) Execute(args []string) error {
 		return err
 	}
 	os.RemoveAll(path.Join(tmpPath))
-	fmt.Println("Success! You must now run openbazaard start with a password.")
+	fmt.Println("Success! You must now run marketplaced start with a password.")
 	return nil
 }

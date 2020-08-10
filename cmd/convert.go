@@ -20,11 +20,11 @@ import (
 	ipfscore "github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
 	"github.com/phoreproject/multiwallet/util"
-	"github.com/phoreproject/openbazaar-go/core"
-	"github.com/phoreproject/openbazaar-go/ipfs"
-	"github.com/phoreproject/openbazaar-go/pb"
-	"github.com/phoreproject/openbazaar-go/repo"
-	"github.com/phoreproject/openbazaar-go/repo/db"
+	"github.com/phoreproject/pm-go/core"
+	"github.com/phoreproject/pm-go/ipfs"
+	"github.com/phoreproject/pm-go/pb"
+	"github.com/phoreproject/pm-go/repo"
+	"github.com/phoreproject/pm-go/repo/db"
 	"golang.org/x/crypto/ssh/terminal"
 )
 
@@ -36,11 +36,11 @@ type Convert struct {
 
 func (x *Convert) Execute(args []string) error {
 	if len(args) == 0 {
-		fmt.Fprintf(os.Stderr, "Please specify the cryptocurrency you wish to convert to. Examples:\nopenbazaar-go convert bitcoin\nopenbazaar-go convert bitcoincash\nopenbazaar-go convert zcash /path/to/zcashd\n")
+		fmt.Fprintf(os.Stderr, "Please specify the cryptocurrency you wish to convert to. Examples:\nmarketplace-go convert bitcoin\nmarketplace-go convert bitcoincash\nmarketplace-go convert zcash /path/to/zcashd\n")
 		return nil
 	}
 	if strings.ToLower(args[0]) == "zcash" && len(args) == 1 {
-		fmt.Fprintf(os.Stderr, "When converting to zcash please specify the path to the zcash binary. Example:\nopenbazaar-go convert zcash /path/to/zcashd\n")
+		fmt.Fprintf(os.Stderr, "When converting to zcash please specify the path to the zcash binary. Example:\nmarketplace-go convert zcash /path/to/zcashd\n")
 		return nil
 	}
 	if !(strings.ToLower(args[0]) == "bitcoin" || strings.ToLower(args[0]) == "bitcoincash" || strings.ToLower(args[0]) == "zcash") {

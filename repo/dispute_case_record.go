@@ -3,7 +3,7 @@ package repo
 import (
 	"time"
 
-	"github.com/phoreproject/openbazaar-go/pb"
+	"github.com/phoreproject/pm-go/pb"
 )
 
 var (

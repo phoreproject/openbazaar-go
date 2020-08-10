@@ -2,13 +2,14 @@ package db
 
 import (
 	"database/sql"
+	"fmt"
 	"sync"
 	"time"
 
 	"github.com/OpenBazaar/wallet-interface"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/phoreproject/multiwallet/util"
-	"github.com/phoreproject/openbazaar-go/repo"
+	"github.com/phoreproject/pm-go/repo"
 )
 
 type TxnsDB struct {
@@ -141,14 +142,21 @@ func (t *TxnsDB) UpdateHeight(txid chainhash.Hash, height int, timestamp time.Ti
 	}
 	stmt, err := tx.Prepare("update txns set height=?, timestamp=? where txid=? and coin=?")
 	if err != nil {
+		if rErr := tx.Rollback(); rErr != nil {
+			return fmt.Errorf("%s (db rollback: %s)", err.Error(), rErr.Error())
+		}
 		return err
 	}
 	defer stmt.Close()
 	_, err = stmt.Exec(height, int(timestamp.Unix()), txid.String(), t.coinType.CurrencyCode())
 	if err != nil {
-		tx.Rollback()
+		if rErr := tx.Rollback(); rErr != nil {
+			return fmt.Errorf("%s (db rollback: %s)", err.Error(), rErr.Error())
+		}
 		return err
 	}
-	tx.Commit()
+	if err := tx.Commit(); err != nil {
+		return err
+	}
 	return nil
 }

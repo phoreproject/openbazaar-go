@@ -2,12 +2,14 @@ package core
 
 import (
 	"errors"
+	"fmt"
+	"regexp"
+	"unicode/utf8"
 
 	"gx/ipfs/QmSY3nkMNLzh9GdbFKK5tT7YMfLpf52iUZ8ZRkr29MJaa5/go-libp2p-kad-dht"
 	libp2p "gx/ipfs/QmTW4SdgBWq9GjsBsHeUx8WuGxzhgzAf88UMH2w62PC8yK/go-libp2p-crypto"
 	ma "gx/ipfs/QmTZBfrPJmjWsCvHEtX5FE6KimVJhsJg5sBbqEFYf4UZtL/go-multiaddr"
 	cid "gx/ipfs/QmTbxNB1NwDesLmKTscr4udL2tVP7MaxvXnD1D9yX7g3PN/go-cid"
-	"gx/ipfs/QmUadX5EcvrBmxAV9sE7wUWtWSqxns5K84qKJBixmcT1w9/go-datastore"
 	peer "gx/ipfs/QmYVXrKrKHDC9FobgmcmshCDyWwdrfwfanNQN4oxJ9Fk3h/go-libp2p-peer"
 	routing "gx/ipfs/QmYxUdYY9S6yg5tSPVin5GFTvtfsLauVcr7reHDD3dM8xf/go-libp2p-routing"
 
@@ -17,29 +19,88 @@ import (
 
 	"github.com/phoreproject/multiwallet"
 
-	"github.com/phoreproject/openbazaar-go/ipfs"
-	"github.com/phoreproject/openbazaar-go/net"
-	rep "github.com/phoreproject/openbazaar-go/net/repointer"
-	ret "github.com/phoreproject/openbazaar-go/net/retriever"
-	"github.com/phoreproject/openbazaar-go/repo"
-	sto "github.com/phoreproject/openbazaar-go/storage"
+	"github.com/phoreproject/pm-go/ipfs"
+	"github.com/phoreproject/pm-go/net"
+	rep "github.com/phoreproject/pm-go/net/repointer"
+	ret "github.com/phoreproject/pm-go/net/retriever"
+	"github.com/phoreproject/pm-go/repo"
+	sto "github.com/phoreproject/pm-go/storage"
 
 	"github.com/btcsuite/btcutil/hdkeychain"
 	"github.com/gosimple/slug"
 	"github.com/ipfs/go-ipfs/core"
-	logging "github.com/op/go-logging"
+	"github.com/op/go-logging"
 	"golang.org/x/net/context"
 	"golang.org/x/net/proxy"
 )
 
 const (
 	// VERSION - current version
-	VERSION = "2.3.1"
+	VERSION = "2.4.0"
 	// USERAGENT - user-agent header string
 	USERAGENT = "/Phore-Marketplace-go:" + VERSION + "/"
 )
 
 var log = logging.MustGetLogger("core")
+
+const EmojiPattern = "[\\x{2712}\\x{2714}\\x{2716}\\x{271d}\\x{2721}\\x{2728}\\x{2733}" +
+	"\\x{2734}\\x{2744}\\x{2747}\\x{274c}\\x{274e}\\x{2753}-\\x{2755}\\x{2757}" +
+	"\\x{2763}\\x{2764}\\x{2795}-\\x{2797}\\x{27a1}\\x{27b0}\\x{27bf}\\x{2934}" +
+	"\\x{2935}\\x{2b05}-\\x{2b07}\\x{2b1b}\\x{2b1c}\\x{2b50}\\x{2b55}\\x{3030}" +
+	"\\x{303d}\\x{1f004}\\x{1f0cf}\\x{1f170}\\x{1f171}\\x{1f17e}\\x{1f17f}" +
+	"\\x{1f18e}\\x{1f191}-\\x{1f19a}\\x{1f201}\\x{1f202}\\x{1f21a}\\x{1f22f}" +
+	"\\x{1f232}-\\x{1f23a}\\x{1f250}\\x{1f251}\\x{1f300}-\\x{1f321}\\x{1f324}-" +
+	"\\x{1f393}\\x{1f396}\\x{1f397}\\x{1f399}-\\x{1f39b}\\x{1f39e}-\\x{1f3f0}" +
+	"\\x{1f3f3}-\\x{1f3f5}\\x{1f3f7}-\\x{1f4fd}\\x{1f4ff}-\\x{1f53d}\\x{1f549}-" +
+	"\\x{1f54e}\\x{1f550}-\\x{1f567}\\x{1f56f}\\x{1f570}\\x{1f573}-\\x{1f579}" +
+	"\\x{1f587}\\x{1f58a}-\\x{1f58d}\\x{1f590}\\x{1f595}\\x{1f596}\\x{1f5a5}" +
+	"\\x{1f5a8}\\x{1f5b1}\\x{1f5b2}\\x{1f5bc}\\x{1f5c2}-\\x{1f5c4}\\x{1f5d1}-" +
+	"\\x{1f5d3}\\x{1f5dc}-\\x{1f5de}\\x{1f5e1}\\x{1f5e3}\\x{1f5ef}\\x{1f5f3}" +
+	"\\x{1f5fa}-\\x{1f64f}\\x{1f680}-\\x{1f6c5}\\x{1f6cb}-\\x{1f6d0}\\x{1f6e0}-" +
+	"\\x{1f6e5}\\x{1f6e9}\\x{1f6eb}\\x{1f6ec}\\x{1f6f0}\\x{1f6f3}\\x{1f910}-" +
+	"\\x{1f918}\\x{1f980}-\\x{1f984}\\x{1f9c0}\\x{3297}\\x{3299}\\x{a9}\\x{ae}" +
+	"\\x{203c}\\x{2049}\\x{2122}\\x{2139}\\x{2194}-\\x{2199}\\x{21a9}\\x{21aa}" +
+	"\\x{231a}\\x{231b}\\x{2328}\\x{2388}\\x{23cf}\\x{23e9}-\\x{23f3}\\x{23f8}-" +
+	"\\x{23fa}\\x{24c2}\\x{25aa}\\x{25ab}\\x{25b6}\\x{25c0}\\x{25fb}-\\x{25fe}" +
+	"\\x{2600}-\\x{2604}\\x{260e}\\x{2611}\\x{2614}\\x{2615}\\x{2618}\\x{261d}" +
+	"\\x{2620}\\x{2622}\\x{2623}\\x{2626}\\x{262a}\\x{262e}\\x{262f}\\x{2638}-" +
+	"\\x{263a}\\x{2648}-\\x{2653}\\x{2660}\\x{2663}\\x{2665}\\x{2666}\\x{2668}" +
+	"\\x{267b}\\x{267f}\\x{2692}-\\x{2694}\\x{2696}\\x{2697}\\x{2699}\\x{269b}" +
+	"\\x{269c}\\x{26a0}\\x{26a1}\\x{26aa}\\x{26ab}\\x{26b0}\\x{26b1}\\x{26bd}" +
+	"\\x{26be}\\x{26c4}\\x{26c5}\\x{26c8}\\x{26ce}\\x{26cf}\\x{26d1}\\x{26d3}" +
+	"\\x{26d4}\\x{26e9}\\x{26ea}\\x{26f0}-\\x{26f5}\\x{26f7}-\\x{26fa}\\x{26fd}" +
+	"\\x{2702}\\x{2705}\\x{2708}-\\x{270d}\\x{270f}]|\\x{23}\\x{20e3}|\\x{2a}" +
+	"\\x{20e3}|\\x{30}\\x{20e3}|\\x{31}\\x{20e3}|\\x{32}\\x{20e3}|\\x{33}\\x{20e3}|" +
+	"\\x{34}\\x{20e3}|\\x{35}\\x{20e3}|\\x{36}\\x{20e3}|\\x{37}\\x{20e3}|\\x{38}" +
+	"\\x{20e3}|\\x{39}\\x{20e3}|\\x{1f1e6}[\\x{1f1e8}-\\x{1f1ec}\\x{1f1ee}" +
+	"\\x{1f1f1}\\x{1f1f2}\\x{1f1f4}\\x{1f1f6}-\\x{1f1fa}\\x{1f1fc}\\x{1f1fd}" +
+	"\\x{1f1ff}]|\\x{1f1e7}[\\x{1f1e6}\\x{1f1e7}\\x{1f1e9}-\\x{1f1ef}\\x{1f1f1}-" +
+	"\\x{1f1f4}\\x{1f1f6}-\\x{1f1f9}\\x{1f1fb}\\x{1f1fc}\\x{1f1fe}\\x{1f1ff}]|" +
+	"\\x{1f1e8}[\\x{1f1e6}\\x{1f1e8}\\x{1f1e9}\\x{1f1eb}-\\x{1f1ee}\\x{1f1f0}-" +
+	"\\x{1f1f5}\\x{1f1f7}\\x{1f1fa}-\\x{1f1ff}]|\\x{1f1e9}[\\x{1f1ea}\\x{1f1ec}" +
+	"\\x{1f1ef}\\x{1f1f0}\\x{1f1f2}\\x{1f1f4}\\x{1f1ff}]|\\x{1f1ea}[\\x{1f1e6}" +
+	"\\x{1f1e8}\\x{1f1ea}\\x{1f1ec}\\x{1f1ed}\\x{1f1f7}-\\x{1f1fa}]|\\x{1f1eb}[" +
+	"\\x{1f1ee}-\\x{1f1f0}\\x{1f1f2}\\x{1f1f4}\\x{1f1f7}]|\\x{1f1ec}[\\x{1f1e6}" +
+	"\\x{1f1e7}\\x{1f1e9}-\\x{1f1ee}\\x{1f1f1}-\\x{1f1f3}\\x{1f1f5}-\\x{1f1fa}" +
+	"\\x{1f1fc}\\x{1f1fe}]|\\x{1f1ed}[\\x{1f1f0}\\x{1f1f2}\\x{1f1f3}\\x{1f1f7}" +
+	"\\x{1f1f9}\\x{1f1fa}]|\\x{1f1ee}[\\x{1f1e8}-\\x{1f1ea}\\x{1f1f1}-\\x{1f1f4}" +
+	"\\x{1f1f6}-\\x{1f1f9}]|\\x{1f1ef}[\\x{1f1ea}\\x{1f1f2}\\x{1f1f4}\\x{1f1f5}]" +
+	"|\\x{1f1f0}[\\x{1f1ea}\\x{1f1ec}-\\x{1f1ee}\\x{1f1f2}\\x{1f1f3}\\x{1f1f5}" +
+	"\\x{1f1f7}\\x{1f1fc}\\x{1f1fe}\\x{1f1ff}]|\\x{1f1f1}[\\x{1f1e6}-\\x{1f1e8}" +
+	"\\x{1f1ee}\\x{1f1f0}\\x{1f1f7}-\\x{1f1fb}\\x{1f1fe}]|\\x{1f1f2}[\\x{1f1e6}" +
+	"\\x{1f1e8}-\\x{1f1ed}\\x{1f1f0}-\\x{1f1ff}]|\\x{1f1f3}[\\x{1f1e6}\\x{1f1e8}" +
+	"\\x{1f1ea}-\\x{1f1ec}\\x{1f1ee}\\x{1f1f1}\\x{1f1f4}\\x{1f1f5}\\x{1f1f7}" +
+	"\\x{1f1fa}\\x{1f1ff}]|\\x{1f1f4}\\x{1f1f2}|\\x{1f1f5}[\\x{1f1e6}\\x{1f1ea}-" +
+	"\\x{1f1ed}\\x{1f1f0}-\\x{1f1f3}\\x{1f1f7}-\\x{1f1f9}\\x{1f1fc}\\x{1f1fe}]|" +
+	"\\x{1f1f6}\\x{1f1e6}|\\x{1f1f7}[\\x{1f1ea}\\x{1f1f4}\\x{1f1f8}\\x{1f1fa}" +
+	"\\x{1f1fc}]|\\x{1f1f8}[\\x{1f1e6}-\\x{1f1ea}\\x{1f1ec}-\\x{1f1f4}\\x{1f1f7}-" +
+	"\\x{1f1f9}\\x{1f1fb}\\x{1f1fd}-\\x{1f1ff}]|\\x{1f1f9}[\\x{1f1e6}\\x{1f1e8}" +
+	"\\x{1f1e9}\\x{1f1eb}-\\x{1f1ed}\\x{1f1ef}-\\x{1f1f4}\\x{1f1f7}\\x{1f1f9}" +
+	"\\x{1f1fb}\\x{1f1fc}\\x{1f1ff}]|\\x{1f1fa}[\\x{1f1e6}\\x{1f1ec}\\x{1f1f2}" +
+	"\\x{1f1f8}\\x{1f1fe}\\x{1f1ff}]|\\x{1f1fb}[\\x{1f1e6}\\x{1f1e8}\\x{1f1ea}" +
+	"\\x{1f1ec}\\x{1f1ee}\\x{1f1f3}\\x{1f1fa}]|\\x{1f1fc}[\\x{1f1eb}\\x{1f1f8}]|" +
+	"\\x{1f1fd}\\x{1f1f0}|\\x{1f1fe}[\\x{1f1ea}\\x{1f1f9}]|\\x{1f1ff}[\\x{1f1e6}" +
+	"\\x{1f1f2}\\x{1f1fc}]"
 
 // Node - ob node
 var Node *OpenBazaarNode
@@ -117,16 +178,23 @@ type OpenBazaarNode struct {
 	// the slower the query but the less likely we will get an old record.
 	IPNSQuorumSize uint
 
+	// Get mnemoniec password from user - used in case of encrypted mnemonic
+	MnemonicChan chan string
+
+	// Boolean variable which says if wallet state changing REST requests are locked.
+	WalletLocked bool
+
+	// Locks wallet after period of time
+	LockTimer *time.Timer
+
 	TestnetEnable        bool
 	RegressionTestEnable bool
+
+	PublishLock sync.Mutex
+	seedLock    sync.Mutex
+
+	InitalPublishComplete bool
 }
-
-// PublishLock seedLock - Unpin the current node repo, re-add it, then publish to IPNS
-var PublishLock sync.Mutex
-var seedLock sync.Mutex
-
-// InitalPublishComplete - indicate publish completion
-var InitalPublishComplete bool // = false
 
 // TestNetworkEnabled indicates whether the node is operating with test parameters
 func (n *OpenBazaarNode) TestNetworkEnabled() bool { return n.TestnetEnable }
@@ -136,7 +204,7 @@ func (n *OpenBazaarNode) RegressionNetworkEnabled() bool { return n.RegressionTe
 
 // SeedNode - publish to IPNS
 func (n *OpenBazaarNode) SeedNode() error {
-	seedLock.Lock()
+	n.seedLock.Lock()
 	ipfs.UnPinDir(n.IpfsNode, n.RootHash)
 	var aerr error
 	var rootHash string
@@ -150,12 +218,12 @@ func (n *OpenBazaarNode) SeedNode() error {
 		time.Sleep(time.Millisecond * 500)
 	}
 	if aerr != nil {
-		seedLock.Unlock()
+		n.seedLock.Unlock()
 		return aerr
 	}
 	n.RootHash = rootHash
-	seedLock.Unlock()
-	InitalPublishComplete = true
+	n.seedLock.Unlock()
+	n.InitalPublishComplete = true
 	go n.publish(rootHash)
 	return nil
 }
@@ -163,8 +231,8 @@ func (n *OpenBazaarNode) SeedNode() error {
 func (n *OpenBazaarNode) publish(hash string) {
 	// Multiple publishes may have been queued
 	// We only need to publish the most recent
-	PublishLock.Lock()
-	defer PublishLock.Unlock()
+	n.PublishLock.Lock()
+	defer n.PublishLock.Unlock()
 	if hash != n.RootHash {
 		return
 	}
@@ -274,8 +342,11 @@ func (n *OpenBazaarNode) EncryptMessage(peerID peer.ID, peerKey *libp2p.PubKey, 
 	ctx, cancel := context.WithTimeout(context.Background(), n.OfflineMessageFailoverTimeout)
 	defer cancel()
 	if peerKey == nil {
-		var pubKey libp2p.PubKey
-		keyval, err := n.IpfsNode.Repo.Datastore().Get(datastore.NewKey(KeyCachePrefix + peerID.Pretty()))
+		var (
+			pubKey libp2p.PubKey
+			store  = n.IpfsNode.Repo.Datastore()
+		)
+		keyval, err := ipfs.GetCachedPubkey(store, peerID.Pretty())
 		if err != nil {
 			pubKey, err = routing.GetPublicKey(n.IpfsNode.Routing, ctx, peerID)
 			if err != nil {
@@ -307,9 +378,136 @@ func (n *OpenBazaarNode) IPFSIdentityString() string {
 	return n.IpfsNode.Identity.Pretty()
 }
 
+func ToHtmlEntities(str string) string {
+	var rx = regexp.MustCompile(EmojiPattern)
+	return rx.ReplaceAllStringFunc(str, func(s string) string {
+		r, _ := utf8.DecodeRuneInString(s)
+		html := fmt.Sprintf(`&#x%X;`, r)
+		return html
+	})
+}
+
+func (n *OpenBazaarNode) IsWalletLocked() bool {
+	_, isLocked, err := n.Datastore.Config().GetMnemonic()
+	if err != nil {
+		log.Error(err)
+	}
+
+	if !isLocked {
+		return false
+	}
+
+	return n.WalletLocked
+}
+
+func (n *OpenBazaarNode) UnlockMnemonic(unlockWallet ManageWalletRequest) error {
+	mnemonic, isLocked, err := n.Datastore.Config().GetMnemonic()
+	if err != nil {
+		return err
+	}
+
+	if isLocked {
+		mnemonic, err = DecryptMnemonic(mnemonic, unlockWallet.WalletPassword)
+		if err != nil {
+			return err
+		}
+	}
+
+	if n.MnemonicChan != nil {
+		select {
+		case n.MnemonicChan <- mnemonic:
+		default:
+			if unlockWallet.SkipChangeMnemonicState {
+				log.Warning("User is asking to unlock wallet for current run only, but no service is waiting for password to unlock.")
+			}
+		}
+	}
+
+	return nil
+}
+
+func (n *OpenBazaarNode) UnlockWallet(unlockWallet ManageWalletRequest) (bool, bool, error) {
+	mnemonic, isMnemonicEncrypted, err := n.Datastore.Config().GetMnemonic()
+	if err != nil {
+		return true, isMnemonicEncrypted, err
+	}
+
+	// Wallet status unlocked and skip mnemonic unlocking -> nothing to do. TIMESTAMP NOT UPDATED!
+	if !n.WalletLocked && unlockWallet.SkipChangeMnemonicState {
+		return n.WalletLocked, isMnemonicEncrypted, nil
+	}
+
+	// Checks password, fails when mnemonic in not encrypted!
+	decryptedMnemonic, err := DecryptMnemonic(mnemonic, unlockWallet.WalletPassword)
+	if err != nil {
+		return n.WalletLocked, isMnemonicEncrypted, err
+	}
+
+	// Time lock feature set up.
+	if unlockWallet.UnlockTimestamp != 0 {
+		if n.LockTimer != nil {
+			n.LockTimer.Stop()
+		}
+		n.LockTimer = time.AfterFunc(time.Second*time.Duration(unlockWallet.UnlockTimestamp), func() {
+			n.WalletLocked = true
+		})
+	}
+
+	// Password is correct, time lock set up, so change wallet status to unlock state.
+	if !isMnemonicEncrypted {
+		n.WalletLocked = false
+		return false, isMnemonicEncrypted, nil
+	}
+
+	// If mnemonic locked and omit decryption not set, additionally decrypt mnemonic in db.
+	if !unlockWallet.SkipChangeMnemonicState {
+		err = n.Datastore.Config().UpdateMnemonic(decryptedMnemonic, false)
+		if err != nil {
+			return n.WalletLocked, isMnemonicEncrypted, err
+		}
+	}
+
+	n.WalletLocked = false
+	return n.WalletLocked, isMnemonicEncrypted, nil
+}
+
+func (n *OpenBazaarNode) LockWallet(lockWallet ManageWalletRequest) (bool, bool, error) {
+	mnemonic, isMnemonicLocked, err := n.Datastore.Config().GetMnemonic()
+	if err != nil {
+		return false, isMnemonicLocked, err
+	}
+
+	// wallet is not locked, because have to be encrypted first.
+	if lockWallet.SkipChangeMnemonicState && !isMnemonicLocked {
+		return false, isMnemonicLocked, nil
+	}
+
+	// mnemonic already locked so change wallet state to locked.
+	if isMnemonicLocked {
+		n.WalletLocked = true
+		return true, isMnemonicLocked, nil
+	}
+
+	// mnemonic is unlocked, so encrypt it first.
+	encryptedMnemonic, err := EncryptMnemonic(mnemonic, lockWallet.WalletPassword)
+	if err != nil {
+		return false, isMnemonicLocked, err
+	}
+
+	err = n.Datastore.Config().UpdateMnemonic(encryptedMnemonic, true)
+	if err != nil {
+		return false, isMnemonicLocked, err
+	}
+
+	n.WalletLocked = true
+	return n.WalletLocked, isMnemonicLocked, nil
+}
+
 // createSlugFor Create a slug from a multi-lang string
 func createSlugFor(slugName string) string {
 	l := SentenceMaxCharacters - SlugBuffer
+
+	slugName = ToHtmlEntities(slugName)
 
 	slug := slug.Make(slugName)
 	if len(slug) < SentenceMaxCharacters-SlugBuffer {

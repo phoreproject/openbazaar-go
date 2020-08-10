@@ -12,7 +12,7 @@ wallets, however OpenBazaar is a peer-to-peer application which means each addit
 a web wallet using a third party backend. An altcoin implementation could conceivably talk to a third party backend, but such an integration
 would be more complex than just plugging in the altcoin daemon. 
 
-While multiple wallets is not currently possible, it is possible to run more than one openbazaar-go instance on your machine. This means
+While multiple wallets is not currently possible, it is possible to run more than one marketplace-go instance on your machine. This means
 you could have one store running Bitcoin and another store running an altcoin. The UI provides a convenient toggle to switch between
 running instances. 
 
@@ -22,8 +22,8 @@ The first thing you need to do is create a wallet implementation that conforms t
 The interface *should* be agnostic enough to support most bitcoin derived altcoins, though if you find it isn't just talk to us and we'll see if
 we can make the necessary changes. 
 
-The default wallet used openbazaar-go is a custom built SPV wallet based on the btcsuite library. However, there is a second wallet implementation
-which talks to bitcoind using the JSON-RPC interface. The code, found [here](https://github.com/phoreproject/openbazaar-go/tree/master/bitcoin/bitcoind), could be
+The default wallet used marketplace-go is a custom built SPV wallet based on the btcsuite library. However, there is a second wallet implementation
+which talks to bitcoind using the JSON-RPC interface. The code, found [here](https://github.com/phoreproject/pm-go/tree/master/bitcoin/bitcoind), could be
 used as an example of how to integrate an altcoin. It should just be a matter of cloning the code into a new package and making the necessary changes.
 
 Most likely you will need to fork the [btcrpcclient](https://github.com/btcsuite/btcd/tree/master/rpcclient) to make it work with your altcoin as that library expects the data
@@ -33,7 +33,7 @@ be returned and will thrown an error if it sees an altcoin address. The changes 
 ### Exchange rates
 
 OpenBazaar has a convenience option to display prices in the user's domestic fiat currency and to price listings in fiat to avoid exchange rate 
-fluctuations. This functionality is provided by the a package implementing the [ExchangeRates](https://github.com/phoreproject/openbazaar-go/blob/master/bitcoin/exchangerates.go) interface.
+fluctuations. This functionality is provided by the a package implementing the [ExchangeRates](https://github.com/phoreproject/pm-go/blob/master/bitcoin/exchangerates.go) interface.
 
 Basically it's just querying an external API to get the exchange rates and returning the results. If you want your altcoin implementation to allow pricing and displaying prices
 in fiat, you will need to swap out the default exchange rate implementation with one that returns the exchange rates for your altcoin. If you don't wish to enable
@@ -85,7 +85,7 @@ If you wanted to use Zcash, say, you'd set it this:
 }
 ```
 
-The wallet selection switch can be found [in openbazaard.go](https://github.com/phoreproject/openbazaar-go/blob/master/openbazaard.go):
+The wallet selection switch can be found [in marketplaced.go](https://github.com/phoreproject/pm-go/blob/master/marketplaced.go):
 ```go
 switch strings.ToLower(walletCfg.Type) {
 	case "spvwallet":

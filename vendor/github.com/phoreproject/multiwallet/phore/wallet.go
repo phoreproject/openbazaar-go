@@ -160,18 +160,31 @@ func (w *RPCWallet) ChildKey(keyBytes []byte, chaincode []byte, isPrivateKey boo
 
 // CurrentAddress returns an unused address
 func (w *RPCWallet) CurrentAddress(purpose wallet.KeyPurpose) btc.Address {
-	key, _ := w.km.GetCurrentKey(purpose)
-	addr, _ := key.Address(w.params)
-	return btc.Address(addr)
+	key, err := w.km.GetCurrentKey(purpose)
+	if err != nil {
+		w.log.Errorf("Error generating current key: %s", err)
+	}
+	addr, err := w.km.KeyToAddress(key)
+	if err != nil {
+		w.log.Errorf("Error converting key to address: %s", err)
+	}
+	return addr
 }
 
 // NewAddress creates a new address
 func (w *RPCWallet) NewAddress(purpose wallet.KeyPurpose) btc.Address {
-	i, _ := w.db.Keys().GetUnused(purpose)
-	key, _ := w.km.GenerateChildKey(purpose, uint32(i[1]))
-	addr, _ := key.Address(w.params)
-	w.db.Keys().MarkKeyAsUsed(addr.ScriptAddress())
-	return btc.Address(addr)
+	key, err := w.km.GetNextUnused(purpose)
+	if err != nil {
+		w.log.Errorf("Error generating next unused key: %s", err)
+	}
+	addr, err := w.km.KeyToAddress(key)
+	if err != nil {
+		w.log.Errorf("Error converting key to address: %s", err)
+	}
+	if err := w.db.Keys().MarkKeyAsUsed(addr.ScriptAddress()); err != nil {
+		w.log.Errorf("Error marking key as used: %s", err)
+	}
+	return addr
 }
 
 // DecodeAddress decodes an address string to an address using the wallet's chain parameters
@@ -847,16 +860,25 @@ func (w *RPCWallet) GenerateMultisigScript(keys []hd.ExtendedKey, threshold int,
 	return addr, redeemScript, nil
 }
 
-func (w *RPCWallet) AddWatchedAddress(addr btc.Address) error {
-	script, err := w.AddressToScript(addr)
+func (w *RPCWallet) AddWatchedAddresses(addrs ...btc.Address) error {
+
+	var watchedScripts [][]byte
+	for _, addr := range addrs {
+		if !w.HasKey(addr) {
+			script, err := w.AddressToScript(addr)
+			if err != nil {
+				return err
+			}
+			watchedScripts = append(watchedScripts, script)
+		}
+	}
+
+	err := w.db.WatchedScripts().PutAll(watchedScripts)
 	if err != nil {
 		return err
 	}
-	err = w.db.WatchedScripts().Put(script)
-	if err != nil {
-		return err
-	}
-	w.client.ListenAddress(addr)
+
+	w.client.ListenAddresses(addrs...)
 	return nil
 }
 

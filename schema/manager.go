@@ -17,7 +17,7 @@ import (
 
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
 	_ "github.com/mutecomm/go-sqlcipher"
-	"github.com/phoreproject/openbazaar-go/ipfs"
+	"github.com/phoreproject/pm-go/ipfs"
 	"github.com/tyler-smith/go-bip39"
 )
 
@@ -305,6 +305,10 @@ func InitializeDatabaseSQL(encryptionPassword string) string {
 		CreateTableCouponsSQL,
 		CreateIndexCouponsSQL,
 		CreateTableModeratedStoresSQL,
+		CreateMessagesSQL,
+		CreateIndexMessagesSQLMessageID,
+		CreateIndexMessagesSQLOrderIDMType,
+		CreateIndexMessagesSQLPeerIDMType,
 	}
 	return strings.Join(initializeStatement, " ")
 }

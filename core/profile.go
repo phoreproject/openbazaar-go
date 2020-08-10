@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/phoreproject/openbazaar-go/ipfs"
+	"github.com/phoreproject/pm-go/ipfs"
 
 	cid "gx/ipfs/QmTbxNB1NwDesLmKTscr4udL2tVP7MaxvXnD1D9yX7g3PN/go-cid"
 
@@ -21,10 +21,8 @@ import (
 	"github.com/OpenBazaar/jsonpb"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/imdario/mergo"
-	"github.com/phoreproject/openbazaar-go/pb"
+	"github.com/phoreproject/pm-go/pb"
 )
-
-const KeyCachePrefix = "/pubkey/"
 
 // ErrorProfileNotFound - profile not found error
 var ErrorProfileNotFound = errors.New("profile not found")
@@ -67,6 +65,10 @@ func (n *OpenBazaarNode) UpdateProfile(profile *pb.Profile) error {
 
 	if err := ValidateProfile(profile); err != nil {
 		return err
+	}
+
+	if profile.GetVersion() == 0 {
+		profile.Version = ListingVersion
 	}
 
 	profile.BitcoinPubkey = hex.EncodeToString(mPubkey.SerializeCompressed())

@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/phoreproject/multiwallet/util"
-	"github.com/phoreproject/openbazaar-go/schema"
+	"github.com/phoreproject/pm-go/schema"
 )
 
 func buildNewDatastore() (*SQLiteDatastore, func(), error) {
@@ -64,7 +64,7 @@ func TestInit(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	mn, err := testDB.Config().GetMnemonic()
+	mn, _, err := testDB.Config().GetMnemonic()
 	if err != nil {
 		t.Error(err)
 	}

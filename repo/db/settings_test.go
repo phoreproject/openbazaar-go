@@ -5,9 +5,9 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/phoreproject/openbazaar-go/repo"
-	"github.com/phoreproject/openbazaar-go/repo/db"
-	"github.com/phoreproject/openbazaar-go/schema"
+	"github.com/phoreproject/pm-go/repo"
+	"github.com/phoreproject/pm-go/repo/db"
+	"github.com/phoreproject/pm-go/schema"
 )
 
 func buildConfigurationStore() (repo.ConfigurationStore, func(), error) {
@@ -128,7 +128,7 @@ func TestSettingsUpdate(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	l := "/openbazaar-go:0.4/"
+	l := "/marketplace-go:0.4/"
 	setUpdt := repo.SettingsData{
 		Version: &l,
 	}
@@ -151,7 +151,7 @@ func TestSettingsUpdate(t *testing.T) {
 	if *set.Country != "UNITED_STATES" {
 		t.Error("Settings update failed to put correct value")
 	}
-	if *set.Version != "/openbazaar-go:0.4/" {
+	if *set.Version != "/marketplace-go:0.4/" {
 		t.Error("Settings update failed to put correct value")
 	}
 	if *set.TermsAndConditions != "None" {

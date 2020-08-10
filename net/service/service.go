@@ -17,10 +17,10 @@ import (
 
 	ctxio "github.com/jbenet/go-context/io"
 	"github.com/op/go-logging"
-	"github.com/phoreproject/openbazaar-go/core"
-	"github.com/phoreproject/openbazaar-go/ipfs"
-	"github.com/phoreproject/openbazaar-go/pb"
-	"github.com/phoreproject/openbazaar-go/repo"
+	"github.com/phoreproject/pm-go/core"
+	"github.com/phoreproject/pm-go/ipfs"
+	"github.com/phoreproject/pm-go/pb"
+	"github.com/phoreproject/pm-go/repo"
 )
 
 var log = logging.MustGetLogger("service")
@@ -57,19 +57,18 @@ func (service *OpenBazaarService) WaitForReady() {
 	<-service.node.DHT.BootstrapChan
 }
 
-func (service *OpenBazaarService) DisconnectFromPeer(p peer.ID) error {
+func (service *OpenBazaarService) DisconnectFromPeer(p peer.ID) {
 	log.Debugf("Disconnecting from %s", p.Pretty())
 	service.senderlk.Lock()
 	defer service.senderlk.Unlock()
 	ms, ok := service.sender[p]
 	if !ok {
-		return nil
+		return
 	}
 	if ms != nil && ms.s != nil {
 		ms.s.Close()
 	}
 	delete(service.sender, p)
-	return nil
 }
 
 func (service *OpenBazaarService) HandleNewStream(s inet.Stream) {

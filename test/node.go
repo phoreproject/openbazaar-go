@@ -12,10 +12,10 @@ import (
 	"github.com/btcsuite/btcutil/hdkeychain"
 	"github.com/phoreproject/multiwallet"
 	"github.com/phoreproject/multiwallet/config"
-	"github.com/phoreproject/openbazaar-go/core"
-	"github.com/phoreproject/openbazaar-go/ipfs"
-	"github.com/phoreproject/openbazaar-go/net"
-	"github.com/phoreproject/openbazaar-go/net/service"
+	"github.com/phoreproject/pm-go/core"
+	"github.com/phoreproject/pm-go/ipfs"
+	"github.com/phoreproject/pm-go/net"
+	"github.com/phoreproject/pm-go/net/service"
 
 	coremock "github.com/ipfs/go-ipfs/core/mock"
 	"github.com/tyler-smith/go-bip39"
@@ -59,7 +59,7 @@ func NewNode() (*core.OpenBazaarNode, error) {
 	ipfsNode.Identity = id
 
 	// Create test wallet
-	mnemonic, err := repository.DB.Config().GetMnemonic()
+	mnemonic, _, err := repository.DB.Config().GetMnemonic()
 	if err != nil {
 		return nil, err
 	}

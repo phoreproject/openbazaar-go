@@ -6,9 +6,9 @@ import (
 
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
 	"github.com/phoreproject/multiwallet/util"
-	obnet "github.com/phoreproject/openbazaar-go/net"
-	"github.com/phoreproject/openbazaar-go/repo"
-	"github.com/phoreproject/openbazaar-go/repo/db"
+	obnet "github.com/phoreproject/pm-go/net"
+	"github.com/phoreproject/pm-go/repo"
+	"github.com/phoreproject/pm-go/repo/db"
 )
 
 type Status struct {
@@ -46,13 +46,28 @@ func (x *Status) Execute(args []string) error {
 				os.Exit(31)
 			}
 		} else {
+			_, isEncrypted, err := sqliteDB.Config().GetMnemonic()
+			if err != nil {
+				os.Exit(1)
+			}
+
 			if !torAvailable {
 				fmt.Println("Initialized - Not Encrypted")
-				os.Exit(20)
+				if isEncrypted {
+					fmt.Println("Seed Words Encrypted")
+					os.Exit(25)
+				} else {
+					os.Exit(20)
+				}
 			} else {
 				fmt.Println("Initialized - Not Encrypted")
 				fmt.Println("Tor Available")
-				os.Exit(21)
+				if isEncrypted {
+					fmt.Println("Seed Words Encrypted")
+					os.Exit(26)
+				} else {
+					os.Exit(21)
+				}
 			}
 		}
 	} else {

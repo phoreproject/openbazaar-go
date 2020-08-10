@@ -19,9 +19,9 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/microcosm-cc/bluemonday"
 	"github.com/op/go-logging"
-	"github.com/phoreproject/openbazaar-go/ipfs"
-	"github.com/phoreproject/openbazaar-go/pb"
-	"github.com/phoreproject/openbazaar-go/repo"
+	"github.com/phoreproject/pm-go/ipfs"
+	"github.com/phoreproject/pm-go/pb"
+	"github.com/phoreproject/pm-go/repo"
 )
 
 const (
@@ -1415,6 +1415,13 @@ func (n *OpenBazaarNode) SetCurrencyOnListings(currencies []string) error {
 			sl, err := GetSignedListingFromPath(p)
 			if err != nil {
 				return err
+			}
+
+			// Cryptocurrency listings can only have one currency listed and since it's
+			// a trade for one specific currency for another specific currency it isn't
+			// appropriate to apply the bulk update to this type of listing.
+			if sl.Listing.Metadata.ContractType == pb.Listing_Metadata_CRYPTOCURRENCY {
+				return nil
 			}
 
 			SetAcceptedCurrencies(sl, currencies)

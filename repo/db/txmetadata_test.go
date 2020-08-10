@@ -4,9 +4,9 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/phoreproject/openbazaar-go/repo"
-	"github.com/phoreproject/openbazaar-go/repo/db"
-	"github.com/phoreproject/openbazaar-go/schema"
+	"github.com/phoreproject/pm-go/repo"
+	"github.com/phoreproject/pm-go/repo/db"
+	"github.com/phoreproject/pm-go/schema"
 )
 
 func buildNewTransactionStore() (repo.TransactionMetadataStore, func(), error) {

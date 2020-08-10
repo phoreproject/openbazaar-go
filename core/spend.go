@@ -8,8 +8,8 @@ import (
 
 	"github.com/OpenBazaar/wallet-interface"
 	"github.com/btcsuite/btcutil"
-	"github.com/phoreproject/openbazaar-go/pb"
-	"github.com/phoreproject/openbazaar-go/repo"
+	"github.com/phoreproject/pm-go/pb"
+	"github.com/phoreproject/pm-go/repo"
 )
 
 // DefaultCurrencyDivisibility is the Divisibility of the Currency if not
@@ -37,6 +37,7 @@ type SpendResponse struct {
 	Timestamp          time.Time `json:"timestamp"`
 	Txid               string    `json:"txid"`
 	UnconfirmedBalance int64     `json:"unconfirmedBalance"`
+	PeerID             string    `json:"-"`
 }
 
 // Spend will attempt to move funds from the node to the destination address described in the

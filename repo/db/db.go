@@ -10,8 +10,8 @@ import (
 	_ "github.com/mutecomm/go-sqlcipher"
 	"github.com/op/go-logging"
 	"github.com/phoreproject/multiwallet/util"
-	"github.com/phoreproject/openbazaar-go/repo"
-	"github.com/phoreproject/openbazaar-go/schema"
+	"github.com/phoreproject/pm-go/repo"
+	"github.com/phoreproject/pm-go/schema"
 )
 
 var log = logging.MustGetLogger("db")
@@ -37,6 +37,7 @@ type SQLiteDatastore struct {
 	coupons         repo.CouponStore
 	txMetadata      repo.TransactionMetadataStore
 	moderatedStores repo.ModeratedStore
+	messages        repo.MessageStore
 	db              *sql.DB
 	lock            *sync.Mutex
 }
@@ -82,6 +83,7 @@ func NewSQLiteDatastore(db *sql.DB, l *sync.Mutex, coinType util.ExtCoinType) *S
 		coupons:         NewCouponStore(db, l),
 		txMetadata:      NewTransactionMetadataStore(db, l),
 		moderatedStores: NewModeratedStore(db, l),
+		messages:        NewMessageStore(db, l),
 		db:              db,
 		lock:            l,
 	}
@@ -184,6 +186,11 @@ func (d *SQLiteDatastore) ModeratedStores() repo.ModeratedStore {
 	return d.moderatedStores
 }
 
+// Messages - return the messages datastore
+func (d *SQLiteDatastore) Messages() repo.MessageStore {
+	return d.messages
+}
+
 func (d *SQLiteDatastore) Copy(dbPath string, password string) error {
 	d.lock.Lock()
 	defer d.lock.Unlock()
@@ -270,20 +277,66 @@ func (c *ConfigDB) Init(mnemonic string, identityKey []byte, password string, cr
 	return nil
 }
 
-func (c *ConfigDB) GetMnemonic() (string, error) {
+func (c *ConfigDB) GetMnemonic() (string, bool, error) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	stmt, err := c.db.Prepare("select value from config where key=?")
+	selectMnemonicStmt, err := c.db.Prepare("select value from config where key=?")
 	if err != nil {
 		log.Fatal(err)
+		return "", false, err
+	}
+	defer selectMnemonicStmt.Close()
+	var mnemonic string
+	err = selectMnemonicStmt.QueryRow("mnemonic").Scan(&mnemonic)
+	if err != nil {
+		return "", false, err
+	}
+
+	// is mnemonic locked
+	isMnemonicEncryptedStmt, err := c.db.Prepare("select value from config where key=?")
+	if err != nil {
+		return "", false, err
+	}
+	defer isMnemonicEncryptedStmt.Close()
+	var isMnemonicEncrypted sql.NullString
+	err = isMnemonicEncryptedStmt.QueryRow("isMnemonicEncrypted").Scan(&isMnemonicEncrypted)
+
+	if isMnemonicEncrypted.Valid {
+		return mnemonic, isMnemonicEncrypted.String == "1", nil
+	} else if err == sql.ErrNoRows {
+		return mnemonic, false, nil
+	}
+
+	return mnemonic, false, err
+}
+
+func (c *ConfigDB) UpdateMnemonic(mnemonic string, isEncrypted bool) error {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
+	tx, err := c.db.Begin()
+	if err != nil {
+		return err
+	}
+
+	stmt, err := tx.Prepare("insert or replace into config(key, value) values(?,?)")
+	if err != nil {
+		return err
 	}
 	defer stmt.Close()
-	var mnemonic string
-	err = stmt.QueryRow("mnemonic").Scan(&mnemonic)
+
+	_, err = stmt.Exec("mnemonic", mnemonic)
 	if err != nil {
-		log.Fatal(err)
+		tx.Rollback()
+		return err
 	}
-	return mnemonic, nil
+	_, err = stmt.Exec("isMnemonicEncrypted", isEncrypted)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
 }
 
 func (c *ConfigDB) GetIdentityKey() ([]byte, error) {

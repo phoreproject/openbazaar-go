@@ -6,7 +6,7 @@ import (
 	"os"
 	"path"
 
-	"github.com/phoreproject/openbazaar-go/schema"
+	"github.com/phoreproject/pm-go/schema"
 )
 
 // NewAPIConfig returns a new config object for the API tests

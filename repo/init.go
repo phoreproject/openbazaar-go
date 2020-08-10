@@ -9,9 +9,9 @@ import (
 	"path"
 	"time"
 
-	"github.com/phoreproject/openbazaar-go/ipfs"
-	"github.com/phoreproject/openbazaar-go/repo/migrations"
-	"github.com/phoreproject/openbazaar-go/schema"
+	"github.com/phoreproject/pm-go/ipfs"
+	"github.com/phoreproject/pm-go/repo/migrations"
+	"github.com/phoreproject/pm-go/schema"
 
 	"github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/namesys"
@@ -20,7 +20,7 @@ import (
 	"github.com/tyler-smith/go-bip39"
 )
 
-const RepoVersion = "23"
+const RepoVersion = "26"
 
 var log = logging.MustGetLogger("repo")
 var ErrRepoExists = errors.New("IPFS configuration file exists. Reinitializing would overwrite your keys. Use -f to force overwrite.")
@@ -38,7 +38,7 @@ func DoInit(repoRoot string, nBitsForKeypair int, testnet bool, password string,
 	if err != nil {
 		return err
 	}
-	if err = nodeSchema.BuildSchemaDirectories(); err != nil {
+	if err := nodeSchema.BuildSchemaDirectories(); err != nil {
 		return err
 	}
 
