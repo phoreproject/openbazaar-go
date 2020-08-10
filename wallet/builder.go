@@ -10,9 +10,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/OpenBazaar/spvwallet"
-	"github.com/OpenBazaar/wallet-interface"
-	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/phoreproject/multiwallet"
 	"github.com/phoreproject/multiwallet/bitcoin"
 	"github.com/phoreproject/multiwallet/bitcoincash"
@@ -22,10 +19,6 @@ import (
 	"github.com/phoreproject/multiwallet/phore"
 	"github.com/phoreproject/multiwallet/util"
 	"github.com/phoreproject/multiwallet/zcash"
-	"github.com/phoreproject/pm-go/repo"
-	"github.com/phoreproject/pm-go/repo/db"
-	"github.com/phoreproject/pm-go/schema"
-
 	"github.com/op/go-logging"
 
 	"github.com/btcsuite/btcd/chaincfg"
