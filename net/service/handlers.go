@@ -24,7 +24,7 @@ import (
 	"github.com/phoreproject/pm-go/net"
 	"github.com/phoreproject/pm-go/pb"
 	"github.com/phoreproject/pm-go/repo"
-	u "github.com/phoreproject/pm-go/util"
+	ut "github.com/phoreproject/pm-go/util"
 )
 
 var (

@@ -59,48 +59,14 @@ func (am01) Up(repoPath, dbPassword string, testnet bool) error {
 	btcWalletCfg["APIPool"] = []string{"https://btc.api.openbazaar.org/api"}
 	btcWalletCfg["APITestnetPool"] = []string{"https://tbtc.api.openbazaar.org/api"}
 
-	bch, ok := walletCfg["BCH"]
-	if !ok {
-		return errors.New("invalid config: missing BCH Wallet")
-	}
-
-	bchWalletCfg, ok := bch.(map[string]interface{})
-	if !ok {
-		return errors.New("invalid config: invalid BCH Wallet")
-	}
-
-	bchWalletCfg["APIPool"] = []string{"https://bch.api.openbazaar.org/api"}
-	bchWalletCfg["APITestnetPool"] = []string{"https://tbch.api.openbazaar.org/api"}
-
-	ltc, ok := walletCfg["LTC"]
-	if !ok {
-		return errors.New("invalid config: missing LTC Wallet")
-	}
-
-	ltcWalletCfg, ok := ltc.(map[string]interface{})
-	if !ok {
-		return errors.New("invalid config: invalid LTC Wallet")
-	}
-
-	ltcWalletCfg["APIPool"] = []string{"https://ltc.api.openbazaar.org/api"}
-	ltcWalletCfg["APITestnetPool"] = []string{"https://tltc.api.openbazaar.org/api"}
-
-	zec, ok := walletCfg["ZEC"]
-	if !ok {
-		return errors.New("invalid config: missing ZEC Wallet")
-	}
-
-	zecWalletCfg, ok := zec.(map[string]interface{})
-	if !ok {
-		return errors.New("invalid config: invalid ZEC Wallet")
-	}
-
-	zecWalletCfg["APIPool"] = []string{"https://zec.api.openbazaar.org/api"}
-	zecWalletCfg["APITestnetPool"] = []string{"https://tzec.api.openbazaar.org/api"}
-
 	eth, ok := walletCfg["ETH"]
 	if !ok {
 		return errors.New("invalid config: missing ETH Wallet")
+	}
+
+	if eth == nil {
+		eth = map[string]interface{}{}
+		walletCfg["ETH"] = eth
 	}
 
 	ethWalletCfg, ok := eth.(map[string]interface{})
@@ -108,6 +74,8 @@ func (am01) Up(repoPath, dbPassword string, testnet bool) error {
 		return errors.New("invalid config: invalid ETH Wallet")
 	}
 
+	ethWalletCfg["Type"] = "API"
+	ethWalletCfg["FeeAPI"] = ""
 	ethWalletCfg["API"] = []string{"https://mainnet.infura.io"}
 	ethWalletCfg["APIPool"] = []string{"https://mainnet.infura.io"}
 	ethWalletCfg["APITestnetPool"] = []string{"https://rinkeby.infura.io"}
@@ -116,6 +84,10 @@ func (am01) Up(repoPath, dbPassword string, testnet bool) error {
 		"RinkebyRegistryAddress": am01EthereumRegistryAddressRinkeby,
 		"RopstenRegistryAddress": am01EthereumRegistryAddressRopsten,
 	}
+	ethWalletCfg["LowFeeDefault"] = 7
+	ethWalletCfg["MediumFeeDefault"] = 15
+	ethWalletCfg["HighFeeDefault"] = 30
+	ethWalletCfg["MaxFee"] = 200
 
 	newConfigBytes, err := json.MarshalIndent(configMap, "", "    ")
 	if err != nil {
@@ -168,45 +140,6 @@ func (am01) Down(repoPath, dbPassword string, testnet bool) error {
 
 	btcWalletCfg["APIPool"] = []string{"https://btc.blockbook.api.openbazaar.org/api"}
 	btcWalletCfg["APITestnetPool"] = []string{"https://tbtc.blockbook.api.openbazaar.org/api"}
-
-	bch, ok := walletCfg["BCH"]
-	if !ok {
-		return errors.New("invalid config: missing BCH Wallet")
-	}
-
-	bchWalletCfg, ok := bch.(map[string]interface{})
-	if !ok {
-		return errors.New("invalid config: invalid BCH Wallet")
-	}
-
-	bchWalletCfg["APIPool"] = []string{"https://bch.blockbook.api.openbazaar.org/api"}
-	bchWalletCfg["APITestnetPool"] = []string{"https://tbch.blockbook.api.openbazaar.org/api"}
-
-	ltc, ok := walletCfg["LTC"]
-	if !ok {
-		return errors.New("invalid config: missing LTC Wallet")
-	}
-
-	ltcWalletCfg, ok := ltc.(map[string]interface{})
-	if !ok {
-		return errors.New("invalid config: invalid LTC Wallet")
-	}
-
-	ltcWalletCfg["APIPool"] = []string{"https://ltc.blockbook.api.openbazaar.org/api"}
-	ltcWalletCfg["APITestnetPool"] = []string{"https://tltc.blockbook.api.openbazaar.org/api"}
-
-	zec, ok := walletCfg["ZEC"]
-	if !ok {
-		return errors.New("invalid config: missing ZEC Wallet")
-	}
-
-	zecWalletCfg, ok := zec.(map[string]interface{})
-	if !ok {
-		return errors.New("invalid config: invalid ZEC Wallet")
-	}
-
-	zecWalletCfg["APIPool"] = []string{"https://zec.blockbook.api.openbazaar.org/api"}
-	zecWalletCfg["APITestnetPool"] = []string{"https://tzec.blockbook.api.openbazaar.org/api"}
 
 	eth, ok := walletCfg["ETH"]
 	if !ok {

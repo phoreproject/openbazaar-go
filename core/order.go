@@ -993,14 +993,12 @@ func (n *OpenBazaarNode) CalculateOrderTotal(contract *pb.RicardianContract) (*b
 				itemOriginAmt = itemOriginAmt.AddBigFloatProduct(toHundredths(priceModifier))
 			}
 		} else if nrl.GetContractType() == pb.Listing_Metadata_CRYPTOCURRENCY.String() { // FIXED + CRYPTO
-			//satoshis += l.Item.Price * uint64(float64(itemQuantity)/float64(l.Metadata.CoinDivisibility))
-			//itemQuantity = 1
 			oAmt, err := nrl.GetPrice()
 			if err != nil {
 				return big.NewInt(0), err
 			}
 
-			itemOriginAmt = oAmt.Amount * GetOrderQuantity(nrl.GetProtobuf(), item) / l.Metadata.CoinDivisibility
+			itemOriginAmt = oAmt.MulBigInt(GetOrderQuantity(nrl.GetProtobuf(), item))
 		} else {
 			oAmt, err := nrl.GetPrice()
 			if err != nil {
