@@ -3,7 +3,7 @@ package repo
 import (
 	"math/big"
 
-	"github.com/OpenBazaar/openbazaar-go/pb"
+	"github.com/phoreproject/pm-go/pb"
 	"github.com/golang/protobuf/proto"
 )
 

@@ -90,7 +90,7 @@ type Start struct {
 	DisableExchangeRates bool     `long:"disableexchangerates" description:"disable the exchange rate service to prevent api queries"`
 	Storage              string   `long:"storage" description:"set the outgoing message storage option [self-hosted, dropbox] default=self-hosted"`
 
-	ForceKeyCachePurge bool `long:"forcekeypurge" description:"repair test for issue OpenBazaar/openbazaar-go#1593; use as instructed only"`
+	ForceKeyCachePurge bool `long:"forcekeypurge" description:"repair test for issue phoreproject/pm-go#1593; use as instructed only"`
 }
 
 func (x *Start) Execute(args []string) error {

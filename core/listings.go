@@ -177,8 +177,6 @@ func (n *OpenBazaarNode) saveListing(l repo.Listing, publish bool) error {
 	if err != nil {
 		return err
 	}
-
-	listing.Testnet = n.TestnetEnable
 	defer f.Close()
 
 	out, err := sl.MarshalJSON()
@@ -279,9 +277,8 @@ func (n *OpenBazaarNode) toListingIndexData(l *repo.Listing) (repo.ListingIndexD
 		Tags:             l.GetTags(),
 		Categories:       l.GetCategories(),
 		NSFW:             l.GetNsfw(),
-		CoinDivisibility: l.GetCoinDivisibility(),
 		ContractType:     l.GetContractType(),
-		Format:           listing.Listing.Metadata.Format.String(),
+		Format:           l.GetFormat(),
 		Description:      l.GetShortDescription(),
 		Thumbnail:        repo.ListingThumbnail{
 			previewImg.GetTiny(),

@@ -3,7 +3,7 @@ package factory
 import (
 	"fmt"
 
-	"github.com/OpenBazaar/openbazaar-go/repo"
+	"github.com/phoreproject/pm-go/repo"
 )
 
 type mockRater struct {

@@ -3,8 +3,8 @@ package repo_test
 import (
 	"testing"
 
-	"github.com/OpenBazaar/openbazaar-go/pb"
-	"github.com/OpenBazaar/openbazaar-go/repo"
+	"github.com/phoreproject/pm-go/pb"
+	"github.com/phoreproject/pm-go/repo"
 )
 
 func TestToV5DisputeResolution(t *testing.T) {

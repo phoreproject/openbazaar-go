@@ -6,7 +6,7 @@ import (
 	"os"
 	"path"
 
-	"github.com/OpenBazaar/openbazaar-go/ipfs"
+	"github.com/phoreproject/pm-go/ipfs"
 	"github.com/ipfs/go-ipfs/core/mock"
 )
 

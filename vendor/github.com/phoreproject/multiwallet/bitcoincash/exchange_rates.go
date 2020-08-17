@@ -4,12 +4,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/phoreproject/multiwallet/util"
-	"golang.org/x/net/proxy"
 	"net/http"
 	"reflect"
 	"sync"
 	"time"
+
+	"github.com/phoreproject/multiwallet/util"
+	"golang.org/x/net/proxy"
 )
 
 type ExchangeRateProvider struct {

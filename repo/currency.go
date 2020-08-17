@@ -7,7 +7,7 @@ import (
 	"math/big"
 	"strconv"
 
-	"github.com/OpenBazaar/openbazaar-go/pb"
+	"github.com/phoreproject/pm-go/pb"
 )
 
 const (

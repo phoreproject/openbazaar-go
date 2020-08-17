@@ -353,6 +353,7 @@ type Listing struct {
 	Moderators           []string                  `protobuf:"bytes,8,rep,name=moderators,proto3" json:"moderators,omitempty"`
 	TermsAndConditions   string                    `protobuf:"bytes,9,opt,name=termsAndConditions,proto3" json:"termsAndConditions,omitempty"`
 	RefundPolicy         string                    `protobuf:"bytes,10,opt,name=refundPolicy,proto3" json:"refundPolicy,omitempty"`
+	Testnet              bool                      `protobuf:"varint,11,opt,name=testnet,proto3" json:"testnet,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                  `json:"-"`
 	XXX_unrecognized     []byte                    `json:"-"`
 	XXX_sizecache        int32                     `json:"-"`

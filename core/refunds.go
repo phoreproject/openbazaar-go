@@ -3,7 +3,7 @@ package core
 import (
 	"encoding/hex"
 	"errors"
-	"github.com/OpenBazaar/openbazaar-go/repo"
+	"github.com/phoreproject/pm-go/repo"
 	"math/big"
 	"strings"
 	"time"

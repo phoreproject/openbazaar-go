@@ -1,7 +1,7 @@
 package repo
 
 import (
-	"github.com/OpenBazaar/openbazaar-go/pb"
+	"github.com/phoreproject/pm-go/pb"
 	"github.com/golang/protobuf/proto"
 	"math/big"
 )

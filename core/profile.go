@@ -8,7 +8,7 @@ import (
 	"fmt"
 
 	"github.com/phoreproject/pm-go/ipfs"
-	"github.com/OpenBazaar/openbazaar-go/repo"
+	"github.com/phoreproject/pm-go/repo"
 
 	cid "gx/ipfs/QmTbxNB1NwDesLmKTscr4udL2tVP7MaxvXnD1D9yX7g3PN/go-cid"
 

@@ -28,7 +28,6 @@ import (
 	"github.com/phoreproject/multiwallet/util"
 	"github.com/tyler-smith/go-bip39"
 	"golang.org/x/net/proxy"
-
 )
 
 type BitcoinCashWallet struct {

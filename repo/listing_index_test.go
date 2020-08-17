@@ -5,8 +5,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/OpenBazaar/openbazaar-go/repo"
-	"github.com/OpenBazaar/openbazaar-go/test/factory"
+	"github.com/phoreproject/pm-go/repo"
+	"github.com/phoreproject/pm-go/test/factory"
 )
 
 func TestListingIndexUnmarshalJSON(t *testing.T) {

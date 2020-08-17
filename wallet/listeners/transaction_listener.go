@@ -458,7 +458,7 @@ func (l *TransactionListener) adjustInventory(contract *pb.RicardianContract) {
 		}
 		itemQty := core.GetOrderQuantity(listing, item)
 		if itemQty.Cmp(big.NewInt(0)) <= 0 || !itemQty.IsInt64() {
-			// TODO: https://github.com/OpenBazaar/openbazaar-go/issues/1739
+			// TODO: https://github.com/phoreproject/pm-go/issues/1739
 			log.Errorf("unable to update inventory with invalid quantity")
 			continue
 		}

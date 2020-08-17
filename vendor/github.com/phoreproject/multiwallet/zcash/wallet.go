@@ -1,6 +1,7 @@
 package zcash
 
 import (
+	"bytes"
 	"encoding/hex"
 	"fmt"
 	"io"
@@ -501,4 +502,8 @@ func (w *ZCashWallet) Broadcast(tx *wire.MsgTx) (string, error) {
 	}
 	w.ws.ProcessIncomingTransaction(cTxn)
 	return cTxn.Txid, nil
+}
+
+func trimTxForDeserialization(txBytes []byte) []byte {
+	return txBytes[4 : len(txBytes)-15]
 }

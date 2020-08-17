@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/OpenBazaar/jsonpb"
-	"github.com/OpenBazaar/openbazaar-go/pb"
+	"github.com/phoreproject/pm-go/pb"
 )
 
 func TestToV5Order(t *testing.T) {

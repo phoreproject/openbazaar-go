@@ -71,7 +71,7 @@ var (
 		"BCH": {Name: "Bitcoin Cash", Code: CurrencyCode("BCH"), CurrencyType: Crypto, Divisibility: 8, BlockTime: DefaultBlockTime},
 		"LTC": {Name: "Litecoin", Code: CurrencyCode("LTC"), CurrencyType: Crypto, Divisibility: 8, BlockTime: 150 * time.Second},
 		"ZEC": {Name: "Zcash", Code: CurrencyCode("ZEC"), CurrencyType: Crypto, Divisibility: 8, BlockTime: DefaultBlockTime},
-		"PHR": {Name: "Phore", Code: CurrencyCode("PHR"), CurrencyType: Crypto, Divisibility: 8, BlockTIme: time.Minute},
+		"PHR": {Name: "Phore", Code: CurrencyCode("PHR"), CurrencyType: Crypto, Divisibility: 8, BlockTime: time.Minute},
 		"ETH": {Name: "Ethereum", Code: CurrencyCode("ETH"), CurrencyType: Crypto, Divisibility: 18, BlockTime: 10 * time.Second},
 	}
 	testnetCryptoDefinitions = map[string]CurrencyDefinition{
@@ -79,7 +79,7 @@ var (
 		"TBCH": {Name: "Testnet Bitcoin Cash", Code: CurrencyCode("TBCH"), CurrencyType: Crypto, Divisibility: 8, BlockTime: DefaultBlockTime},
 		"TLTC": {Name: "Testnet Litecoin", Code: CurrencyCode("TLTC"), CurrencyType: Crypto, Divisibility: 8, BlockTime: 150 * time.Second},
 		"TZEC": {Name: "Testnet Zcash", Code: CurrencyCode("TZEC"), CurrencyType: Crypto, Divisibility: 8, BlockTime: DefaultBlockTime},
-		"TPHR": {Name: "Testnet Phore", Code: CurrencyCode("TPHR"), CurrencyType: Crypto, Divisibility: 8, BlockTIme: time.Minute},
+		"TPHR": {Name: "Testnet Phore", Code: CurrencyCode("TPHR"), CurrencyType: Crypto, Divisibility: 8, BlockTime: time.Minute},
 		"TETH": {Name: "Testnet Ethereum", Code: CurrencyCode("TETH"), CurrencyType: Crypto, Divisibility: 18, BlockTime: 10 * time.Second},
 	}
 	fiatDefinitions = map[string]CurrencyDefinition{

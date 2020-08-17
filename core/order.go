@@ -1441,7 +1441,7 @@ collectListings:
 		if q := GetOrderQuantity(listingMap[item.ListingHash], item); q.IsInt64() {
 			inv.Count = q
 		} else {
-			// TODO: https://github.com/OpenBazaar/openbazaar-go/issues/1739
+			// TODO: https://github.com/phoreproject/pm-go/issues/1739
 			return errors.New("big inventory quantity not supported")
 		}
 		inventoryList = append(inventoryList, inv)

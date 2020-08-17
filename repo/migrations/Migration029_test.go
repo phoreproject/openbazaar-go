@@ -5,8 +5,8 @@ import (
 	"io/ioutil"
 	"testing"
 
-	"github.com/OpenBazaar/openbazaar-go/repo/migrations"
-	"github.com/OpenBazaar/openbazaar-go/schema"
+	"github.com/phoreproject/pm-go/repo/migrations"
+	"github.com/phoreproject/pm-go/schema"
 )
 
 var stmt = `PRAGMA key = 'letmein';

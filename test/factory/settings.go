@@ -3,7 +3,7 @@ package factory
 import (
 	"encoding/json"
 
-	"github.com/OpenBazaar/openbazaar-go/repo"
+	"github.com/phoreproject/pm-go/repo"
 )
 
 func MustNewValidSettings() repo.SettingsData {

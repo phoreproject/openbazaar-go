@@ -12,7 +12,7 @@ import (
 	"github.com/phoreproject/pm-go/repo"
 	"github.com/phoreproject/pm-go/repo/db"
 	"github.com/phoreproject/pm-go/schema"
-	"github.com/OpenBazaar/openbazaar-go/test/factory"
+	"github.com/phoreproject/pm-go/test/factory"
 )
 
 func buildNewMessageStore() (repo.MessageStore, func(), error) {

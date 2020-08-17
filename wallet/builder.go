@@ -13,6 +13,7 @@ import (
 	"github.com/OpenBazaar/spvwallet"
 	"github.com/OpenBazaar/wallet-interface"
 	"github.com/btcsuite/btcd/chaincfg"
+	eth "github.com/phoreproject/go-ethwallet/wallet"
 	"github.com/phoreproject/multiwallet"
 	"github.com/phoreproject/multiwallet/bitcoin"
 	"github.com/phoreproject/multiwallet/bitcoincash"
@@ -204,7 +205,6 @@ func createAPIWallet(coin util.ExtCoinType, coinConfigOverrides *schema.CoinConf
 		} else {
 			actualCoin = wallet.Ethereum
 		}
-		//actualCoin = wallet.Ethereum
 		w, err := eth.NewEthereumWallet(*coinConfig, cfg.Params, cfg.Mnemonic, cfg.Proxy)
 		if err != nil {
 			return InvalidCoinType, nil, err

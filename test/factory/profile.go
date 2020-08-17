@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 
 	"github.com/OpenBazaar/jsonpb"
-	"github.com/OpenBazaar/openbazaar-go/pb"
-	"github.com/OpenBazaar/openbazaar-go/repo"
+	"github.com/phoreproject/pm-go/pb"
+	"github.com/phoreproject/pm-go/repo"
 )
 
 const defaultProfileFixture = "v5-profile-moderator-fixed-fee"

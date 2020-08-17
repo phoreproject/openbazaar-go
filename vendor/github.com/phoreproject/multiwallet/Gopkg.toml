@@ -109,6 +109,10 @@
   branch = "v1"
   name = "gopkg.in/jarcoal/httpmock.v1"
 
+[[constraint]]
+  branch = "master"
+  name = "github.com/phoreproject/go-ethwallet"
+
 [[override]]
   revision = "758128399b1df3a87e92df6c26c1d2063da8fabe"
   name = "github.com/syndtr/goleveldb"

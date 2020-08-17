@@ -21,7 +21,7 @@ import (
 	"github.com/phoreproject/pm-go/net"
 	rep "github.com/phoreproject/pm-go/net/repointer"
 	ret "github.com/phoreproject/pm-go/net/retriever"
-	"github.com/OpenBazaar/openbazaar-go/pb"
+	"github.com/phoreproject/pm-go/pb"
 	"github.com/phoreproject/pm-go/repo"
 	sto "github.com/phoreproject/pm-go/storage"
 	"github.com/btcsuite/btcutil/hdkeychain"

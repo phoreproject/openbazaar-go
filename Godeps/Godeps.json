@@ -21,12 +21,12 @@
 			"Rev": "f03afa92d3ffad9e5ff762aa549908afe674f01e"
 		},
 		{
-			"ImportPath": "github.com/OpenBazaar/go-ethwallet/util",
-			"Rev": "efd97b9705065fc91dabdc4444f8117f36b104ee"
+			"ImportPath": "github.com/phoreproject/go-ethwallet/util",
+			"Rev": "d370330a5102d2e757ba54c4fc29301adc130767"
 		},
 		{
-			"ImportPath": "github.com/OpenBazaar/go-ethwallet/wallet",
-			"Rev": "4eb397613e4a5fd35900be91d902cab75fa13208"
+			"ImportPath": "github.com/phoreproject/go-ethwallet/wallet",
+			"Rev": "d370330a5102d2e757ba54c4fc29301adc130767"
 		},
 		{
 			"ImportPath": "github.com/OpenBazaar/golang-socketio",
@@ -2525,6 +2525,6 @@
           "ImportPath": "github.com/nanmu42/etherscan-api",
           "Comment": "v1.1.0",
           "Rev": "586884d258b6b8b22d5bd039e270d33572888f54"
-        },
+        }
     ]
 }

@@ -17,9 +17,11 @@ type (
 		Hash               string           `json:"hash"`
 		Slug               string           `json:"slug"`
 		Title              string           `json:"title"`
+		Tags               []string         `json:"tags"`
 		Categories         []string         `json:"categories"`
 		NSFW               bool             `json:"nsfw"`
 		ContractType       string           `json:"contractType"`
+		Format             string           `json:"format"`
 		Description        string           `json:"description"`
 		Thumbnail          ListingThumbnail `json:"thumbnail"`
 		Price              *CurrencyValue   `json:"price"`

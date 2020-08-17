@@ -101,14 +101,15 @@ func NewDefaultConfig(coinTypes map[wallet.CoinType]bool, params *chaincfg.Param
 		}
 		db, _ := mockDB.GetDatastoreForWallet(util.CoinTypePhore.ToCoinType())
 		phrCfg := CoinConfig{
-			CoinType:   util.CoinTypePhore,
-			FeeAPI:     "",
-			LowFee:     140,
-			MediumFee:  160,
-			HighFee:    180,
-			MaxFee:     2000,
-			ClientAPIs: apiEndpoints,
-			DB:         db,
+			CoinType:    util.CoinTypePhore,
+			FeeAPI:      "",
+			SuperLowFee: 70,
+			LowFee:      140,
+			MediumFee:   160,
+			HighFee:     180,
+			MaxFee:      2000,
+			ClientAPIs:  apiEndpoints,
+			DB:          db,
 		}
 		cfg.Coins = append(cfg.Coins, phrCfg)
 	}

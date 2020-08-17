@@ -19,9 +19,9 @@ import (
 	mh "gx/ipfs/QmerPMzPk1mJVowm8KgmoknWa4yCYvvugMPsgWmDNUvDLW/go-multihash"
 
 	"github.com/OpenBazaar/jsonpb"
-	"github.com/OpenBazaar/openbazaar-go/ipfs"
-	"github.com/OpenBazaar/openbazaar-go/pb"
-	"github.com/OpenBazaar/openbazaar-go/util"
+	"github.com/phoreproject/pm-go/ipfs"
+	"github.com/phoreproject/pm-go/pb"
+	"github.com/phoreproject/pm-go/util"
 	"github.com/golang/protobuf/proto"
 	"github.com/gosimple/slug"
 	"github.com/microcosm-cc/bluemonday"

@@ -32,7 +32,7 @@ type FeeResponse struct {
 func newMockWallet() (*ZCashWallet, error) {
 	mockDb := datastore.NewMockMultiwalletDatastore()
 
-	db, err := mockDb.GetDatastoreForWallet(wallet.BitcoinCash)
+	db, err := mockDb.GetDatastoreForWallet(wallet.Zcash)
 	if err != nil {
 		return nil, err
 	}
@@ -46,7 +46,7 @@ func newMockWallet() (*ZCashWallet, error) {
 	if err != nil {
 		return nil, err
 	}
-	km, err := keys.NewKeyManager(db.Keys(), params, master, wallet.BitcoinCash, zcashCashAddress)
+	km, err := keys.NewKeyManager(db.Keys(), params, master, wallet.Zcash, zcashAddress)
 	if err != nil {
 		return nil, err
 	}
@@ -60,13 +60,67 @@ func newMockWallet() (*ZCashWallet, error) {
 		fp:     fp,
 	}
 	cli := mock.NewMockApiClient(bw.AddressToScript)
-	ws, err := service.NewWalletService(db, km, cli, params, wallet.BitcoinCash, cache.NewMockCacher())
+	ws, err := service.NewWalletService(db, km, cli, params, wallet.Zcash, cache.NewMockCacher())
 	if err != nil {
 		return nil, err
 	}
 	bw.client = cli
 	bw.ws = ws
 	return bw, nil
+}
+
+func TestWalletService_VerifyWatchScriptFilter(t *testing.T) {
+	// Verify that AddWatchedAddress should never add a script which already represents a key from its own wallet
+	w, err := newMockWallet()
+	if err != nil {
+		t.Fatal(err)
+	}
+	keys := w.km.GetKeys()
+
+	addr, err := w.km.KeyToAddress(keys[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = w.AddWatchedAddresses(addr)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	watchScripts, err := w.db.WatchedScripts().GetAll()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(watchScripts) != 0 {
+		t.Error("Put watched scripts fails on key manager owned key")
+	}
+}
+
+func TestWalletService_VerifyWatchScriptPut(t *testing.T) {
+	// Verify that AddWatchedAddress should add a script which does not represent a key from its own wallet
+	w, err := newMockWallet()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	addr, err := w.DecodeAddress("t1aZvxRLCGVeMPFXvqfnBgHVEbi4c6g8MVa")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = w.AddWatchedAddresses(addr)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	watchScripts, err := w.db.WatchedScripts().GetAll()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(watchScripts) == 0 {
+		t.Error("Put watched scripts fails on non-key manager owned key")
+	}
 }
 
 func waitForTxnSync(t *testing.T, txnStore wallet.Txns) {
@@ -251,7 +305,7 @@ func TestZCashWallet_GenerateMultisigScript(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if addr.String() != "t3ZZqETXWTohq3xXHxD9yzfq4UxpcACLkVc" {
+	if addr.String() != "t3S5yuHPzajqHcaJ6WDTGAwTuK9VDvWYj7r" {
 		t.Error("Returned invalid address")
 	}
 
@@ -311,7 +365,7 @@ func TestZCashWallet_newUnsignedTransaction(t *testing.T) {
 	}
 
 	// Regular transaction
-	authoredTx, _, err := newUnsignedTransaction(outputs, btcutil.Amount(1000), inputSource, changeSource)
+	authoredTx, err := newUnsignedTransaction(outputs, btcutil.Amount(1000), inputSource, changeSource)
 	if err != nil {
 		t.Error(err)
 	}
@@ -324,7 +378,7 @@ func TestZCashWallet_newUnsignedTransaction(t *testing.T) {
 
 	// Insufficient funds
 	outputs[0].Value = 1000000000
-	_, _, err = newUnsignedTransaction(outputs, btcutil.Amount(1000), inputSource, changeSource)
+	_, err = newUnsignedTransaction(outputs, btcutil.Amount(1000), inputSource, changeSource)
 	if err == nil {
 		t.Error("Failed to return insuffient funds error")
 	}
@@ -653,7 +707,7 @@ func TestCalcSignatureHash(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	expected, err := hex.DecodeString("f3148f80dfab5e573d5edfe7a850f5fd39234f80b5429d3a57edcc11e34c585b")
+	expected, err := hex.DecodeString("8df91420215909927be677a978c36b528e1e7b4ba343acefdd259fe57f3f1f85")
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -1,8 +1,8 @@
 package factory
 
 import (
-	"github.com/OpenBazaar/openbazaar-go/pb"
-	"github.com/OpenBazaar/openbazaar-go/repo"
+	"github.com/phoreproject/pm-go/pb"
+	"github.com/phoreproject/pm-go/repo"
 	"github.com/golang/protobuf/ptypes/any"
 )
 

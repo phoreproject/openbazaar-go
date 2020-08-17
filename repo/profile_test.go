@@ -5,9 +5,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/OpenBazaar/openbazaar-go/pb"
-	"github.com/OpenBazaar/openbazaar-go/repo"
-	"github.com/OpenBazaar/openbazaar-go/test/factory"
+	"github.com/phoreproject/pm-go/pb"
+	"github.com/phoreproject/pm-go/repo"
+	"github.com/phoreproject/pm-go/test/factory"
 )
 
 func TestProfileFromProtobufMissingModInfo(t *testing.T) {

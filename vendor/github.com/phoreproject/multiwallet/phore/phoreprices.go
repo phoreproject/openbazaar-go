@@ -13,7 +13,7 @@ import (
 	"strings"
 )
 
-const SatoshiPerPHR = 100000000
+const SatoshiPerPHR int64 = 100000000
 
 var log = logging.MustGetLogger("PhoreExchangeRates")
 
@@ -97,7 +97,7 @@ func (b *PriceFetcher) GetAllRates(cacheOK bool) (map[string]float64, error) {
 	return copy, nil
 }
 
-func (b *PriceFetcher) UnitsPerCoin() int {
+func (b *PriceFetcher) UnitsPerCoin() int64 {
 	return SatoshiPerPHR
 }
 

@@ -462,7 +462,7 @@ func TestChatDB_DeleteConversation(t *testing.T) {
 	stmt.Close()
 }
 
-// https://github.com/OpenBazaar/openbazaar-go/issues/1545
+// https://github.com/phoreproject/pm-go/issues/1545
 func TestChatDB_DeterministicNanosecondOrdering_Issue1545(t *testing.T) {
 	var (
 		numMessages         = 10

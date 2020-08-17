@@ -6,10 +6,10 @@ import (
 	"strings"
 	"time"
 
-	eth "github.com/OpenBazaar/go-ethwallet/wallet"
 	"github.com/OpenBazaar/wallet-interface"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/op/go-logging"
+	eth "github.com/phoreproject/go-ethwallet/wallet"
 	"github.com/phoreproject/multiwallet/bitcoin"
 	"github.com/phoreproject/multiwallet/bitcoincash"
 	"github.com/phoreproject/multiwallet/client/blockbook"
@@ -33,7 +33,7 @@ func NewMultiWallet(cfg *config.Config) (MultiWallet, error) {
 	blockbook.Log = log
 
 	if cfg.Mnemonic == "" {
-		ent, err := bip39.NewEntropy(128)
+		ent, err := bip39.NewEntropy(256)
 		if err != nil {
 			return nil, err
 		}
@@ -106,15 +106,15 @@ func NewMultiWallet(cfg *config.Config) (MultiWallet, error) {
 			} else {
 				multiwallet[util.ExtendCoinType(wallet.TestnetLitecoin)] = w
 			}
-		case wallet.Ethereum:
+		case util.ExtendCoinType(wallet.Ethereum):
 			w, err = eth.NewEthereumWallet(coin, cfg.Params, cfg.Mnemonic, cfg.Proxy)
 			if err != nil {
 				return nil, err
 			}
 			if cfg.Params.Name == chaincfg.MainNetParams.Name {
-				multiwallet[wallet.Ethereum] = w
+				multiwallet[util.ExtendCoinType(wallet.Ethereum)] = w
 			} else {
-				multiwallet[wallet.TestnetEthereum] = w
+				multiwallet[util.ExtendCoinType(wallet.TestnetEthereum)] = w
 			}
 		}
 	}

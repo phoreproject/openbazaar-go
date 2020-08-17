@@ -18,7 +18,7 @@ import (
 	"github.com/OpenBazaar/jsonpb"
 	"github.com/phoreproject/pm-go/ipfs"
 	"github.com/phoreproject/pm-go/pb"
-	"github.com/OpenBazaar/openbazaar-go/repo"
+	"github.com/phoreproject/pm-go/repo"
 	"golang.org/x/net/context"
 )
 

@@ -45,8 +45,8 @@ func NewFeeProvider(maxFee, priorityFee, normalFee, economicFee, superEconomicFe
 		maxFee:           maxFee,
 		priorityFee:      priorityFee,
 		normalFee:        normalFee,
-		superEconomicFee: superEconomicFee,
 		economicFee:      economicFee,
+		superEconomicFee: superEconomicFee,
 		exchangeRates:    exchangeRates,
 	}
 }
@@ -60,8 +60,6 @@ func (fp *FeeProvider) GetFeePerByte(feeLevel wallet.FeeLevel) uint64 {
 			return fp.normalFee
 		case wallet.ECONOMIC:
 			return fp.economicFee
-		case wallet.SUPER_ECONOMIC:
-			return fp.superEconomicFee
 		case wallet.FEE_BUMP:
 			return fp.priorityFee * 2
 		default:
@@ -85,6 +83,8 @@ func (fp *FeeProvider) GetFeePerByte(feeLevel wallet.FeeLevel) uint64 {
 		target = NormalTarget
 	case wallet.ECONOMIC:
 		target = EconomicTarget
+	case wallet.SUPER_ECONOMIC:
+		return fp.superEconomicFee
 	case wallet.FEE_BUMP:
 		target = PriorityTarget * 2
 	default:
