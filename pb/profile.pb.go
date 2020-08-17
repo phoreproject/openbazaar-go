@@ -22,28 +22,31 @@ var _ = math.Inf
 const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
 type Profile struct {
-	PeerID               string               `protobuf:"bytes,1,opt,name=peerID,proto3" json:"peerID,omitempty"`
-	Handle               string               `protobuf:"bytes,2,opt,name=handle,proto3" json:"handle,omitempty"`
-	Name                 string               `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
-	Location             string               `protobuf:"bytes,4,opt,name=location,proto3" json:"location,omitempty"`
-	About                string               `protobuf:"bytes,5,opt,name=about,proto3" json:"about,omitempty"`
-	ShortDescription     string               `protobuf:"bytes,6,opt,name=shortDescription,proto3" json:"shortDescription,omitempty"`
-	Nsfw                 bool                 `protobuf:"varint,7,opt,name=nsfw,proto3" json:"nsfw,omitempty"`
-	Vendor               bool                 `protobuf:"varint,8,opt,name=vendor,proto3" json:"vendor,omitempty"`
-	Moderator            bool                 `protobuf:"varint,9,opt,name=moderator,proto3" json:"moderator,omitempty"`
-	ModeratorInfo        *Moderator           `protobuf:"bytes,10,opt,name=moderatorInfo,proto3" json:"moderatorInfo,omitempty"`
-	ContactInfo          *Profile_Contact     `protobuf:"bytes,11,opt,name=contactInfo,proto3" json:"contactInfo,omitempty"`
-	Colors               *Profile_Colors      `protobuf:"bytes,12,opt,name=colors,proto3" json:"colors,omitempty"`
-	AvatarHashes         *Profile_Image       `protobuf:"bytes,13,opt,name=avatarHashes,proto3" json:"avatarHashes,omitempty"`
-	HeaderHashes         *Profile_Image       `protobuf:"bytes,14,opt,name=headerHashes,proto3" json:"headerHashes,omitempty"`
-	Stats                *Profile_Stats       `protobuf:"bytes,15,opt,name=stats,proto3" json:"stats,omitempty"`
-	BitcoinPubkey        string               `protobuf:"bytes,16,opt,name=bitcoinPubkey,proto3" json:"bitcoinPubkey,omitempty"`
-	LastModified         *timestamp.Timestamp `protobuf:"bytes,17,opt,name=lastModified,proto3" json:"lastModified,omitempty"`
-	Currencies           []string             `protobuf:"bytes,18,rep,name=currencies,proto3" json:"currencies,omitempty"`
-	Version              uint32               `protobuf:"varint,19,opt,name=version,proto3" json:"version,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
-	XXX_unrecognized     []byte               `json:"-"`
-	XXX_sizecache        int32                `json:"-"`
+	PeerID               string                    `protobuf:"bytes,1,opt,name=peerID,proto3" json:"peerID,omitempty"`
+	Handle               string                    `protobuf:"bytes,2,opt,name=handle,proto3" json:"handle,omitempty"`
+	Name                 string                    `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
+	Location             string                    `protobuf:"bytes,4,opt,name=location,proto3" json:"location,omitempty"`
+	About                string                    `protobuf:"bytes,5,opt,name=about,proto3" json:"about,omitempty"`
+	ShortDescription     string                    `protobuf:"bytes,6,opt,name=shortDescription,proto3" json:"shortDescription,omitempty"`
+	Nsfw                 bool                      `protobuf:"varint,7,opt,name=nsfw,proto3" json:"nsfw,omitempty"`
+	Vendor               bool                      `protobuf:"varint,8,opt,name=vendor,proto3" json:"vendor,omitempty"`
+	Moderator            bool                      `protobuf:"varint,9,opt,name=moderator,proto3" json:"moderator,omitempty"`
+	ModeratorInfo        *Moderator                `protobuf:"bytes,10,opt,name=moderatorInfo,proto3" json:"moderatorInfo,omitempty"`
+	ContactInfo          *Profile_Contact          `protobuf:"bytes,11,opt,name=contactInfo,proto3" json:"contactInfo,omitempty"`
+	Colors               *Profile_Colors           `protobuf:"bytes,12,opt,name=colors,proto3" json:"colors,omitempty"`
+	AvatarHashes         *Profile_Image            `protobuf:"bytes,13,opt,name=avatarHashes,proto3" json:"avatarHashes,omitempty"`
+	HeaderHashes         *Profile_Image            `protobuf:"bytes,14,opt,name=headerHashes,proto3" json:"headerHashes,omitempty"`
+	Stats                *Profile_Stats            `protobuf:"bytes,15,opt,name=stats,proto3" json:"stats,omitempty"`
+	BitcoinPubkey        string                    `protobuf:"bytes,16,opt,name=bitcoinPubkey,proto3" json:"bitcoinPubkey,omitempty"`
+	LastModified         *timestamp.Timestamp      `protobuf:"bytes,17,opt,name=lastModified,proto3" json:"lastModified,omitempty"`
+	Currencies           []string                  `protobuf:"bytes,18,rep,name=currencies,proto3" json:"currencies,omitempty"`
+	RefundPolicy         string                    `protobuf:"bytes,19,opt,name=refundPolicy,proto3" json:"refundPolicy,omitempty"`
+	TermsAndConditions   string                    `protobuf:"bytes,20,opt,name=termsAndConditions,proto3" json:"termsAndConditions,omitempty"`
+	ShippingOptions      []*Listing_ShippingOption `protobuf:"bytes,21,rep,name=shippingOptions,proto3" json:"shippingOptions,omitempty"`
+	Version              uint32                    `protobuf:"varint,22,opt,name=version,proto3" json:"version,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}                  `json:"-"`
+	XXX_unrecognized     []byte                    `json:"-"`
+	XXX_sizecache        int32                     `json:"-"`
 }
 
 func (m *Profile) Reset()         { *m = Profile{} }

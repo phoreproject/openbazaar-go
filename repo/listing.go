@@ -527,6 +527,21 @@ func (l *Listing) SetPrices(percentage float64) error {
 	return nil
 }
 
+// Set Terms and conditions
+func (l *Listing) SetTermsAndConditions(termsAndConditions string) {
+	l.listingProto.TermsAndConditions = termsAndConditions
+}
+
+// Set refurn policy
+func (l *Listing) SetRefundPolicy(refundPolicy string) {
+	l.listingProto.RefundPolicy = refundPolicy
+}
+
+// Set refurn policy
+func (l *Listing) SetShippingOptions(shippingDetails []*pb.Listing_ShippingOption) {
+	l.listingProto.ShippingOptions = shippingDetails
+}
+
 // SetAcceptedCurrencies the listing's accepted currency codes. Assumes the node
 // serving the listing has already validated the wallet supports the currencies.
 func (l *Listing) SetAcceptedCurrencies(codes ...string) error {

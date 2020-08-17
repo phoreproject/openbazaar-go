@@ -1000,7 +1000,7 @@ func (n *OpenBazaarNode) CalculateOrderTotal(contract *pb.RicardianContract) (*b
 				return big.NewInt(0), err
 			}
 
-			itemOriginAmt = oAmt * GetOrderQuantity(nrl.GetProtobuf(), item) / l.Metadata.CoinDivisibility
+			itemOriginAmt = oAmt.Amount * GetOrderQuantity(nrl.GetProtobuf(), item) / l.Metadata.CoinDivisibility
 		} else {
 			oAmt, err := nrl.GetPrice()
 			if err != nil {

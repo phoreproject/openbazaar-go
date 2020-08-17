@@ -758,15 +758,21 @@ func (n *OpenBazaarNode) SetTermsAndConditionsOnListings(termsAndConditions stri
 
 	walkpath := func(p string, f os.FileInfo, err error) error {
 		if !f.IsDir() && filepath.Ext(p) == ".json" {
-
-			sl, err := GetSignedListingFromPath(p)
+			signedProto, err := GetSignedListingFromPath(p)
 			if err != nil {
 				return err
 			}
 
-			sl.Listing.TermsAndConditions = termsAndConditions
+			oldSL := repo.NewSignedListingFromProtobuf(signedProto)
+			l := oldSL.GetListing()
 
-			err = n.UpdateListing(sl.Listing, false)
+			l.SetTermsAndConditions(termsAndConditions)
+
+			lb, err := l.MarshalJSON()
+			if err != nil {
+				return fmt.Errorf("marshaling signed listing (%s): %s", l.GetSlug(), err.Error())
+			}
+			err = n.UpdateListing(lb, false)
 			if err != nil {
 				return err
 			}
@@ -807,15 +813,21 @@ func (n *OpenBazaarNode) SetRefundPolicyOnListings(refundPolicy string) error {
 
 	walkpath := func(p string, f os.FileInfo, err error) error {
 		if !f.IsDir() && filepath.Ext(p) == ".json" {
-
-			sl, err := GetSignedListingFromPath(p)
+			signedProto, err := GetSignedListingFromPath(p)
 			if err != nil {
 				return err
 			}
 
-			sl.Listing.RefundPolicy = refundPolicy
+			oldSL := repo.NewSignedListingFromProtobuf(signedProto)
+			l := oldSL.GetListing()
 
-			err = n.UpdateListing(sl.Listing, false)
+			l.SetRefundPolicy(refundPolicy)
+
+			lb, err := l.MarshalJSON()
+			if err != nil {
+				return fmt.Errorf("marshaling signed listing (%s): %s", l.GetSlug(), err.Error())
+			}
+			err = n.UpdateListing(lb, false)
 			if err != nil {
 				return err
 			}
@@ -855,15 +867,21 @@ func (n *OpenBazaarNode) SetShippingDetailsOnListings(shippingDetails []*pb.List
 
 	walkpath := func(p string, f os.FileInfo, err error) error {
 		if !f.IsDir() && filepath.Ext(p) == ".json" {
-
-			sl, err := GetSignedListingFromPath(p)
+			signedProto, err := GetSignedListingFromPath(p)
 			if err != nil {
 				return err
 			}
 
-			sl.Listing.ShippingOptions = shippingDetails
+			oldSL := repo.NewSignedListingFromProtobuf(signedProto)
+			l := oldSL.GetListing()
 
-			err = n.UpdateListing(sl.Listing, false)
+			l.SetShippingOptions(shippingDetails)
+
+			lb, err := l.MarshalJSON()
+			if err != nil {
+				return fmt.Errorf("marshaling signed listing (%s): %s", l.GetSlug(), err.Error())
+			}
+			err = n.UpdateListing(lb, false)
 			if err != nil {
 				return err
 			}
