@@ -98,6 +98,17 @@ func DefaultWalletsConfig() *WalletsConfig {
 			MaxFee:           200,
 			WalletOptions:    nil,
 		},
+		ETH: &CoinConfig{
+			Type:             WalletTypeAPI,
+			APIPool:          CoinPoolETH,
+			APITestnetPool:   CoinPoolTETH,
+			FeeAPI:           "", // intentionally blank
+			LowFeeDefault:    7,
+			MediumFeeDefault: 15,
+			HighFeeDefault:   30,
+			MaxFee:           200,
+			WalletOptions:    EthereumDefaultOptions(),
+		},
 	}
 }
 

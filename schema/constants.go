@@ -115,6 +115,7 @@ const (
 var (
 	CoinPoolPHR = []string{CoinAPIOpenBazaarPHR}
 	CoinPoolBTC = []string{CoinAPIOpenBazaarBTC}
+	CoinPoolETH = []string{CoinAPIOpenBazaarETH}
 
 	CoinPoolTPHR = []string{CoinAPIOpenBazaarTPHR}
 	CoinPoolTBTC = []string{CoinAPIOpenBazaarTBTC}
