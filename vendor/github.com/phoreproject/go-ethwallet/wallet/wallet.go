@@ -46,9 +46,9 @@ var done, doneBalanceTicker chan bool
 
 const (
 	// InfuraAPIKey is the hard coded Infura API key
-	InfuraAPIKey = "v3/91c82af0169c4115940c76d331410749"
+	InfuraAPIKey = "v3/c95691970130492db6f2c920659e3f37"
 	// EtherScanAPIKey is needed for all Eherscan requests
-	EtherScanAPIKey = "KA15D8FCHGBFZ4CQ25Y4NZM24417AXWF7M"
+	EtherScanAPIKey = "B2U2U4NYY97ER6XWQD51TTRH2DCXT4MRUC"
 	maxGasLimit     = 400000
 )
 

@@ -22,11 +22,11 @@
 		},
 		{
 			"ImportPath": "github.com/phoreproject/go-ethwallet/util",
-			"Rev": "d370330a5102d2e757ba54c4fc29301adc130767"
+			"Rev": "bf96d9b58ec491a9b17a07cd4125371f0375df6f"
 		},
 		{
 			"ImportPath": "github.com/phoreproject/go-ethwallet/wallet",
-			"Rev": "d370330a5102d2e757ba54c4fc29301adc130767"
+			"Rev": "bf96d9b58ec491a9b17a07cd4125371f0375df6f"
 		},
 		{
 			"ImportPath": "github.com/OpenBazaar/golang-socketio",
