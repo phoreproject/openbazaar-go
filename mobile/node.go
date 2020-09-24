@@ -46,7 +46,6 @@ import (
 	"github.com/phoreproject/pm-go/repo"
 	"github.com/phoreproject/pm-go/repo/db"
 	"github.com/phoreproject/pm-go/repo/migrations"
-	"github.com/phoreproject/pm-go/schema"
 	apiSchema "github.com/phoreproject/pm-go/schema"
 	"github.com/phoreproject/pm-go/storage/selfhosted"
 	"github.com/phoreproject/pm-go/wallet"
