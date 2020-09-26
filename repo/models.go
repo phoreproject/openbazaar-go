@@ -58,7 +58,7 @@ type Metadata struct {
 	Txid       string
 	Address    string
 	Memo       string
-	OrderID    string
+	OrderId    string
 	Thumbnail  string
 	CanBumpFee bool
 }

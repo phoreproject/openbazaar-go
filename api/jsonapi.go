@@ -3055,7 +3055,7 @@ func (i *jsonAPIHandler) GETTransactions(w http.ResponseWriter, r *http.Request)
 		if ok {
 			tx.Address = m.Address
 			tx.Memo = m.Memo
-			tx.OrderID = m.OrderID
+			tx.OrderID = m.OrderId
 			tx.Thumbnail = m.Thumbnail
 			tx.CanBumpFee = m.CanBumpFee
 		}
@@ -3411,7 +3411,7 @@ func (i *jsonAPIHandler) POSTBumpFee(w http.ResponseWriter, r *http.Request) {
 		Txid:       newTxid.String(),
 		Address:    "",
 		Memo:       fmt.Sprintf("Fee bump of %s", txid),
-		OrderID:    "",
+		OrderId:    "",
 		Thumbnail:  "",
 		CanBumpFee: true,
 	}); err != nil {

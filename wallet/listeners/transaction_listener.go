@@ -354,7 +354,7 @@ func (l *TransactionListener) processSalePayment(txid string, output wallet.Tran
 			Txid:       txid,
 			Address:    "",
 			Memo:       title,
-			OrderID:    orderId,
+			OrderId:    orderId,
 			Thumbnail:  thumbnail,
 			CanBumpFee: bumpable,
 		}); err != nil {

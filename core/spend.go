@@ -149,7 +149,7 @@ func (n *OpenBazaarNode) Spend(args *SpendRequest) (*SpendResponse, error) {
 		Txid:       txid.String(),
 		Address:    toAddress,
 		Memo:       memo,
-		OrderID:    args.OrderID,
+		OrderId:    args.OrderID,
 		Thumbnail:  thumbnail,
 		CanBumpFee: false,
 	}); err != nil {

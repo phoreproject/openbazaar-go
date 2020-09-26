@@ -20,7 +20,7 @@ func (t *TxMetadataDB) Put(m repo.Metadata) error {
 	defer t.lock.Unlock()
 	stmt, err := t.db.Prepare("insert or replace into txmetadata(txid, address, memo, orderID, thumbnail, canBumpFee) values(?,?,?,?,?,?)")
 	if err != nil {
-		log.Errorf("prepring txmetadata sql for order (%s): %s", m.OrderID, err.Error())
+		log.Errorf("prepring txmetadata sql for order (%s): %s", m.OrderId, err.Error())
 		return err
 	}
 	defer stmt.Close()
@@ -28,9 +28,9 @@ func (t *TxMetadataDB) Put(m repo.Metadata) error {
 	if m.CanBumpFee {
 		bumpable = 1
 	}
-	_, err = stmt.Exec(m.Txid, m.Address, m.Memo, m.OrderID, m.Thumbnail, bumpable)
+	_, err = stmt.Exec(m.Txid, m.Address, m.Memo, m.OrderId, m.Thumbnail, bumpable)
 	if err != nil {
-		log.Errorf("putting txmetadata for order (%s): %s", m.OrderID, err.Error())
+		log.Errorf("putting txmetadata for order (%s): %s", m.OrderId, err.Error())
 		return err
 	}
 	return nil
@@ -55,7 +55,7 @@ func (t *TxMetadataDB) Get(txid string) (repo.Metadata, error) {
 	if canBumpFee > 0 {
 		bumpable = true
 	}
-	m = repo.Metadata{Txid: id, Address: address, Memo: memo, OrderID: orderId, Thumbnail: thumbnail, CanBumpFee: bumpable}
+	m = repo.Metadata{Txid: id, Address: address, Memo: memo, OrderId: orderId, Thumbnail: thumbnail, CanBumpFee: bumpable}
 	return m, nil
 }
 
@@ -83,7 +83,7 @@ func (t *TxMetadataDB) GetAll() (map[string]repo.Metadata, error) {
 			Txid:       txid,
 			Address:    address,
 			Memo:       memo,
-			OrderID:    orderId,
+			OrderId:    orderId,
 			Thumbnail:  thumbnail,
 			CanBumpFee: bumpable,
 		}
