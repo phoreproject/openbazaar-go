@@ -47,7 +47,6 @@ import (
 	"github.com/phoreproject/pm-go/net/service"
 	"github.com/phoreproject/pm-go/repo"
 	"github.com/phoreproject/pm-go/repo/db"
-	"github.com/phoreproject/pm-go/repo/migrations"
 	apiSchema "github.com/phoreproject/pm-go/schema"
 	"github.com/phoreproject/pm-go/storage/selfhosted"
 	"github.com/phoreproject/pm-go/wallet"
@@ -129,9 +128,7 @@ func NewNodeWithConfig(config *NodeConfig, password string, mnemonic string) (*N
 	mainLoggingBackend = logging.SetBackend(obFileBackendFormatted, stdoutBackendFormatted)
 	logging.SetLevel(logging.INFO, "")
 
-	migrations.WalletCoinType = util.ExtendCoinType(config.CoinType)
-
-	sqliteDB, err := initializeRepo(config.RepoPath, "", "", true, time.Now(), config.CoinType)
+	sqliteDB, err := initializeRepo(config.RepoPath, "", "", true, time.Now(), wi.Bitcoin)
 	if err != nil && err != repo.ErrRepoExists {
 		return nil, err
 	}
