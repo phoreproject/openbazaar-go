@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"database/sql"
 	"encoding/hex"
+	"github.com/OpenBazaar/wallet-interface"
 	"sync"
 	"testing"
 
@@ -19,7 +20,7 @@ func init() {
 	if err != nil {
 		log.Error(err)
 	}
-	wsdb = NewWatchedScriptStore(conn, new(sync.Mutex), wallet.Bitcoin)
+	wsdb = NewWatchedScriptStore(conn, new(sync.Mutex), util.ExtendCoinType(wallet.Bitcoin))
 }
 
 func TestWatchedScriptsDB_Put(t *testing.T) {

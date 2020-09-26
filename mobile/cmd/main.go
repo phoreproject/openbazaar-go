@@ -2,12 +2,10 @@ package main
 
 import (
 	"fmt"
-	"os"
-	"sync"
-	"time"
-
 	"github.com/jessevdk/go-flags"
 	"github.com/phoreproject/pm-go/mobile"
+	"os"
+	"path"
 )
 
 type Options struct {

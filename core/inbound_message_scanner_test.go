@@ -2,15 +2,16 @@ package core
 
 import (
 	"errors"
+	"github.com/phoreproject/multiwallet/util"
 	"sync"
 	"testing"
 
+	wi "github.com/OpenBazaar/wallet-interface"
+	"github.com/op/go-logging"
 	"github.com/phoreproject/pm-go/pb"
 	"github.com/phoreproject/pm-go/repo"
 	"github.com/phoreproject/pm-go/repo/db"
 	"github.com/phoreproject/pm-go/schema"
-	wi "github.com/OpenBazaar/wallet-interface"
-	"github.com/op/go-logging"
 	"gx/ipfs/QmYVXrKrKHDC9FobgmcmshCDyWwdrfwfanNQN4oxJ9Fk3h/go-libp2p-peer"
 )
 
@@ -95,7 +96,7 @@ func TestPerformTaskInboundMessageScanner(t *testing.T) {
 		return nil, nil
 	}
 
-	datastore := db.NewSQLiteDatastore(database, new(sync.Mutex), wi.Bitcoin)
+	datastore := db.NewSQLiteDatastore(database, new(sync.Mutex), util.ExtendCoinType(wi.Bitcoin))
 	worker := &inboundMessageScanner{
 		datastore:  datastore,
 		logger:     logging.MustGetLogger("testInboundMsgScanner"),

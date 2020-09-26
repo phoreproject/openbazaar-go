@@ -2,10 +2,10 @@ package core_test
 
 import (
 	"fmt"
+	"github.com/phoreproject/pm-go/ipfs"
 	"testing"
 
 	"github.com/golang/protobuf/proto"
-	"github.com/phoreproject/pm-go/core"
 	"github.com/phoreproject/pm-go/pb"
 	"github.com/phoreproject/pm-go/test"
 	"github.com/phoreproject/pm-go/test/factory"

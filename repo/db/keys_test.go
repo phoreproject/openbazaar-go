@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"crypto/rand"
 	"encoding/hex"
+	"github.com/phoreproject/pm-go/repo/db"
+	"github.com/phoreproject/pm-go/schema"
 	"sync"
 	"testing"
 
