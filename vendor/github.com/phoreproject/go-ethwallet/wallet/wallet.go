@@ -38,7 +38,7 @@ import (
 	"gopkg.in/yaml.v2"
 
 	"github.com/phoreproject/go-ethwallet/util"
-	ut "github.com/OpenBazaar/openbazaar-go/util"
+	ut "github.com/phoreproject/pm-go/util"
 )
 
 var _ = wi.Wallet(&EthereumWallet{})
