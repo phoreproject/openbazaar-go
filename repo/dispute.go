@@ -1,8 +1,8 @@
 package repo
 
 import (
-	"github.com/phoreproject/pm-go/pb"
 	"github.com/golang/protobuf/proto"
+	"github.com/phoreproject/pm-go/pb"
 	"math/big"
 )
 

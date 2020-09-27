@@ -13,10 +13,10 @@ import (
 	crypto "gx/ipfs/QmTW4SdgBWq9GjsBsHeUx8WuGxzhgzAf88UMH2w62PC8yK/go-libp2p-crypto"
 
 	"github.com/OpenBazaar/jsonpb"
-	"github.com/phoreproject/pm-go/ipfs"
-	"github.com/phoreproject/pm-go/pb"
 	"github.com/golang/protobuf/proto"
 	coremock "github.com/ipfs/go-ipfs/core/mock"
+	"github.com/phoreproject/pm-go/ipfs"
+	"github.com/phoreproject/pm-go/pb"
 )
 
 type Migration028 struct{ migrateListingsToV5Schema }

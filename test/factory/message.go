@@ -1,9 +1,9 @@
 package factory
 
 import (
+	"github.com/golang/protobuf/ptypes/any"
 	"github.com/phoreproject/pm-go/pb"
 	"github.com/phoreproject/pm-go/repo"
-	"github.com/golang/protobuf/ptypes/any"
 )
 
 func NewMessageWithOrderPayload() repo.Message {

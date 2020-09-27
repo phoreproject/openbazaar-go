@@ -4,8 +4,8 @@ import (
 	"math/big"
 	"strconv"
 
-	"github.com/phoreproject/pm-go/pb"
 	"github.com/golang/protobuf/proto"
+	"github.com/phoreproject/pm-go/pb"
 )
 
 // ToV5DisputeResolution scans through the dispute resolution looking for any deprecated fields and

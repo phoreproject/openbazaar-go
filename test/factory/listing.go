@@ -5,8 +5,8 @@ import (
 	"io/ioutil"
 	"path/filepath"
 
-	"github.com/phoreproject/pm-go/pb"
 	"github.com/golang/protobuf/ptypes/timestamp"
+	"github.com/phoreproject/pm-go/pb"
 
 	"github.com/OpenBazaar/jsonpb"
 )

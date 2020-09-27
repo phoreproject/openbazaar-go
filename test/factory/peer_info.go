@@ -4,10 +4,10 @@ import (
 	"encoding/base64"
 	"fmt"
 
-	"github.com/phoreproject/pm-go/pb"
-	"github.com/phoreproject/pm-go/repo"
 	"github.com/btcsuite/btcd/btcec"
 	"github.com/golang/protobuf/jsonpb"
+	"github.com/phoreproject/pm-go/pb"
+	"github.com/phoreproject/pm-go/repo"
 )
 
 func NewPeerIDProtobuf() *pb.ID {

@@ -271,16 +271,16 @@ func (n *OpenBazaarNode) toListingIndexData(l *repo.Listing) (repo.ListingIndexD
 	}
 
 	return repo.ListingIndexData{
-		Hash:             listingHash,
-		Slug:             l.GetSlug(),
-		Title:            l.GetTitle(),
-		Tags:             l.GetTags(),
-		Categories:       l.GetCategories(),
-		NSFW:             l.GetNsfw(),
-		ContractType:     l.GetContractType(),
-		Format:           l.GetFormat(),
-		Description:      l.GetShortDescription(),
-		Thumbnail:        repo.ListingThumbnail{
+		Hash:         listingHash,
+		Slug:         l.GetSlug(),
+		Title:        l.GetTitle(),
+		Tags:         l.GetTags(),
+		Categories:   l.GetCategories(),
+		NSFW:         l.GetNsfw(),
+		ContractType: l.GetContractType(),
+		Format:       l.GetFormat(),
+		Description:  l.GetShortDescription(),
+		Thumbnail: repo.ListingThumbnail{
 			previewImg.GetTiny(),
 			previewImg.GetSmall(),
 			previewImg.GetMedium(),
@@ -804,7 +804,6 @@ func (n *OpenBazaarNode) SetTermsAndConditionsOnListings(termsAndConditions stri
 	return nil
 }
 
-
 func (n *OpenBazaarNode) SetRefundPolicyOnListings(refundPolicy string) error {
 	absPath, err := filepath.Abs(path.Join(n.RepoPath, "root", "listings"))
 	if err != nil {
@@ -910,7 +909,6 @@ func (n *OpenBazaarNode) SetShippingDetailsOnListings(shippingDetails []*pb.List
 	if err != nil {
 		return err
 	}
-
 
 	return nil
 }

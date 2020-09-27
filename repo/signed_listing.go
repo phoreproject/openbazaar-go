@@ -7,8 +7,8 @@ import (
 	peer "gx/ipfs/QmYVXrKrKHDC9FobgmcmshCDyWwdrfwfanNQN4oxJ9Fk3h/go-libp2p-peer"
 
 	"github.com/OpenBazaar/jsonpb"
-	"github.com/phoreproject/pm-go/pb"
 	"github.com/golang/protobuf/proto"
+	"github.com/phoreproject/pm-go/pb"
 )
 
 // UnmarshalJSONSignedListing extracts a SignedListing from marshaled JSON

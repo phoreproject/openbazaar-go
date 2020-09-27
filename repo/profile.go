@@ -7,8 +7,8 @@ import (
 	"strconv"
 
 	"github.com/OpenBazaar/jsonpb"
-	"github.com/phoreproject/pm-go/pb"
 	"github.com/golang/protobuf/proto"
+	"github.com/phoreproject/pm-go/pb"
 )
 
 var (

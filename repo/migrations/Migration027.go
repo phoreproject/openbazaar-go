@@ -6,8 +6,8 @@ import (
 	"os"
 	"path"
 
-	"github.com/phoreproject/pm-go/ipfs"
 	"github.com/ipfs/go-ipfs/core/mock"
+	"github.com/phoreproject/pm-go/ipfs"
 )
 
 type Migration027 struct{ UpdateListingHash }

@@ -10,13 +10,13 @@ import (
 	"testing"
 
 	"github.com/OpenBazaar/jsonpb"
+	"github.com/golang/protobuf/proto"
+	coremock "github.com/ipfs/go-ipfs/core/mock"
 	"github.com/phoreproject/pm-go/ipfs"
 	"github.com/phoreproject/pm-go/pb"
 	"github.com/phoreproject/pm-go/repo/migrations"
 	"github.com/phoreproject/pm-go/schema"
 	"github.com/phoreproject/pm-go/test/factory"
-	"github.com/golang/protobuf/proto"
-	coremock "github.com/ipfs/go-ipfs/core/mock"
 )
 
 const (

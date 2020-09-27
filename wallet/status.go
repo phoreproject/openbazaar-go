@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/op/go-logging"
 	"github.com/phoreproject/multiwallet"
 	"github.com/phoreproject/pm-go/repo"
-	"github.com/op/go-logging"
 )
 
 type StatusUpdater struct {

@@ -1348,13 +1348,13 @@ func GetOriginalAmount(nrl *repo.Listing, item *pb.Order_Item) (*repo.CurrencyVa
 			itemOriginAmt = itemOriginAmt.AddBigFloatProduct(toHundredths(priceModifier))
 		}
 	} else if nrl.GetContractType() == pb.Listing_Metadata_CRYPTOCURRENCY.String() { // FIXED + CRYPTO
-        oAmt, err := nrl.GetPrice()
-        if err != nil {
-            return oAmt, err
-        }
+		oAmt, err := nrl.GetPrice()
+		if err != nil {
+			return oAmt, err
+		}
 
-        itemOriginAmt = oAmt.MulBigInt(GetOrderQuantity(nrl.GetProtobuf(), item))
-    } else {
+		itemOriginAmt = oAmt.MulBigInt(GetOrderQuantity(nrl.GetProtobuf(), item))
+	} else {
 		oAmt, err := nrl.GetPrice()
 		if err != nil {
 			return nil, err

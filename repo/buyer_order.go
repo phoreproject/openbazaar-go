@@ -3,8 +3,8 @@ package repo
 import (
 	"math/big"
 
-	"github.com/phoreproject/pm-go/pb"
 	"github.com/golang/protobuf/proto"
+	"github.com/phoreproject/pm-go/pb"
 )
 
 // ToV5Order scans through the order looking for any deprecated fields and turns them into their v5 counterpart.

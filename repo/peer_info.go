@@ -8,9 +8,9 @@ import (
 	crypto "gx/ipfs/QmTW4SdgBWq9GjsBsHeUx8WuGxzhgzAf88UMH2w62PC8yK/go-libp2p-crypto"
 	peer "gx/ipfs/QmYVXrKrKHDC9FobgmcmshCDyWwdrfwfanNQN4oxJ9Fk3h/go-libp2p-peer"
 
+	"github.com/btcsuite/btcd/btcec"
 	"github.com/phoreproject/pm-go/ipfs"
 	"github.com/phoreproject/pm-go/pb"
-	"github.com/btcsuite/btcd/btcec"
 )
 
 var (

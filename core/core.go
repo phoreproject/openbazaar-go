@@ -17,6 +17,9 @@ import (
 
 	"github.com/phoreproject/multiwallet"
 
+	"github.com/btcsuite/btcutil/hdkeychain"
+	"github.com/ipfs/go-ipfs/core"
+	logging "github.com/op/go-logging"
 	"github.com/phoreproject/pm-go/ipfs"
 	"github.com/phoreproject/pm-go/net"
 	rep "github.com/phoreproject/pm-go/net/repointer"
@@ -24,9 +27,6 @@ import (
 	"github.com/phoreproject/pm-go/pb"
 	"github.com/phoreproject/pm-go/repo"
 	sto "github.com/phoreproject/pm-go/storage"
-	"github.com/btcsuite/btcutil/hdkeychain"
-	"github.com/ipfs/go-ipfs/core"
-	logging "github.com/op/go-logging"
 	"golang.org/x/net/context"
 	"golang.org/x/net/proxy"
 )

@@ -307,13 +307,11 @@ const bulkUpdateCurrencyJSON = ` { "currencies":["ZEC", "BTC", "BCH", "LTC"] }`
 
 const bulkUpdateTermsJSON = ` { "terms":"NEW TERMS" }`
 
-
 //
 // Bulk Update Return Policy
 //
 
 const bulkUpdateReturnPolicyJSON = ` { "returnPolicy":"NEW RETURN POLICY" }`
-
 
 //
 // Moderation
