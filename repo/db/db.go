@@ -323,12 +323,18 @@ func (c *ConfigDB) UpdateMnemonic(mnemonic string, isEncrypted bool) error {
 
 	_, err = stmt.Exec("mnemonic", mnemonic)
 	if err != nil {
-		tx.Rollback()
+		rollbackErr := tx.Rollback()
+		if rollbackErr != nil {
+			log.Error(rollbackErr)
+		}
 		return err
 	}
 	_, err = stmt.Exec("isMnemonicEncrypted", isEncrypted)
 	if err != nil {
-		tx.Rollback()
+		rollbackErr := tx.Rollback()
+		if rollbackErr != nil {
+			log.Error(rollbackErr)
+		}
 		return err
 	}
 
