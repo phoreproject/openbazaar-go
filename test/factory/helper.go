@@ -7,7 +7,7 @@ import (
 
 func fixtureLoadPath() string {
 	gopath := os.Getenv("GOPATH")
-	repoPath := filepath.Join("src", "github.com", "OpenBazaar", "openbazaar-go")
+	repoPath := filepath.Join("src", "github.com", "phoreproject", "pm-go")
 	fixturePath, err := filepath.Abs(filepath.Join(gopath, repoPath, "test", "factory", "fixtures"))
 	if err != nil {
 		panic("cannot create absolute path")
