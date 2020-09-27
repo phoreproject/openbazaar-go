@@ -119,6 +119,8 @@ func post(i *jsonAPIHandler, path string, w http.ResponseWriter, r *http.Request
 		i.POSTBulkUpdateTerms(w, r)
 	case strings.HasPrefix(path, "/ob/bulkupdaterefundpolicy"):
 		i.POSTBulkUpdateRefundPolicy(w, r)
+	case strings.HasPrefix(path, "/ob/bulkupdatereturnpolicy"):
+		i.POSTBulkUpdateRefundPolicy(w, r)
 	case strings.HasPrefix(path, "/ob/bulkupdateshippingoptions"):
 		i.POSTBulkUpdateShippingDetails(w, r)
 	case strings.HasPrefix(path, "/ob/resendordermessage"):

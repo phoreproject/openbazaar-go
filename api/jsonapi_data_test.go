@@ -305,7 +305,7 @@ const bulkUpdateCurrencyJSON = ` { "currencies":["ZEC", "BTC", "BCH", "LTC"] }`
 // Bulk Update Terms and Conditions
 //
 
-const bulkUpdateTermsJSON = ` { "terms":"NEW TERMS" }`
+const bulkUpdateTermsJSON = ` { "termsAndConditions":"NEW TERMS" }`
 
 //
 // Bulk Update Return Policy

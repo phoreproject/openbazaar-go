@@ -70,26 +70,10 @@ const postMigration016Config = `{
 			"TrustedPeer": "",
 			"WalletOptions": null
 		},
-		"ETH": {
-			"Type": "API",
-			"API": [
-				"https://mainnet.infura.io"
-			],
-			"APITestnet": [
-				"https://rinkeby.infura.io"
-			],
-			"MaxFee": 200,
-			"FeeAPI": "",
-			"HighFeeDefault": 30,
-			"MediumFeeDefault": 15,
-			"LowFeeDefault": 7,
-			"TrustedPeer": "",
-			"WalletOptions": {
-				"RegistryAddress": "0x403d907982474cdd51687b09a8968346159378f3",
-				"RinkebyRegistryAddress": "0x403d907982474cdd51687b09a8968346159378f3",
-				"RopstenRegistryAddress": "0x403d907982474cdd51687b09a8968346159378f3"
-			}
-		}
+		"BCH": null,
+		"LTC": null,
+		"ZEC": null,
+		"ETH": null
 	}
 }`
 

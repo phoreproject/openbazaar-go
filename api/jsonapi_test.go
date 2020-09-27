@@ -682,8 +682,6 @@ func TestListings(t *testing.T) {
 
 		// Bulk update currency in listings
 		{"POST", "/ob/bulkupdatecurrency", bulkUpdateCurrencyJSON, 200, `{"success": "true"}`},
-		{"POST", "/ob/bulkupdateterms", bulkUpdateTermsJSON, 200, `{"success": "true"}`},
-		{"POST", "/ob/bulkupdatereturnpolicy", bulkUpdateReturnPolicyJSON, 200, `{"success": "true"}`},
 	})
 }
 
@@ -739,6 +737,7 @@ func TestCryptoListingsPriceModifier(t *testing.T) {
 	})
 
 	listing.Metadata.Format = pb.Listing_Metadata_FIXED_PRICE
+	listing.Item.PriceModifier = 0
 	runAPITest(t, apiTest{
 		"POST", "/ob/listing", jsonFor(t, listing), 200, `{"slug": "crypto"}`,
 	})
