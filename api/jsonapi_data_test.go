@@ -301,17 +301,17 @@ const inventoryUpdateJSON = `[{
 
 const bulkUpdateCurrencyJSON = ` { "currencies":["ZEC", "BTC", "BCH", "LTC"] }`
 
+////
+//// Bulk Update Terms and Conditions
+////
 //
-// Bulk Update Terms and Conditions
+//const bulkUpdateTermsJSON = ` { "termsAndConditions":"NEW TERMS" }`
 //
-
-const bulkUpdateTermsJSON = ` { "termsAndConditions":"NEW TERMS" }`
-
+////
+//// Bulk Update Return Policy
+////
 //
-// Bulk Update Return Policy
-//
-
-const bulkUpdateReturnPolicyJSON = ` { "returnPolicy":"NEW RETURN POLICY" }`
+//const bulkUpdateReturnPolicyJSON = ` { "returnPolicy":"NEW RETURN POLICY" }`
 
 //
 // Moderation
