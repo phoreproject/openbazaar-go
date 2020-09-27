@@ -66,7 +66,7 @@ func TestTxMetadataDB_Put(t *testing.T) {
 	if memo != m.Memo {
 		t.Error("TxMetadataDB failed to put memo")
 	}
-	if orderId != m.OrderID {
+	if orderId != m.OrderId {
 		t.Error("TxMetadataDB failed to put order ID")
 	}
 	if thumbnail != m.Thumbnail {
@@ -109,7 +109,7 @@ func TestTxMetadataDB_Get(t *testing.T) {
 	if ret.Memo != m.Memo {
 		t.Error("TxMetadataDB failed to get memo")
 	}
-	if ret.OrderID != m.OrderID {
+	if ret.OrderId != m.OrderId {
 		t.Error("TxMetadataDB failed to get order ID")
 	}
 	if ret.Thumbnail != m.Thumbnail {
@@ -159,7 +159,7 @@ func TestTxMetadataDB_GetAll(t *testing.T) {
 	if ret.Memo != m.Memo {
 		t.Error("TxMetadataDB failed to get memo")
 	}
-	if ret.OrderID != m.OrderID {
+	if ret.OrderId != m.OrderId {
 		t.Error("TxMetadataDB failed to get order ID")
 	}
 	if ret.Thumbnail != m.Thumbnail {
