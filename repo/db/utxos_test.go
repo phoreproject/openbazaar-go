@@ -51,7 +51,7 @@ func TestUtxoPut(t *testing.T) {
 	defer stmt.Close()
 
 	var outpoint string
-	var value int
+	var value string
 	var height int
 	var scriptPubkey string
 	o := utxo.Op.Hash.String() + ":" + strconv.Itoa(int(utxo.Op.Index))
@@ -62,7 +62,7 @@ func TestUtxoPut(t *testing.T) {
 	if outpoint != o {
 		t.Error("Utxo db returned wrong outpoint")
 	}
-	if value != int(utxo.Value) {
+	if value != utxo.Value {
 		t.Error("Utxo db returned wrong value")
 	}
 	if height != int(utxo.AtHeight) {

@@ -18,15 +18,15 @@ import (
 	"syscall"
 	"time"
 
-	routinghelpers "gx/ipfs/QmRCrPXk2oUwpK1Cj2FXrUotRpddUxz56setkny2gz13Cx/go-libp2p-routing-helpers"
-	libp2p "gx/ipfs/QmRxk6AUaGaKCfzS1xSNRojiAPd7h2ih8GuCdjJBF3Y6GK/go-libp2p"
-	dht "gx/ipfs/QmSY3nkMNLzh9GdbFKK5tT7YMfLpf52iUZ8ZRkr29MJaa5/go-libp2p-kad-dht"
+	"gx/ipfs/QmRCrPXk2oUwpK1Cj2FXrUotRpddUxz56setkny2gz13Cx/go-libp2p-routing-helpers"
+	"gx/ipfs/QmRxk6AUaGaKCfzS1xSNRojiAPd7h2ih8GuCdjJBF3Y6GK/go-libp2p"
+	"gx/ipfs/QmSY3nkMNLzh9GdbFKK5tT7YMfLpf52iUZ8ZRkr29MJaa5/go-libp2p-kad-dht"
 	ma "gx/ipfs/QmTZBfrPJmjWsCvHEtX5FE6KimVJhsJg5sBbqEFYf4UZtL/go-multiaddr"
-	config "gx/ipfs/QmUAuYuiafnJRZxDDX7MuruMNsicYNuyub5vUeAcupUBNs/go-ipfs-config"
-	peer "gx/ipfs/QmYVXrKrKHDC9FobgmcmshCDyWwdrfwfanNQN4oxJ9Fk3h/go-libp2p-peer"
+	"gx/ipfs/QmUAuYuiafnJRZxDDX7MuruMNsicYNuyub5vUeAcupUBNs/go-ipfs-config"
+	"gx/ipfs/QmYVXrKrKHDC9FobgmcmshCDyWwdrfwfanNQN4oxJ9Fk3h/go-libp2p-peer"
 	oniontp "gx/ipfs/QmYv2MbwHn7qcvAPFisZ94w85crQVpwUuv8G7TuUeBnfPb/go-onion-transport"
 	ipfslogging "gx/ipfs/QmbkT7eMTyXfpeyB3ZMxxcxg7XH8t6uXp49jqzz4HB7BGF/go-log/writer"
-	manet "gx/ipfs/Qmc85NSvmSG4Frn9Vb2cBc1rMyULH6D3TNVEfCzSKoUpip/go-multiaddr-net"
+	"gx/ipfs/Qmc85NSvmSG4Frn9Vb2cBc1rMyULH6D3TNVEfCzSKoUpip/go-multiaddr-net"
 
 	wi "github.com/OpenBazaar/wallet-interface"
 	"github.com/btcsuite/btcd/chaincfg"
@@ -47,7 +47,6 @@ import (
 	"github.com/phoreproject/pm-go/net/service"
 	"github.com/phoreproject/pm-go/repo"
 	"github.com/phoreproject/pm-go/repo/db"
-	"github.com/phoreproject/pm-go/repo/migrations"
 	"github.com/phoreproject/pm-go/schema"
 	sto "github.com/phoreproject/pm-go/storage"
 	"github.com/phoreproject/pm-go/storage/dropbox"
@@ -89,10 +88,8 @@ type Start struct {
 	DisableWallet        bool     `long:"disablewallet" description:"disable the wallet functionality of the node"`
 	DisableExchangeRates bool     `long:"disableexchangerates" description:"disable the exchange rate service to prevent api queries"`
 	Storage              string   `long:"storage" description:"set the outgoing message storage option [self-hosted, dropbox] default=self-hosted"`
-	BitcoinCash          bool     `long:"bitcoincash" description:"use a Bitcoin Cash wallet in a dedicated data directory"`
-	ZCash                string   `long:"zcash" description:"use a ZCash wallet in a dedicated data directory. To use this you must pass in the location of the zcashd binary."`
 
-	ForceKeyCachePurge bool `long:"forcekeypurge" description:"repair test for issue OpenBazaar/openbazaar-go#1593; use as instructed only"`
+	ForceKeyCachePurge bool `long:"forcekeypurge" description:"repair test for issue phoreproject/pm-go#1593; use as instructed only"`
 }
 
 func (x *Start) Execute(args []string) error {
@@ -111,19 +108,11 @@ func (x *Start) Execute(args []string) error {
 	if x.Testnet || x.Regtest {
 		isTestnet = true
 	}
-	if x.BitcoinCash && x.ZCash != "" {
-		return errors.New("bitcoin cash and zcash cannot be used at the same time")
-	}
 
 	// Set repo path
-	repoPath, err := repo.GetRepoPath(isTestnet)
+	repoPath, err := repo.GetRepoPath(isTestnet, x.DataDir)
 	if err != nil {
 		return err
-	}
-	if x.BitcoinCash {
-		repoPath += "-bitcoincash"
-	} else if x.ZCash != "" {
-		repoPath += "-zcash"
 	}
 	if x.DataDir != "" {
 		repoPath = x.DataDir
@@ -188,15 +177,7 @@ func (x *Start) Execute(args []string) error {
 		return err
 	}
 
-	ct := util.CoinTypePhore
-	if x.BitcoinCash || strings.Contains(repoPath, "-bitcoincash") {
-		ct = util.ExtendCoinType(wi.BitcoinCash)
-	} else if x.ZCash != "" || strings.Contains(repoPath, "-zcash") {
-		ct = util.ExtendCoinType(wi.Zcash)
-	}
-
-	migrations.WalletCoinType = ct
-	sqliteDB, err := InitializeRepo(repoPath, x.Password, "", isTestnet, time.Now(), ct)
+	sqliteDB, err := InitializeRepo(repoPath, x.Password, "", isTestnet, time.Now(), util.ExtendCoinType(wi.Bitcoin))
 	if err != nil && err != repo.ErrRepoExists {
 		log.Error("repo init:", err)
 		return err
@@ -610,6 +591,12 @@ func (x *Start) Execute(args []string) error {
 
 	resyncManager := resync.NewResyncManager(sqliteDB.Sales(), sqliteDB.Purchases(), core.Node.Multiwallet)
 
+	// assert reserve wallet is available on startup for later usage
+	_, err = core.Node.ReserveCurrencyConverter()
+	if err != nil {
+		return fmt.Errorf("verifying reserve currency converter: %s", err.Error())
+	}
+
 	// Offline messaging storage
 	var storage sto.OfflineMessagingStorage
 	if x.Storage == "self-hosted" || x.Storage == "" {
@@ -682,6 +669,7 @@ func (x *Start) Execute(args []string) error {
 		core.Node.StartMessageRetriever()
 		core.Node.StartPointerRepublisher()
 		core.Node.StartRecordAgingNotifier()
+		core.Node.StartInboundMsgScanner()
 
 		core.Node.PublishLock.Unlock()
 		err = core.Node.UpdateFollow()

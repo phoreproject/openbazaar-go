@@ -1,12 +1,32 @@
+.DEFAULT_GOAL := help
+
+##
+## Global ENV vars
+##
+
+GIT_SHA ?= $(shell git rev-parse --short=8 HEAD)
+GIT_TAG ?= $(shell git describe --tags --abbrev=0)
+
+##
+## Helpful Help
+##
+
+.PHONY: help
+help:
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
+
+
 ##
 ## Building
 ##
 
-ios_framework:
-	gomobile bind -target=ios github.com/phoreproject/pm-go/mobile
+.PHONY: ios_framework
+ios_framework: ## Build iOS Framework for mobile
+	gomobile bind -target=ios/arm64,ios/amd64 -iosversion=10 -ldflags="-s -w" github.com/phoreproject/pm-go/mobile
 
-android_framework:
-	gomobile bind -target=android github.com/phoreproject/pm-go/mobile
+.PHONY: android_framework
+android_framework: ## Build Android Framework for mobile
+	gomobile bind -target=android/arm,android/arm64,android/amd64 -ldflags="-s -w" github.com/phoreproject/pm-go/mobile
 
 ##
 ## Protobuf compilation
@@ -17,20 +37,62 @@ P_ANY = Mgoogle/protobuf/any.proto=github.com/golang/protobuf/ptypes/any
 PKGMAP = $(P_TIMESTAMP),$(P_ANY)
 
 .PHONY: protos
-protos:
+protos: ## Build go files for proto definitions
 	cd pb/protos && PATH=$(PATH):$(GOPATH)/bin protoc --go_out=$(PKGMAP):.. *.proto
+
+
+##
+## Testing
+##
+MARKETPLACED_NAME ?= marketplaced-$(GIT_SHA)
+BITCOIND_PATH ?= .
+
+.PHONY: marketplaced
+marketplaced: ## Build daemon
+	$(info "Building Marketplace daemon...")
+	go build -o ./$(MARKETPLACED_NAME) .
+
+.PHONY: qa_test
+qa_test: marketplaced ## Run QA test suite against current working copy
+	$(info "Running QA... (marketplaced: ../$(MARKETPLACED_NAME) bitcoind: $(BITCOIND_PATH)/bin/bitcoind)")
+	(cd qa && ./runtests.sh ../$(MARKETPLACED_NAME) $(BITCOIND_PATH)/bin/bitcoind)
+
+.PHONY: qa_eth_test
+qa_eth_test: openbazaard ## Run ETH-based QA test suite against current working copy
+	$(info "Running ETH QA... (openbazaard: ../$(OPENBAZAARD_NAME))")
+	(cd qa && ./runtests_eth.sh ../$(OPENBAZAARD_NAME))
 
 ##
 ## Docker
 ##
-DOCKER_PROFILE ?= openbazaar
-DOCKER_VERSION ?= $(shell git describe --tags --abbrev=0)
-DOCKER_IMAGE_NAME ?= $(DOCKER_PROFILE)/server:$(DOCKER_VERSION)
+PUBLIC_DOCKER_REGISTRY ?= PhoreMarketplace
+QA_DEV_TAG ?= 0.10
 
-.PHONY: docker
-docker:
-	docker build -t $(DOCKER_IMAGE_NAME) .
+DOCKER_SERVER_IMAGE_NAME ?= $(PUBLIC_DOCKER_REGISTRY)/server:$(GIT_TAG)
+DOCKER_QA_IMAGE_NAME ?= $(PUBLIC_DOCKER_REGISTRY)/server-qa:$(QA_DEV_TAG)
+DOCKER_DEV_IMAGE_NAME ?= $(PUBLIC_DOCKER_REGISTRY)/server-dev:$(QA_DEV_TAG)
 
-.PHONY: push_docker
-push_docker:
-	docker push $(DOCKER_IMAGE_NAME)
+
+.PHONY: docker_build
+docker_build: ## Build container for daemon
+	docker build -t $(DOCKER_SERVER_IMAGE_NAME) .
+
+.PHONY: docker_push
+docker_push: docker ## Push container for daemon
+	docker push $(DOCKER_SERVER_IMAGE_NAME)
+
+.PHONY: qa_docker_build
+qa_docker_build: ## Build container with QA test dependencies included
+	docker build -t $(DOCKER_QA_IMAGE_NAME) -f ./Dockerfile.qa .
+
+.PHONY: qa_docker_push
+qa_docker_push: qa_docker_build ## Push container for daemon QA test environment
+	docker push $(DOCKER_QA_IMAGE_NAME)
+
+.PHONY: dev_docker_build
+dev_docker: ## Build container with dev dependencies included
+	docker build -t $(DOCKER_DEV_IMAGE_NAME) -f ./Dockerfile.dev .
+
+.PHONY: dev_docker_push
+dev_docker_push: dev_docker_build ## Push container for daemon dev environment
+	docker push $(DOCKER_DEV_IMAGE_NAME)

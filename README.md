@@ -34,6 +34,14 @@ The easiest way to run the server is to download a pre-built binary. You can fin
 
 To build from source you will need to have Go installed and properly configured. Detailed instructions for installing Go and marketplace-go on each operating system can be found in the [docs package](https://github.com/phoreproject/pm-go/tree/master/docs).
 
+### Run via Docker image
+
+You can also use our Docker Hub image to run openbazaar-go. `latest` points to the latest release, but you can run any other version by matching the release tag to the Docker image tag.
+
+```
+docker run -it openbazaar/server:latest [OPTIONS] start [start-OPTIONS]
+```
+
 ## Dependency Management
 
 We use [Godeps](https://github.com/tools/godep) with vendored third-party packages.
@@ -68,8 +76,7 @@ Help Options:
       -p, --password=             the encryption password if the database is encrypted
       -t, --testnet               use the test network
       -r, --regtest               run in regression test mode
-      -l, --loglevel=             set the logging level [debug, info, notice, warning, error, critical]
-                                  (default: debug)
+      -l, --loglevel=             set the logging level [debug, info, notice, warning, error, critical] (default: debug)
       -f, --nologfiles            save logs on disk
       -a, --allowip=              only allow API connections from these IPs
       -s, --stun                  use stun on µTP IPv4
@@ -77,20 +84,15 @@ Help Options:
       -c, --authcookie=           turn on API authentication and use this specific cookie
       -u, --useragent=            add a custom user-agent field
       -v, --verbose               print openbazaar logs to stdout
-          --torpassword=          Set the tor control password. This will override the tor password in
-                                  the config.
-          --tor                   Automatically configure the daemon to run as a Tor hidden service and
-                                  use Tor exclusively. Requires Tor to be running.
-          --dualstack             Automatically configure the daemon to run as a Tor hidden service IN
-                                  ADDITION to using the clear internet. Requires Tor to be running.
-                                  WARNING: this mode is not private
+          --torpassword=          Set the tor control password. This will override the tor password in the config.
+          --tor                   Automatically configure the daemon to run as a Tor hidden service and use Tor exclusively. Requires
+                                  Tor to be running.
+          --dualstack             Automatically configure the daemon to run as a Tor hidden service IN ADDITION to using the clear
+                                  internet. Requires Tor to be running. WARNING: this mode is not private
           --disablewallet         disable the wallet functionality of the node
           --disableexchangerates  disable the exchange rate service to prevent api queries
-          --storage=              set the outgoing message storage option [self-hosted, dropbox]
-                                  (default=self-hosted)
-          --bitcoincash           use a Bitcoin Cash wallet in a dedicated data directory
-          --zcash=                use a ZCash wallet in a dedicated data directory. To use this you must
-                                  pass in the location of the zcashd binary.
+          --storage=              set the outgoing message storage option [self-hosted, dropbox] default=self-hosted
+          --forcekeypurge         repair test for issue OpenBazaar/openbazaar-go#1593; use as instructed only
 ```
 
 ## Documentation

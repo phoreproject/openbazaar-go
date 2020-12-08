@@ -2,12 +2,10 @@ package main
 
 import (
 	"fmt"
-	"os"
-	"sync"
-	"time"
-
 	"github.com/jessevdk/go-flags"
 	"github.com/phoreproject/pm-go/mobile"
+	"os"
+	"path"
 )
 
 type Options struct {
@@ -21,7 +19,7 @@ var (
 )
 
 func main() {
-	var dataPath = "/Users/mg/work/ob/PhoreMarketplace/config_mobile_test"
+	var dataPath = path.Join(os.TempDir(), "ob-mobile")
 	if _, err := parser.Parse(); err != nil {
 		if len(os.Args) > 1 && os.Args[1] == "-h" {
 			os.Exit(0)
@@ -35,7 +33,6 @@ func main() {
 	}
 
 	var (
-		wg     sync.WaitGroup
 		n, err = mobile.NewNodeWithConfig(&mobile.NodeConfig{
 			RepoPath: dataPath,
 			Testnet:  options.TestnetEnabled,
@@ -48,10 +45,5 @@ func main() {
 		fmt.Println(err.Error())
 	}
 
-	time.Sleep(time.Second * 10)
-	fmt.Println("restarting...", time.Now())
-	go n.Restart()
-
-	wg.Add(1)
-	wg.Wait()
+	select {}
 }

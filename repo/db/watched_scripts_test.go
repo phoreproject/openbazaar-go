@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"database/sql"
 	"encoding/hex"
+	"github.com/OpenBazaar/wallet-interface"
 	"sync"
 	"testing"
 
@@ -15,8 +16,11 @@ var wsdb repo.WatchedScriptStore
 
 func init() {
 	conn, _ := sql.Open("sqlite3", ":memory:")
-	initDatabaseTables(conn, "")
-	wsdb = NewWatchedScriptStore(conn, new(sync.Mutex), util.CoinTypePhore)
+	err := initDatabaseTables(conn, "")
+	if err != nil {
+		log.Error(err)
+	}
+	wsdb = NewWatchedScriptStore(conn, new(sync.Mutex), util.ExtendCoinType(wallet.Bitcoin))
 }
 
 func TestWatchedScriptsDB_Put(t *testing.T) {

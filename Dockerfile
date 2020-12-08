@@ -5,7 +5,7 @@ RUN go build --ldflags '-extldflags "-static"' -o /opt/marketplaced /go/src/gith
 
 # Final state - Create image containing nothing but the marketplaced binary and
 # some base settings
-FROM phoremarketplace/base:v1.0.0
+FROM PhoreMarketplace/base:v1.0.0
 
 # Document ports in use
 #   4002 - HTTP(s) API

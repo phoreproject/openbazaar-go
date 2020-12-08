@@ -83,7 +83,7 @@ NOTE FOR NEW GOLANG HACKERS:
 
 In most projects you usually perform a `git clone` of the repository in order to start hacking. 
 
-With `marketplace-go` There's no need to manually `git clone` the project, this is done for you when you issue the `go get github.com/phoreproject/pm-go` command, doing a manual `git clone` will only give you a repository that's missing a lot of recursive dependencies and building headaches.
+With `pm-go` There's no need to manually `git clone` the project, this is done for you when you issue the `go get github.com/phoreproject/pm-go` command, doing a manual `git clone` will only give you a repository that's missing a lot of recursive dependencies and building headaches.
 
 If you are used to having all your other projects in some other place on disk, just make a symlink from `$GOPATH/src/github.com/phoreproject/pm-go` into your usual workspace folder.
 

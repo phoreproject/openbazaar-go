@@ -10,6 +10,8 @@ import (
 	"github.com/phoreproject/multiwallet/model"
 	"github.com/phoreproject/multiwallet/service"
 	"io"
+	"math/big"
+	"strconv"
 	"time"
 
 	"github.com/OpenBazaar/spvwallet"
@@ -34,8 +36,8 @@ import (
 	"golang.org/x/net/proxy"
 )
 
-// RPCWallet represents a wallet based on JSON-RPC and Bitcoind
-type RPCWallet struct {
+// PhoreWallet represents a wallet based on JSON-RPC and Bitcoind
+type PhoreWallet struct {
 	db     wi.Datastore
 	km     *keys.KeyManager
 	params *chaincfg.Params
@@ -50,8 +52,16 @@ type RPCWallet struct {
 	log           *logging.Logger
 }
 
+var (
+	_                       = wi.Wallet(&PhoreWallet{})
+	PhoreCurrencyDefinition = wi.CurrencyDefinition{
+		Code:         "PHR",
+		Divisibility: 8,
+	}
+)
+
 // NewPhoreWallet creates a new wallet given
-func NewPhoreWallet(cfg config.CoinConfig, mnemonic string, params *chaincfg.Params, proxy proxy.Dialer, cache cache.Cacher, disableExchangeRates bool) (*RPCWallet, error) {
+func NewPhoreWallet(cfg config.CoinConfig, mnemonic string, params *chaincfg.Params, proxy proxy.Dialer, cache cache.Cacher, disableExchangeRates bool) (*PhoreWallet, error) {
 	seed, err := b39.NewSeedWithErrorChecking(mnemonic, "")
 	if err != nil {
 		return nil, err
@@ -85,9 +95,9 @@ func NewPhoreWallet(cfg config.CoinConfig, mnemonic string, params *chaincfg.Par
 		return nil, err
 	}
 
-	fp := spvwallet.NewFeeProvider(cfg.MaxFee, cfg.HighFee, cfg.MediumFee, cfg.LowFee, cfg.FeeAPI, proxy)
+	fp := spvwallet.NewFeeProvider(cfg.MaxFee, cfg.HighFee, cfg.MediumFee, cfg.LowFee, cfg.SuperLowFee, cfg.FeeAPI, proxy)
 
-	return &RPCWallet{
+	return &PhoreWallet{
 		db:            cfg.DB,
 		km:            km,
 		params:        params,
@@ -106,17 +116,17 @@ func keyToAddress(key *hd.ExtendedKey, params *chaincfg.Params) (btc.Address, er
 }
 
 // Start sets up the rpc wallet
-func (w *RPCWallet) Start() {
+func (w *PhoreWallet) Start() {
 	w.client.Start()
 	w.ws.Start()
 }
 
-func (w *RPCWallet) Params() *chaincfg.Params {
+func (w *PhoreWallet) Params() *chaincfg.Params {
 	return w.params
 }
 
 // CurrencyCode returns the currency code of the wallet
-func (w *RPCWallet) CurrencyCode() string {
+func (w *PhoreWallet) CurrencyCode() string {
 	if w.params.Name == PhoreMainNetParams.Name {
 		return "phr"
 	} else {
@@ -125,21 +135,24 @@ func (w *RPCWallet) CurrencyCode() string {
 }
 
 // IsDust determines if an amount is considered dust
-func (w *RPCWallet) IsDust(amount int64) bool {
-	return txrules.IsDustAmount(btc.Amount(amount), 25, txrules.DefaultRelayFeePerKb)
+func (w *PhoreWallet) IsDust(amount big.Int) bool {
+	if !amount.IsInt64() || amount.Cmp(big.NewInt(0)) <= 0 {
+		return false
+	}
+	return txrules.IsDustAmount(btc.Amount(amount.Int64()), 25, txrules.DefaultRelayFeePerKb)
 }
 
 // MasterPrivateKey returns the wallet's master private key
-func (w *RPCWallet) MasterPrivateKey() *hd.ExtendedKey {
+func (w *PhoreWallet) MasterPrivateKey() *hd.ExtendedKey {
 	return w.mPrivKey
 }
 
 // MasterPublicKey returns the wallet's key used to derive public keys
-func (w *RPCWallet) MasterPublicKey() *hd.ExtendedKey {
+func (w *PhoreWallet) MasterPublicKey() *hd.ExtendedKey {
 	return w.mPubKey
 }
 
-func (w *RPCWallet) ChildKey(keyBytes []byte, chaincode []byte, isPrivateKey bool) (*hd.ExtendedKey, error) {
+func (w *PhoreWallet) ChildKey(keyBytes []byte, chaincode []byte, isPrivateKey bool) (*hd.ExtendedKey, error) {
 	parentFP := []byte{0x00, 0x00, 0x00, 0x00}
 	var id []byte
 	if isPrivateKey {
@@ -159,7 +172,7 @@ func (w *RPCWallet) ChildKey(keyBytes []byte, chaincode []byte, isPrivateKey boo
 }
 
 // CurrentAddress returns an unused address
-func (w *RPCWallet) CurrentAddress(purpose wallet.KeyPurpose) btc.Address {
+func (w *PhoreWallet) CurrentAddress(purpose wallet.KeyPurpose) btc.Address {
 	key, err := w.km.GetCurrentKey(purpose)
 	if err != nil {
 		w.log.Errorf("Error generating current key: %s", err)
@@ -172,7 +185,7 @@ func (w *RPCWallet) CurrentAddress(purpose wallet.KeyPurpose) btc.Address {
 }
 
 // NewAddress creates a new address
-func (w *RPCWallet) NewAddress(purpose wallet.KeyPurpose) btc.Address {
+func (w *PhoreWallet) NewAddress(purpose wallet.KeyPurpose) btc.Address {
 	key, err := w.km.GetNextUnused(purpose)
 	if err != nil {
 		w.log.Errorf("Error generating next unused key: %s", err)
@@ -188,12 +201,12 @@ func (w *RPCWallet) NewAddress(purpose wallet.KeyPurpose) btc.Address {
 }
 
 // DecodeAddress decodes an address string to an address using the wallet's chain parameters
-func (w *RPCWallet) DecodeAddress(addr string) (btc.Address, error) {
+func (w *PhoreWallet) DecodeAddress(addr string) (btc.Address, error) {
 	return btc.DecodeAddress(addr, w.params)
 }
 
 // ScriptToAddress converts a script to an address
-func (w *RPCWallet) ScriptToAddress(script []byte) (btc.Address, error) {
+func (w *PhoreWallet) ScriptToAddress(script []byte) (btc.Address, error) {
 	return scriptToAddress(script, w.params)
 }
 
@@ -209,12 +222,12 @@ func scriptToAddress(script []byte, params *chaincfg.Params) (btc.Address, error
 }
 
 // AddressToScript returns the script for a given address
-func (w *RPCWallet) AddressToScript(addr btc.Address) ([]byte, error) {
+func (w *PhoreWallet) AddressToScript(addr btc.Address) ([]byte, error) {
 	return txscript.PayToAddrScript(addr)
 }
 
 // HasKey returns true if we have the private key for a given address
-func (w *RPCWallet) HasKey(addr btc.Address) bool {
+func (w *PhoreWallet) HasKey(addr btc.Address) bool {
 	_, err := w.km.GetKeyForScript(addr.ScriptAddress())
 	if err != nil {
 		return false
@@ -223,14 +236,16 @@ func (w *RPCWallet) HasKey(addr btc.Address) bool {
 }
 
 // Balance returns the total balance of our addresses
-func (w *RPCWallet) Balance() (confirmed, unconfirmed int64) {
+func (w *PhoreWallet) Balance() (wi.CurrencyValue, wi.CurrencyValue) {
 	utxos, _ := w.db.Utxos().GetAll()
 	txns, _ := w.db.Txns().GetAll(false)
-	return util.CalcBalance(utxos, txns)
+	c, u := util.CalcBalance(utxos, txns)
+	return wi.CurrencyValue{Value: *big.NewInt(c), Currency: PhoreCurrencyDefinition},
+		wi.CurrencyValue{Value: *big.NewInt(u), Currency: PhoreCurrencyDefinition}
 }
 
 // Transactions returns all of the transactions relating to any of our addresses
-func (w *RPCWallet) Transactions() ([]wallet.Txn, error) {
+func (w *PhoreWallet) Transactions() ([]wallet.Txn, error) {
 	height, _ := w.ChainTip()
 	txns, err := w.db.Txns().GetAll(false)
 	if err != nil {
@@ -265,7 +280,7 @@ func (w *RPCWallet) Transactions() ([]wallet.Txn, error) {
 }
 
 // GetTransaction returns the transaction given by a transaction hash
-func (w *RPCWallet) GetTransaction(txid chainhash.Hash) (wallet.Txn, error) {
+func (w *PhoreWallet) GetTransaction(txid chainhash.Hash) (wallet.Txn, error) {
 	txn, err := w.db.Txns().Get(txid)
 	if err == nil {
 		tx := wire.NewMsgTx(1)
@@ -288,7 +303,7 @@ func (w *RPCWallet) GetTransaction(txid chainhash.Hash) (wallet.Txn, error) {
 			}
 			tout := wi.TransactionOutput{
 				Address: addr,
-				Value:   out.Value,
+				Value:   *big.NewInt(out.Value),
 				Index:   uint32(i),
 			}
 			outs = append(outs, tout)
@@ -299,17 +314,17 @@ func (w *RPCWallet) GetTransaction(txid chainhash.Hash) (wallet.Txn, error) {
 }
 
 // ChainTip returns the tip of the active blockchain
-func (w *RPCWallet) ChainTip() (uint32, chainhash.Hash) {
+func (w *PhoreWallet) ChainTip() (uint32, chainhash.Hash) {
 	return w.ws.ChainTip()
 }
 
 // GetFeePerByte gets the fee in pSAT per byte
-func (w *RPCWallet) GetFeePerByte(feeLevel wallet.FeeLevel) uint64 {
-	return w.fp.GetFeePerByte(feeLevel)
+func (w *PhoreWallet) GetFeePerByte(feeLevel wi.FeeLevel) big.Int {
+	return *big.NewInt(int64(w.fp.GetFeePerByte(feeLevel)))
 }
 
 // Spend spends an amount from an address with a given fee level
-func (w *RPCWallet) Spend(amount int64, addr btc.Address, feeLevel wallet.FeeLevel, referenceID string, spendAll bool) (*chainhash.Hash, error) {
+func (w *PhoreWallet) Spend(amount big.Int, addr btc.Address, feeLevel wi.FeeLevel, referenceID string, spendAll bool) (*chainhash.Hash, error) {
 	var (
 		tx  *wire.MsgTx
 		err error
@@ -320,7 +335,7 @@ func (w *RPCWallet) Spend(amount int64, addr btc.Address, feeLevel wallet.FeeLev
 			return nil, err
 		}
 	} else {
-		tx, err = w.buildTx(amount, addr, feeLevel, nil)
+		tx, err = w.buildTx(amount.Int64(), addr, feeLevel, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -334,7 +349,7 @@ func (w *RPCWallet) Spend(amount int64, addr btc.Address, feeLevel wallet.FeeLev
 }
 
 // BumpFee attempts to bump the fee for a transaction
-func (w *RPCWallet) BumpFee(txid chainhash.Hash) (*chainhash.Hash, error) {
+func (w *PhoreWallet) BumpFee(txid chainhash.Hash) (*chainhash.Hash, error) {
 	txn, err := w.db.Txns().Get(txid)
 	if err != nil {
 		return nil, err
@@ -361,11 +376,13 @@ func (w *RPCWallet) BumpFee(txid chainhash.Hash) (*chainhash.Hash, error) {
 			if err != nil {
 				return nil, err
 			}
+			n := new(big.Int)
+			n, _ = n.SetString(u.Value, 10)
 			in := wi.TransactionInput{
 				LinkedAddress: addr,
 				OutpointIndex: u.Op.Index,
 				OutpointHash:  h,
-				Value:         int64(u.Value),
+				Value:         *n,
 			}
 			transactionID, err := w.SweepAddress([]wi.TransactionInput{in}, nil, key, nil, wi.FEE_BUMP)
 			if err != nil {
@@ -378,20 +395,20 @@ func (w *RPCWallet) BumpFee(txid chainhash.Hash) (*chainhash.Hash, error) {
 }
 
 // EstimateFee estimates the fee of a transaction
-func (w *RPCWallet) EstimateFee(ins []wallet.TransactionInput, outs []wallet.TransactionOutput, feePerByte uint64) uint64 {
+func (w *PhoreWallet) EstimateFee(ins []wi.TransactionInput, outs []wi.TransactionOutput, feePerByte big.Int) big.Int {
 	tx := new(wire.MsgTx)
 	for _, out := range outs {
 		scriptPubKey, _ := txscript.PayToAddrScript(out.Address)
-		output := wire.NewTxOut(out.Value, scriptPubKey)
+		output := wire.NewTxOut(out.Value.Int64(), scriptPubKey)
 		tx.TxOut = append(tx.TxOut, output)
 	}
 	estimatedSize := EstimateSerializeSize(len(ins), tx.TxOut, false, P2PKH)
-	fee := estimatedSize * int(feePerByte)
-	return uint64(fee)
+	fee := estimatedSize * int(feePerByte.Int64())
+	return *big.NewInt(int64(fee))
 }
 
 // EstimateSpendFee builds a spend transaction for the amount and return the transaction fee
-func (w *RPCWallet) EstimateSpendFee(amount int64, feeLevel wallet.FeeLevel) (uint64, error) {
+func (w *PhoreWallet) estimateSpendFee(amount int64, feeLevel wi.FeeLevel) (uint64, error) {
 	// Since this is an estimate we can use a dummy output address. Let's use a long one so we don't under estimate.
 	addr, err := btc.DecodeAddress("PARPpSkk5wpji6kE2y9YxHGZ9k96wZPfin", w.params)
 	if err != nil {
@@ -413,7 +430,8 @@ func (w *RPCWallet) EstimateSpendFee(amount int64, feeLevel wallet.FeeLevel) (ui
 	for _, input := range tx.TxIn {
 		for _, utxo := range utxos {
 			if utxo.Op.Hash.IsEqual(&input.PreviousOutPoint.Hash) && utxo.Op.Index == input.PreviousOutPoint.Index {
-				inval += utxo.Value
+				val, _ := strconv.ParseInt(utxo.Value, 10, 64)
+				inval += val
 				break
 			}
 		}
@@ -424,7 +442,12 @@ func (w *RPCWallet) EstimateSpendFee(amount int64, feeLevel wallet.FeeLevel) (ui
 	return uint64(inval - outval), err
 }
 
-func (w *RPCWallet) buildTx(amount int64, addr btc.Address, feeLevel wallet.FeeLevel, optionalOutput *wire.TxOut) (*wire.MsgTx, error) {
+func (w *PhoreWallet) EstimateSpendFee(amount big.Int, feeLevel wi.FeeLevel) (big.Int, error) {
+	val, err := w.estimateSpendFee(amount.Int64(), feeLevel)
+	return *big.NewInt(int64(val)), err
+}
+
+func (w *PhoreWallet) buildTx(amount int64, addr btc.Address, feeLevel wallet.FeeLevel, optionalOutput *wire.TxOut) (*wire.MsgTx, error) {
 	// Check for dust
 	script, _ := txscript.PayToAddrScript(addr)
 	if txrules.IsDustAmount(btc.Amount(amount), len(script), txrules.DefaultRelayFeePerKb) {
@@ -450,7 +473,7 @@ func (w *RPCWallet) buildTx(amount int64, addr btc.Address, feeLevel wallet.FeeL
 		coinSelector := coinset.MaxValueAgeCoinSelector{MaxInputs: 10000, MinChangeAmount: btc.Amount(0)}
 		coins, err := coinSelector.CoinSelect(target, coins)
 		if err != nil {
-			return total, inputs, inputValues, scripts, wi.ErrorInsuffientFunds
+			return total, inputs, inputValues, scripts, wi.ErrInsufficientFunds
 		}
 		additionalPrevScripts = make(map[wire.OutPoint][]byte)
 		additionalKeysByAddress = make(map[string]*btc.WIF)
@@ -477,7 +500,8 @@ func (w *RPCWallet) buildTx(amount int64, addr btc.Address, feeLevel wallet.FeeL
 	}
 
 	// Get the fee per kilobyte
-	feePerKB := int64(w.GetFeePerByte(feeLevel)) * 1000
+	f := w.GetFeePerByte(feeLevel)
+	feePerKB := f.Int64() * 1000
 
 	// outputs
 	out := wire.NewTxOut(amount, script)
@@ -528,7 +552,7 @@ func (w *RPCWallet) buildTx(amount int64, addr btc.Address, feeLevel wallet.FeeL
 }
 
 // SweepAddress sweeps any UTXOs from an address in a single transaction
-func (w *RPCWallet) SweepAddress(ins []wallet.TransactionInput, address *btc.Address, key *hd.ExtendedKey, redeemScript *[]byte, feeLevel wallet.FeeLevel) (*chainhash.Hash, error) {
+func (w *PhoreWallet) SweepAddress(ins []wallet.TransactionInput, address *btc.Address, key *hd.ExtendedKey, redeemScript *[]byte, feeLevel wallet.FeeLevel) (*chainhash.Hash, error) {
 	var internalAddr btc.Address
 	if address != nil {
 		internalAddr = *address
@@ -544,7 +568,7 @@ func (w *RPCWallet) SweepAddress(ins []wallet.TransactionInput, address *btc.Add
 	var inputs []*wire.TxIn
 	additionalPrevScripts := make(map[wire.OutPoint][]byte)
 	for _, in := range ins {
-		val += in.Value
+		val += in.Value.Int64()
 		ch, err := chainhash.NewHashFromStr(hex.EncodeToString(in.OutpointHash))
 		if err != nil {
 			return nil, err
@@ -571,7 +595,8 @@ func (w *RPCWallet) SweepAddress(ins []wallet.TransactionInput, address *btc.Add
 	estimatedSize := EstimateSerializeSize(len(ins), []*wire.TxOut{out}, false, txType)
 
 	// Calculate the fee
-	feePerByte := int(w.GetFeePerByte(feeLevel))
+	f := w.GetFeePerByte(feeLevel)
+	feePerByte := int(f.Int64())
 	fee := estimatedSize * feePerByte
 
 	outVal := val - int64(fee)
@@ -652,8 +677,12 @@ func (w *RPCWallet) SweepAddress(ins []wallet.TransactionInput, address *btc.Add
 	return &txid, nil
 }
 
+func (w *PhoreWallet) CreateMultisigSignature(ins []wi.TransactionInput, outs []wi.TransactionOutput, key *hd.ExtendedKey, redeemScript []byte, feePerByte big.Int) ([]wi.Signature, error) {
+	return w.createMultisigSignature(ins, outs, key, redeemScript, feePerByte.Uint64())
+}
+
 // CreateMultisigSignature creates a multisig signature given the transaction inputs and outputs and the keys
-func (w *RPCWallet) CreateMultisigSignature(ins []wallet.TransactionInput, outs []wallet.TransactionOutput, key *hd.ExtendedKey, redeemScript []byte, feePerByte uint64) ([]wallet.Signature, error) {
+func (w *PhoreWallet) createMultisigSignature(ins []wi.TransactionInput, outs []wi.TransactionOutput, key *hd.ExtendedKey, redeemScript []byte, feePerByte uint64) ([]wi.Signature, error) {
 	var sigs []wallet.Signature
 	tx := wire.NewMsgTx(1)
 	for _, in := range ins {
@@ -671,7 +700,7 @@ func (w *RPCWallet) CreateMultisigSignature(ins []wallet.TransactionInput, outs 
 			return sigs, err
 		}
 
-		output := wire.NewTxOut(out.Value, scriptPubKey)
+		output := wire.NewTxOut(out.Value.Int64(), scriptPubKey)
 		tx.TxOut = append(tx.TxOut, output)
 	}
 
@@ -710,7 +739,7 @@ func (w *RPCWallet) CreateMultisigSignature(ins []wallet.TransactionInput, outs 
 }
 
 // Multisign signs a multisig transaction
-func (w *RPCWallet) Multisign(ins []wallet.TransactionInput, outs []wallet.TransactionOutput, sigs1 []wallet.Signature, sigs2 []wallet.Signature, redeemScript []byte, feePerByte uint64, broadcast bool) ([]byte, error) {
+func (w *PhoreWallet) multisign(ins []wallet.TransactionInput, outs []wallet.TransactionOutput, sigs1 []wallet.Signature, sigs2 []wallet.Signature, redeemScript []byte, feePerByte uint64, broadcast bool) ([]byte, error) {
 	tx := wire.NewMsgTx(1)
 	for _, in := range ins {
 		ch, err := chainhash.NewHashFromStr(hex.EncodeToString(in.OutpointHash))
@@ -726,7 +755,7 @@ func (w *RPCWallet) Multisign(ins []wallet.TransactionInput, outs []wallet.Trans
 		if err != nil {
 			return nil, err
 		}
-		output := wire.NewTxOut(out.Value, scriptPubKey)
+		output := wire.NewTxOut(out.Value.Int64(), scriptPubKey)
 		tx.TxOut = append(tx.TxOut, output)
 	}
 
@@ -796,8 +825,12 @@ func (w *RPCWallet) Multisign(ins []wallet.TransactionInput, outs []wallet.Trans
 	return buf.Bytes(), nil
 }
 
+func (w *PhoreWallet) Multisign(ins []wi.TransactionInput, outs []wi.TransactionOutput, sigs1 []wi.Signature, sigs2 []wi.Signature, redeemScript []byte, feePerByte big.Int, broadcast bool) ([]byte, error) {
+	return w.multisign(ins, outs, sigs1, sigs2, redeemScript, feePerByte.Uint64(), broadcast)
+}
+
 // GenerateMultisigScript generates a script representing a multisig wallet
-func (w *RPCWallet) GenerateMultisigScript(keys []hd.ExtendedKey, threshold int, timeout time.Duration, timeoutKey *hd.ExtendedKey) (addr btc.Address, redeemScript []byte, err error) {
+func (w *PhoreWallet) GenerateMultisigScript(keys []hd.ExtendedKey, threshold int, timeout time.Duration, timeoutKey *hd.ExtendedKey) (addr btc.Address, redeemScript []byte, err error) {
 	if uint32(timeout.Hours()) > 0 && timeoutKey == nil {
 		return nil, nil, errors.New("Timeout key must be non nil when using an escrow timeout")
 	}
@@ -860,7 +893,7 @@ func (w *RPCWallet) GenerateMultisigScript(keys []hd.ExtendedKey, threshold int,
 	return addr, redeemScript, nil
 }
 
-func (w *RPCWallet) AddWatchedAddresses(addrs ...btc.Address) error {
+func (w *PhoreWallet) AddWatchedAddresses(addrs ...btc.Address) error {
 
 	var watchedScripts [][]byte
 	for _, addr := range addrs {
@@ -883,17 +916,17 @@ func (w *RPCWallet) AddWatchedAddresses(addrs ...btc.Address) error {
 }
 
 // AddTransactionListener adds a listener for any wallet transactions
-func (w *RPCWallet) AddTransactionListener(callback func(wallet.TransactionCallback)) {
+func (w *PhoreWallet) AddTransactionListener(callback func(wallet.TransactionCallback)) {
 	w.ws.AddTransactionListener(callback)
 }
 
 // ReSyncBlockchain resyncs the addresses used by the SPV wallet
-func (w *RPCWallet) ReSyncBlockchain(fromDate time.Time) {
+func (w *PhoreWallet) ReSyncBlockchain(fromDate time.Time) {
 	go w.ws.UpdateState()
 }
 
 // GetConfirmations returns the number of confirmations and the block number where the transaction was confirmed
-func (w *RPCWallet) GetConfirmations(txid chainhash.Hash) (uint32, uint32, error) {
+func (w *PhoreWallet) GetConfirmations(txid chainhash.Hash) (uint32, uint32, error) {
 	txn, err := w.db.Txns().Get(txid)
 	if err != nil {
 		return 0, 0, err
@@ -906,30 +939,30 @@ func (w *RPCWallet) GetConfirmations(txid chainhash.Hash) (uint32, uint32, error
 }
 
 // Close closes the rpc wallet connection
-func (w *RPCWallet) Close() {
+func (w *PhoreWallet) Close() {
 	w.ws.Stop()
 	w.client.Close()
 }
 
-func (w *RPCWallet) ExchangeRates() wallet.ExchangeRates {
+func (w *PhoreWallet) ExchangeRates() wallet.ExchangeRates {
 	return w.exchangeRates
 }
 
-func (w *RPCWallet) DumpTables(wr io.Writer) {
+func (w *PhoreWallet) DumpTables(wr io.Writer) {
 	fmt.Fprintln(wr, "Transactions-----")
 	txns, _ := w.db.Txns().GetAll(true)
 	for _, tx := range txns {
-		fmt.Fprintf(wr, "Hash: %s, Height: %d, Value: %d, WatchOnly: %t\n", tx.Txid, int(tx.Height), int(tx.Value), tx.WatchOnly)
+		fmt.Fprintf(wr, "Hash: %s, Height: %d, Value: %d, WatchOnly: %t\n", tx.Txid, int(tx.Height), tx.Value, tx.WatchOnly)
 	}
 	fmt.Fprintln(wr, "\nUtxos-----")
 	utxos, _ := w.db.Utxos().GetAll()
 	for _, u := range utxos {
-		fmt.Fprintf(wr, "Hash: %s, Index: %d, Height: %d, Value: %d, WatchOnly: %t\n", u.Op.Hash.String(), int(u.Op.Index), int(u.AtHeight), int(u.Value), u.WatchOnly)
+		fmt.Fprintf(wr, "Hash: %s, Index: %d, Height: %d, Value: %d, WatchOnly: %t\n", u.Op.Hash.String(), int(u.Op.Index), int(u.AtHeight), u.Value, u.WatchOnly)
 	}
 }
 
 // Broadcast a transaction to the network
-func (w *RPCWallet) Broadcast(tx *wire.MsgTx) error {
+func (w *PhoreWallet) Broadcast(tx *wire.MsgTx) error {
 	var buf bytes.Buffer
 	tx.BtcEncode(&buf, wire.ProtocolVersion, wire.BaseEncoding)
 	cTxn := model.Transaction{
@@ -958,6 +991,7 @@ func (w *RPCWallet) Broadcast(tx *wire.MsgTx) error {
 		if err != nil {
 			return err
 		}
+		val, _ := strconv.ParseInt(u.Value, 10, 64)
 		input := model.Input{
 			Txid: in.PreviousOutPoint.Hash.String(),
 			Vout: int(in.PreviousOutPoint.Index),
@@ -967,8 +1001,8 @@ func (w *RPCWallet) Broadcast(tx *wire.MsgTx) error {
 			Sequence: uint32(in.Sequence),
 			N:        n,
 			Addr:     addr.String(),
-			Satoshis: u.Value,
-			Value:    float64(u.Value) / util.SatoshisPerCoin(util.CoinTypePhore.ToCoinType()),
+			Satoshis: val,
+			Value:    float64(val) / util.SatoshisPerCoin(wi.Bitcoin),
 		}
 		cTxn.Inputs = append(cTxn.Inputs, input)
 	}
@@ -998,6 +1032,6 @@ func (w *RPCWallet) Broadcast(tx *wire.MsgTx) error {
 }
 
 // AssociateTransactionWithOrder used for ORDER_PAYMENT message
-func (w *RPCWallet) AssociateTransactionWithOrder(cb wi.TransactionCallback) {
+func (w *PhoreWallet) AssociateTransactionWithOrder(cb wi.TransactionCallback) {
 	w.ws.InvokeTransactionListeners(cb)
 }

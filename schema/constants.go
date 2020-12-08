@@ -12,11 +12,11 @@ const (
 	CreateTablePointersSQL                  = "create table pointers (pointerID text primary key not null, key text, address text, cancelID text, purpose integer, timestamp integer);"
 	CreateTableKeysSQL                      = "create table keys (scriptAddress text primary key not null, purpose integer, keyIndex integer, used integer, key text, coin text);"
 	CreateIndexKeysSQL                      = "create index index_keys on keys (coin);"
-	CreateTableUnspentTransactionOutputsSQL = "create table utxos (outpoint text primary key not null, value integer, height integer, scriptPubKey text, watchOnly integer, coin text);"
+	CreateTableUnspentTransactionOutputsSQL = "create table utxos (outpoint text primary key not null, value text, height integer, scriptPubKey text, watchOnly integer, coin text);"
 	CreateIndexUnspentTransactionOutputsSQL = "create index index_utxos on utxos (coin);"
-	CreateTableSpentTransactionOutputsSQL   = "create table stxos (outpoint text primary key not null, value integer, height integer, scriptPubKey text, watchOnly integer, spendHeight integer, spendTxid text, coin text);"
+	CreateTableSpentTransactionOutputsSQL   = "create table stxos (outpoint text primary key not null, value text, height integer, scriptPubKey text, watchOnly integer, spendHeight integer, spendTxid text, coin text);"
 	CreateIndexSpentTransactionOutputsSQL   = "create index index_stxos on stxos (coin);"
-	CreateTableTransactionsSQL              = "create table txns (txid text primary key not null, value integer, height integer, timestamp integer, watchOnly integer, tx blob, coin text);"
+	CreateTableTransactionsSQL              = "create table txns (txid text primary key not null, value text, height integer, timestamp integer, watchOnly integer, tx blob, coin text);"
 	CreateIndexTransactionsSQL              = "create index index_txns on txns (coin);"
 	CreateTableTransactionMetadataSQL       = "create table txmetadata (txid text primary key not null, address text, memo text, orderID text, thumbnail text, canBumpFee integer);"
 	CreateTableInventorySQL                 = "create table inventory (invID text primary key not null, slug text, variantIndex integer, count integer);"
@@ -36,15 +36,15 @@ const (
 	CreateTableCouponsSQL                   = "create table coupons (slug text, code text, hash text);"
 	CreateIndexCouponsSQL                   = "create index index_coupons on coupons (slug);"
 	CreateTableModeratedStoresSQL           = "create table moderatedstores (peerID text primary key not null);"
-	CreateMessagesSQL                       = "create table messages (messageID text primary key not null, orderID text, message_type integer, message blob, peerID text, url text, acknowledged bool, tries integer, created_at integer, updated_at integer);"
+	CreateMessagesSQL                       = "create table messages (messageID text primary key not null, orderID text, message_type integer, message blob, peerID text, url text, acknowledged bool, tries integer, created_at integer, updated_at integer, err string, received_at integer, pubkey blob);"
 	CreateIndexMessagesSQLMessageID         = "create index index_messages_messageID on messages (messageID);"
 	CreateIndexMessagesSQLOrderIDMType      = "create index index_messages_orderIDmType on messages (orderID, message_type);"
 	CreateIndexMessagesSQLPeerIDMType       = "create index index_messages_peerIDmType on messages (peerID, message_type);"
 	// End SQL Statements
 
 	// Configuration defaults
-	EthereumRegistryAddressMainnet = "0x403d907982474cdd51687b09a8968346159378f3"
-	EthereumRegistryAddressRinkeby = "0x403d907982474cdd51687b09a8968346159378f3"
+	EthereumRegistryAddressMainnet = "0x5c69ccf91eab4ef80d9929b3c1b4d5bc03eb0981"
+	EthereumRegistryAddressRinkeby = "0x5cEF053c7b383f430FC4F4e1ea2F7D31d8e2D16C"
 	EthereumRegistryAddressRopsten = "0x403d907982474cdd51687b09a8968346159378f3"
 
 	DataPushNodeOne   = "QmWbi8z4uPkEdrWHtgxCkQGE5vxJnrStXAeEQnupmQnKRh"
@@ -105,15 +105,19 @@ const (
 const (
 	CoinAPIOpenBazaarPHR = "https://phr.blockbook.api.phore.io/api"
 	CoinAPIOpenBazaarBTC = "https://btc.blockbook.api.phore.io/api"
+	CoinAPIOpenBazaarETH = "https://mainnet.infura.io"
 
 	CoinAPIOpenBazaarTPHR = "https://tphr.blockbook.api.phore.io/api"
 	CoinAPIOpenBazaarTBTC = "https://tbtc.blockbook.api.phore.io/api"
+	CoinAPIOpenBazaarTETH = "https://rinkeby.infura.io"
 )
 
 var (
 	CoinPoolPHR = []string{CoinAPIOpenBazaarPHR}
 	CoinPoolBTC = []string{CoinAPIOpenBazaarBTC}
+	CoinPoolETH = []string{CoinAPIOpenBazaarETH}
 
 	CoinPoolTPHR = []string{CoinAPIOpenBazaarTPHR}
 	CoinPoolTBTC = []string{CoinAPIOpenBazaarTBTC}
+	CoinPoolTETH = []string{CoinAPIOpenBazaarTETH}
 )

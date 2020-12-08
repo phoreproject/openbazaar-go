@@ -10,7 +10,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/op/go-logging"
+	"github.com/OpenBazaar/spvwallet"
+	"github.com/OpenBazaar/wallet-interface"
+	"github.com/btcsuite/btcd/chaincfg"
+	eth "github.com/phoreproject/go-ethwallet/wallet"
 	"github.com/phoreproject/multiwallet"
 	"github.com/phoreproject/multiwallet/bitcoin"
 	"github.com/phoreproject/multiwallet/bitcoincash"
@@ -20,14 +23,11 @@ import (
 	"github.com/phoreproject/multiwallet/phore"
 	"github.com/phoreproject/multiwallet/util"
 	"github.com/phoreproject/multiwallet/zcash"
-
-	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/phoreproject/pm-go/repo"
 	"github.com/phoreproject/pm-go/repo/db"
 	"github.com/phoreproject/pm-go/schema"
 
-	"github.com/OpenBazaar/spvwallet"
-	"github.com/OpenBazaar/wallet-interface"
+	"github.com/op/go-logging"
 	"golang.org/x/net/proxy"
 )
 
@@ -99,7 +99,7 @@ func NewMultiWallet(cfg *WalletConfig) (multiwallet.MultiWallet, error) {
 	if cfg.ConfigFile.LTC != nil && cfg.ConfigFile.LTC.Type == "API" {
 		enableAPIWallet[util.ExtendCoinType(wallet.Litecoin)] = cfg.ConfigFile.LTC
 	}
-	enableAPIWallet[util.ExtendCoinType(wallet.Ethereum)] = nil
+	enableAPIWallet[util.ExtendCoinType(wallet.Ethereum)] = cfg.ConfigFile.ETH
 
 	var newMultiwallet = make(multiwallet.MultiWallet)
 	for coin, coinConfig := range enableAPIWallet {
@@ -199,13 +199,17 @@ func createAPIWallet(coin util.ExtCoinType, coinConfigOverrides *schema.CoinConf
 			return InvalidCoinType, nil, err
 		}
 		return actualCoin, w, nil
-		//case wallet.Ethereum:
-		//	actualCoin = wallet.Ethereum
-		//	w, err := eth.NewEthereumWallet(*coinConfig, cfg.Mnemonic, cfg.Proxy)
-		//	if err != nil {
-		//		return InvalidCoinType, nil, err
-		//	}
-		//	return actualCoin, w, nil
+	case wallet.Ethereum:
+		if testnet {
+			actualCoin = wallet.TestnetEthereum
+		} else {
+			actualCoin = wallet.Ethereum
+		}
+		w, err := eth.NewEthereumWallet(*coinConfig, cfg.Params, cfg.Mnemonic, cfg.Proxy)
+		if err != nil {
+			return InvalidCoinType, nil, err
+		}
+		return actualCoin, w, nil
 	}
 	return InvalidCoinType, nil, fmt.Errorf("unable to create wallet for unknown coin %s", coin.String())
 }
@@ -243,6 +247,7 @@ func createSPVWallet(coin util.ExtCoinType, coinConfigOverrides *schema.CoinConf
 			Mnemonic:             cfg.Mnemonic,
 			Params:               cfg.Params,
 			MaxFee:               coinConfigOverrides.MaxFee,
+			SuperLowFee:          coinConfigOverrides.SuperLowFeeDefault,
 			LowFee:               coinConfigOverrides.LowFeeDefault,
 			MediumFee:            coinConfigOverrides.MediumFeeDefault,
 			HighFee:              coinConfigOverrides.HighFeeDefault,
@@ -340,15 +345,16 @@ func prepareAPICoinConfig(coin util.ExtCoinType, override *schema.CoinConfig, wa
 	}
 
 	var preparedConfig = &mwConfig.CoinConfig{
-		ClientAPIs: overrideWalletEndpoints,
-		CoinType:   coin,
-		DB:         CreateWalletDB(walletConfig.DB, coin),
-		FeeAPI:     override.FeeAPI,
-		HighFee:    override.HighFeeDefault,
-		LowFee:     override.LowFeeDefault,
-		MaxFee:     override.MaxFee,
-		MediumFee:  override.MediumFeeDefault,
-		Options:    override.WalletOptions,
+		ClientAPIs:  overrideWalletEndpoints,
+		CoinType:    coin,
+		DB:          CreateWalletDB(walletConfig.DB, coin),
+		FeeAPI:      override.FeeAPI,
+		HighFee:     override.HighFeeDefault,
+		SuperLowFee: override.SuperLowFeeDefault,
+		LowFee:      override.LowFeeDefault,
+		MaxFee:      override.MaxFee,
+		MediumFee:   override.MediumFeeDefault,
+		Options:     override.WalletOptions,
 	}
 
 	if preparedConfig.HighFee == 0 {

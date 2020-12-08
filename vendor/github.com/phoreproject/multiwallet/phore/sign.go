@@ -13,7 +13,7 @@ import (
 	"github.com/phoreproject/multiwallet/util"
 )
 
-func (w *RPCWallet) buildSpendAllTx(addr btc.Address, feeLevel wi.FeeLevel) (*wire.MsgTx, error) {
+func (w *PhoreWallet) buildSpendAllTx(addr btc.Address, feeLevel wi.FeeLevel) (*wire.MsgTx, error) {
 	tx := wire.NewMsgTx(1)
 
 	height, _ := w.ws.ChainTip()
@@ -32,7 +32,8 @@ func (w *RPCWallet) buildSpendAllTx(addr btc.Address, feeLevel wi.FeeLevel) (*wi
 	}
 
 	// Get the fee
-	feePerByte := int64(w.GetFeePerByte(feeLevel))
+	fee0 := w.GetFeePerByte(feeLevel)
+	feePerByte := fee0.Int64()
 	estimatedSize := EstimateSerializeSize(1, []*wire.TxOut{wire.NewTxOut(0, script)}, false, P2PKH)
 	fee := int64(estimatedSize) * feePerByte
 

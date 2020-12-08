@@ -22,7 +22,7 @@ func mustNewStxo() wallet.Stxo {
 	utxo := wallet.Utxo{
 		Op:           *outpoint,
 		AtHeight:     300000,
-		Value:        100000000,
+		Value:        "100000000",
 		ScriptPubkey: []byte("scriptpubkey"),
 		WatchOnly:    false,
 	}
@@ -67,7 +67,7 @@ func TestStxoPut(t *testing.T) {
 	defer stmt.Close()
 
 	var outpoint string
-	var value int
+	var value string
 	var height int
 	var scriptPubkey string
 	var spendHeight int
@@ -81,7 +81,7 @@ func TestStxoPut(t *testing.T) {
 	if outpoint != o {
 		t.Error("Stxo db returned wrong outpoint")
 	}
-	if value != int(stxo.Utxo.Value) {
+	if value != stxo.Utxo.Value {
 		t.Error("Stxo db returned wrong value")
 	}
 	if height != int(stxo.Utxo.AtHeight) {

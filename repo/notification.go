@@ -5,6 +5,7 @@ import (
 	"encoding/json" //"errors"
 	"fmt"
 	mh "gx/ipfs/QmerPMzPk1mJVowm8KgmoknWa4yCYvvugMPsgWmDNUvDLW/go-multihash"
+	"math/big"
 	"time"
 )
 
@@ -313,7 +314,27 @@ func (n *Notification) UnmarshalJSON(data []byte) error {
 	case NotifierTypeOrderNewNotification:
 		var notifier = OrderNotification{}
 		if err := json.Unmarshal(payload.NotifierData, &notifier); err != nil {
-			return err
+			notifierLegacy := OrderNotificationV4{}
+			if err2 := json.Unmarshal(payload.NotifierData, &notifierLegacy); err2 != nil {
+				return err2
+			}
+			notifier.OrderId = notifierLegacy.OrderId
+			notifier.BuyerHandle = notifierLegacy.BuyerHandle
+			notifier.BuyerID = notifierLegacy.BuyerID
+			notifier.ID = notifierLegacy.ID
+			notifier.Price = &CurrencyValue{
+				Amount: new(big.Int).SetUint64(notifierLegacy.Price.Amount),
+				Currency: CurrencyDefinition{
+					Code:         CurrencyCode(notifierLegacy.Price.CurrencyCode),
+					Divisibility: uint(notifierLegacy.Price.CoinDivisibility),
+				},
+			}
+			notifier.PriceModifier = notifierLegacy.PriceModifier
+			notifier.Slug = notifierLegacy.Slug
+			notifier.Type = notifierLegacy.Type
+			notifier.ListingType = notifierLegacy.ListingType
+			notifier.Thumbnail = notifierLegacy.Thumbnail
+			notifier.Title = notifierLegacy.Title
 		}
 		n.NotifierData = notifier
 	case NotifierTypePaymentNotification:
@@ -399,6 +420,20 @@ type messageTypingWrapper struct {
 	MessageRead Notifier `json:"messageTyping"`
 }
 
+type OrderNotification struct {
+	BuyerHandle   string           `json:"buyerHandle"`
+	BuyerID       string           `json:"buyerId"`
+	ID            string           `json:"notificationId"`
+	ListingType   string           `json:"listingType"`
+	OrderId       string           `json:"orderId"`
+	Price         *CurrencyValue   `json:"price"`
+	PriceModifier float32          `json:"priceModifier"`
+	Slug          string           `json:"slug"`
+	Thumbnail     Thumbnail        `json:"thumbnail"`
+	Title         string           `json:"title"`
+	Type          NotificationType `json:"type"`
+}
+
 type ListingPrice struct {
 	Amount           uint64  `json:"amount"`
 	CurrencyCode     string  `json:"currencyCode"`
@@ -406,17 +441,18 @@ type ListingPrice struct {
 	CoinDivisibility uint32  `json:"coinDivisibility"`
 }
 
-type OrderNotification struct {
-	BuyerHandle string           `json:"buyerHandle"`
-	BuyerID     string           `json:"buyerId"`
-	ID          string           `json:"notificationId"`
-	ListingType string           `json:"listingType"`
-	OrderId     string           `json:"orderId"`
-	Price       ListingPrice     `json:"price"`
-	Slug        string           `json:"slug"`
-	Thumbnail   Thumbnail        `json:"thumbnail"`
-	Title       string           `json:"title"`
-	Type        NotificationType `json:"type"`
+type OrderNotificationV4 struct {
+	BuyerHandle   string           `json:"buyerHandle"`
+	BuyerID       string           `json:"buyerId"`
+	ID            string           `json:"notificationId"`
+	ListingType   string           `json:"listingType"`
+	OrderId       string           `json:"orderId"`
+	Price         ListingPrice     `json:"price"`
+	PriceModifier float32          `json:"priceModifier"`
+	Slug          string           `json:"slug"`
+	Thumbnail     Thumbnail        `json:"thumbnail"`
+	Title         string           `json:"title"`
+	Type          NotificationType `json:"type"`
 }
 
 func (n OrderNotification) Data() ([]byte, error) {
@@ -442,7 +478,7 @@ type PaymentNotification struct {
 	ID           string           `json:"notificationId"`
 	Type         NotificationType `json:"type"`
 	OrderId      string           `json:"orderId"`
-	FundingTotal uint64           `json:"fundingTotal"`
+	FundingTotal *CurrencyValue   `json:"fundingTotal"`
 	CoinType     string           `json:"coinType"`
 }
 
@@ -456,7 +492,7 @@ func (n PaymentNotification) GetID() string             { return n.ID }
 func (n PaymentNotification) GetType() NotificationType { return NotifierTypePaymentNotification }
 func (n PaymentNotification) GetSMTPTitleAndBody() (string, string, bool) {
 	form := "Payment for order \"%s\" received (total %d)."
-	return "Payment received", fmt.Sprintf(form, n.OrderId, n.FundingTotal), true
+	return "Payment received", fmt.Sprintf(form, n.OrderId, n.FundingTotal.Amount), true
 }
 
 type OrderConfirmationNotification struct {
@@ -842,18 +878,17 @@ func (n ChatTyping) GetType() NotificationType                   { return Notifi
 func (n ChatTyping) GetSMTPTitleAndBody() (string, string, bool) { return "", "", false }
 
 type IncomingTransaction struct {
-	Wallet        string    `json:"wallet"`
-	Txid          string    `json:"txid"`
-	Value         int64     `json:"value"`
-	Address       string    `json:"address"`
-	Status        string    `json:"status"`
-	Memo          string    `json:"memo"`
-	Timestamp     time.Time `json:"timestamp"`
-	Confirmations int32     `json:"confirmations"`
-	OrderId       string    `json:"orderId"`
-	Thumbnail     string    `json:"thumbnail"`
-	Height        int32     `json:"height"`
-	CanBumpFee    bool      `json:"canBumpFee"`
+	Txid          string         `json:"txid"`
+	Value         *CurrencyValue `json:"value"`
+	Address       string         `json:"address"`
+	Status        string         `json:"status"`
+	Memo          string         `json:"memo"`
+	Timestamp     time.Time      `json:"timestamp"`
+	Confirmations int32          `json:"confirmations"`
+	OrderId       string         `json:"orderId"`
+	Thumbnail     string         `json:"thumbnail"`
+	Height        int32          `json:"height"`
+	CanBumpFee    bool           `json:"canBumpFee"`
 }
 
 func (n IncomingTransaction) Data() ([]byte, error) {

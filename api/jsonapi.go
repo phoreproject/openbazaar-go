@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"math/big"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -39,6 +40,7 @@ import (
 	"github.com/btcsuite/btcutil/base58"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
+	ipfscore "github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/core/coreapi"
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
 	"github.com/phoreproject/pm-go/core"
@@ -62,6 +64,11 @@ type JSONAPIConfig struct {
 type jsonAPIHandler struct {
 	config JSONAPIConfig
 	node   *core.OpenBazaarNode
+}
+
+type APIError struct {
+	Success bool   `json:"success"`
+	Reason  string `json:"reason"`
 }
 
 var lastManualScan time.Time
@@ -188,10 +195,6 @@ func (i *jsonAPIHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func ErrorResponse(w http.ResponseWriter, errorCode int, reason string) {
-	type APIError struct {
-		Success bool   `json:"success"`
-		Reason  string `json:"reason"`
-	}
 	reason = strings.Replace(reason, `"`, `'`, -1)
 	err := APIError{false, reason}
 	resp, _ := json.MarshalIndent(err, "", "    ")
@@ -515,16 +518,15 @@ func (i *jsonAPIHandler) POSTImage(w http.ResponseWriter, r *http.Request) {
 }
 
 func (i *jsonAPIHandler) POSTListing(w http.ResponseWriter, r *http.Request) {
-	ld := new(pb.Listing)
-	err := jsonpb.Unmarshal(r.Body, ld)
+
+	listingData, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		ErrorResponse(w, http.StatusBadRequest, err.Error())
+		ErrorResponse(w, http.StatusConflict, err.Error())
 		return
 	}
-
-	err = i.node.CreateListing(ld)
+	slug, err := i.node.CreateListing(listingData)
 	if err != nil {
-		if err == core.ErrListingAlreadyExists {
+		if err == repo.ErrListingAlreadyExists {
 			ErrorResponse(w, http.StatusConflict, "Listing already exists. Use PUT.")
 			return
 		}
@@ -533,20 +535,18 @@ func (i *jsonAPIHandler) POSTListing(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	SanitizedResponse(w, fmt.Sprintf(`{"slug": "%s"}`, ld.Slug))
+	SanitizedResponse(w, fmt.Sprintf(`{"slug": "%s"}`, slug))
 }
 
 func (i *jsonAPIHandler) PUTListing(w http.ResponseWriter, r *http.Request) {
-	ld := new(pb.Listing)
-	err := jsonpb.Unmarshal(r.Body, ld)
+	listingData, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		ErrorResponse(w, http.StatusBadRequest, err.Error())
+		ErrorResponse(w, http.StatusConflict, err.Error())
 		return
 	}
-
-	err = i.node.UpdateListing(ld, true)
+	err = i.node.UpdateListing(listingData, true)
 	if err != nil {
-		if err == core.ErrListingDoesNotExist {
+		if err == repo.ErrListingDoesNotExist {
 			ErrorResponse(w, http.StatusNotFound, "Listing not found.")
 			return
 		}
@@ -585,7 +585,7 @@ func (i *jsonAPIHandler) DELETEListing(w http.ResponseWriter, r *http.Request) {
 
 func (i *jsonAPIHandler) POSTPurchase(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
-	var data core.PurchaseData
+	var data repo.PurchaseData
 	err := decoder.Decode(&data)
 	if err != nil {
 		ErrorResponse(w, http.StatusBadRequest, err.Error())
@@ -597,10 +597,10 @@ func (i *jsonAPIHandler) POSTPurchase(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	type purchaseReturn struct {
-		PaymentAddress string `json:"paymentAddress"`
-		Amount         uint64 `json:"amount"`
-		VendorOnline   bool   `json:"vendorOnline"`
-		OrderID        string `json:"orderId"`
+		PaymentAddress string              `json:"paymentAddress"`
+		Amount         *repo.CurrencyValue `json:"amount"`
+		VendorOnline   bool                `json:"vendorOnline"`
+		OrderID        string              `json:"orderId"`
 	}
 	ret := purchaseReturn{paymentAddr, amount, online, orderID}
 	b, err := json.MarshalIndent(ret, "", "    ")
@@ -672,6 +672,36 @@ func (i *jsonAPIHandler) POSTUnfollow(w http.ResponseWriter, r *http.Request) {
 	SanitizedResponse(w, `{}`)
 }
 
+var allCurrencyMapCache map[string]repo.CurrencyDefinition
+
+func (i *jsonAPIHandler) GETWalletCurrencyDictionary(w http.ResponseWriter, r *http.Request) {
+	var (
+		resp      map[string]repo.CurrencyDefinition
+		_, lookup = path.Split(r.URL.Path)
+	)
+	if lookup == "currencies" {
+		if allCurrencyMapCache == nil {
+			allCurrencyMapCache = repo.AllCurrencies().AsMap()
+		}
+		resp = allCurrencyMapCache
+	} else {
+		var upperLookup = strings.ToUpper(lookup)
+		def, err := i.node.LookupCurrency(upperLookup)
+		if err != nil {
+			ErrorResponse(w, http.StatusNotFound, fmt.Sprintf("unknown definition for %s", lookup))
+			return
+		}
+		resp = map[string]repo.CurrencyDefinition{upperLookup: def}
+	}
+	out, err := json.MarshalIndent(resp, "", "    ")
+	if err != nil {
+		ErrorResponse(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	SanitizedResponse(w, string(out))
+}
+
 func (i *jsonAPIHandler) GETAddress(w http.ResponseWriter, r *http.Request) {
 	_, coinType := path.Split(r.URL.Path)
 	if coinType == "address" {
@@ -693,7 +723,7 @@ func (i *jsonAPIHandler) GETAddress(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	addr := wal.CurrentAddress(wallet.EXTERNAL)
-	SanitizedResponse(w, fmt.Sprintf(`{"address": "%s"}`, addr.EncodeAddress()))
+	SanitizedResponse(w, fmt.Sprintf(`{"address": "%s"}`, addr.String()))
 }
 
 func (i *jsonAPIHandler) GETMnemonic(w http.ResponseWriter, r *http.Request) {
@@ -711,16 +741,27 @@ func (i *jsonAPIHandler) GETMnemonic(w http.ResponseWriter, r *http.Request) {
 func (i *jsonAPIHandler) GETBalance(w http.ResponseWriter, r *http.Request) {
 	_, coinType := path.Split(r.URL.Path)
 	type balance struct {
-		Confirmed   int64  `json:"confirmed"`
-		Unconfirmed int64  `json:"unconfirmed"`
-		Height      uint32 `json:"height"`
+		Confirmed   string                  `json:"confirmed"`
+		Unconfirmed string                  `json:"unconfirmed"`
+		Currency    repo.CurrencyDefinition `json:"currency"`
+		Height      uint32                  `json:"height"`
 	}
 	if coinType == "balance" {
 		ret := make(map[string]interface{})
 		for ct, wal := range i.node.Multiwallet {
 			height, _ := wal.ChainTip()
+			defn, err := i.node.LookupCurrency(ct.CurrencyCode())
+			if err != nil {
+				ErrorResponse(w, http.StatusInternalServerError, err.Error())
+				return
+			}
 			confirmed, unconfirmed := wal.Balance()
-			ret[ct.CurrencyCode()] = balance{Confirmed: confirmed, Unconfirmed: unconfirmed, Height: height}
+			ret[ct.CurrencyCode()] = balance{
+				Confirmed:   confirmed.Value.String(),
+				Unconfirmed: unconfirmed.Value.String(),
+				Currency:    defn,
+				Height:      height,
+			}
 		}
 		out, err := json.MarshalIndent(ret, "", "    ")
 		if err != nil {
@@ -730,14 +771,25 @@ func (i *jsonAPIHandler) GETBalance(w http.ResponseWriter, r *http.Request) {
 		SanitizedResponse(w, string(out))
 		return
 	}
+
 	wal, err := i.node.Multiwallet.WalletForCurrencyCode(coinType)
 	if err != nil {
-		ErrorResponse(w, http.StatusBadRequest, "Unknown wallet type")
+		ErrorResponse(w, http.StatusBadRequest, "unknown wallet type")
 		return
 	}
 	height, _ := wal.ChainTip()
 	confirmed, unconfirmed := wal.Balance()
-	bal := balance{Confirmed: confirmed, Unconfirmed: unconfirmed, Height: height}
+	defn, err := i.node.LookupCurrency(coinType)
+	if err != nil {
+		ErrorResponse(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	bal := balance{
+		Confirmed:   confirmed.Value.String(),
+		Unconfirmed: unconfirmed.Value.String(),
+		Currency:    defn,
+		Height:      height,
+	}
 	out, err := json.MarshalIndent(bal, "", "    ")
 	if err != nil {
 		ErrorResponse(w, http.StatusInternalServerError, err.Error())
@@ -766,14 +818,8 @@ func (i *jsonAPIHandler) POSTSpendCoinsForOrder(w http.ResponseWriter, r *http.R
 		ErrorResponse(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	msg := pb.OrderPaymentTxn{
-		Coin:          spendArgs.Wallet,
-		OrderID:       result.OrderID,
-		TransactionID: result.Txid,
-		WithInput:     false,
-	}
 
-	err = i.node.SendOrderPayment(result.PeerID, &msg)
+	err = i.node.SendOrderPayment(result)
 	if err != nil {
 		log.Errorf("error sending order with id %s payment: %v", result.OrderID, err)
 	}
@@ -783,6 +829,7 @@ func (i *jsonAPIHandler) POSTSpendCoinsForOrder(w http.ResponseWriter, r *http.R
 		ErrorResponse(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+
 	SanitizedResponse(w, string(ser))
 }
 
@@ -877,7 +924,11 @@ func (i *jsonAPIHandler) POSTSettings(w http.ResponseWriter, r *http.Request) {
 	}
 	if settings.StoreModerators != nil {
 		modsToAdd, modsToDelete := extractModeratorChanges(*settings.StoreModerators, nil)
-		go i.node.NotifyModerators(modsToAdd, modsToDelete)
+		go func(modsToAdd, modsToDelete []string) {
+			if err := i.node.NotifyModerators(modsToAdd, modsToDelete); err != nil {
+				log.Error(err)
+			}
+		}(modsToAdd, modsToDelete)
 		if err := i.node.SetModeratorsOnListings(*settings.StoreModerators); err != nil {
 			ErrorResponse(w, http.StatusInternalServerError, err.Error())
 		}
@@ -934,7 +985,11 @@ func (i *jsonAPIHandler) PUTSettings(w http.ResponseWriter, r *http.Request) {
 	}
 	if settings.StoreModerators != nil {
 		modsToAdd, modsToDelete := extractModeratorChanges(*settings.StoreModerators, currentSettings.StoreModerators)
-		go i.node.NotifyModerators(modsToAdd, modsToDelete)
+		go func(modsToAdd, modsToDelete []string) {
+			if err := i.node.NotifyModerators(modsToAdd, modsToDelete); err != nil {
+				log.Error(err)
+			}
+		}(modsToAdd, modsToDelete)
 		if err := i.node.SetModeratorsOnListings(*settings.StoreModerators); err != nil {
 			ErrorResponse(w, http.StatusInternalServerError, err.Error())
 		}
@@ -992,15 +1047,10 @@ func (i *jsonAPIHandler) PATCHSettings(w http.ResponseWriter, r *http.Request) {
 		ErrorResponse(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	if settings.StoreModerators != nil {
-		modsToAdd, modsToDelete := extractModeratorChanges(*settings.StoreModerators, currentSettings.StoreModerators)
-		go i.node.NotifyModerators(modsToAdd, modsToDelete)
-		if err := i.node.SetModeratorsOnListings(*settings.StoreModerators); err != nil {
-			ErrorResponse(w, http.StatusInternalServerError, err.Error())
-		}
-		if err := i.node.SeedNode(); err != nil {
-			ErrorResponse(w, http.StatusInternalServerError, err.Error())
-		}
+	err = i.node.Datastore.Settings().Update(settings)
+	if err != nil {
+		ErrorResponse(w, http.StatusInternalServerError, err.Error())
+		return
 	}
 	if settings.BlockedNodes != nil {
 		var blockedIds []peer.ID
@@ -1014,10 +1064,21 @@ func (i *jsonAPIHandler) PATCHSettings(w http.ResponseWriter, r *http.Request) {
 		}
 		i.node.BanManager.SetBlockedIds(blockedIds)
 	}
-	err = i.node.Datastore.Settings().Update(settings)
-	if err != nil {
-		ErrorResponse(w, http.StatusInternalServerError, err.Error())
-		return
+	if settings.StoreModerators != nil {
+		modsToAdd, modsToDelete := extractModeratorChanges(*settings.StoreModerators, currentSettings.StoreModerators)
+		if err := i.node.SetModeratorsOnListings(*settings.StoreModerators); err != nil {
+			ErrorResponse(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		if err := i.node.SeedNode(); err != nil {
+			ErrorResponse(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		go func(modsToAdd, modsToDelete []string) {
+			if err := i.node.NotifyModerators(modsToAdd, modsToDelete); err != nil {
+				log.Error(err)
+			}
+		}(modsToAdd, modsToDelete)
 	}
 	SanitizedResponse(w, `{}`)
 }
@@ -1066,7 +1127,12 @@ func (i *jsonAPIHandler) GETExchangeRate(w http.ResponseWriter, r *http.Request)
 		SanitizedResponse(w, string(exchangeRateJSON))
 
 	} else {
-		rate, err := wal.ExchangeRates().GetExchangeRate(core.NormalizeCurrencyCode(currencyCode))
+		def, err := i.node.LookupCurrency(currencyCode)
+		if err != nil {
+			ErrorResponse(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		rate, err := wal.ExchangeRates().GetExchangeRate(def.CurrencyCode().String())
 		if err != nil {
 			ErrorResponse(w, http.StatusInternalServerError, err.Error())
 			return
@@ -1258,7 +1324,7 @@ func (i *jsonAPIHandler) POSTInventory(w http.ResponseWriter, r *http.Request) {
 	type inv struct {
 		Slug     string `json:"slug"`
 		Variant  int    `json:"variant"`
-		Quantity int64  `json:"quantity"`
+		Quantity string `json:"quantity"`
 	}
 	decoder := json.NewDecoder(r.Body)
 	var invList []inv
@@ -1268,7 +1334,12 @@ func (i *jsonAPIHandler) POSTInventory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	for _, in := range invList {
-		err = i.node.Datastore.Inventory().Put(in.Slug, in.Variant, in.Quantity)
+		q, ok := new(big.Int).SetString(in.Quantity, 10)
+		if !ok {
+			ErrorResponse(w, http.StatusBadRequest, "error parsing quantity")
+			return
+		}
+		err = i.node.Datastore.Inventory().Put(in.Slug, in.Variant, q)
 		if err != nil {
 			ErrorResponse(w, http.StatusInternalServerError, err.Error())
 			return
@@ -1377,8 +1448,20 @@ func (i *jsonAPIHandler) GETListings(w http.ResponseWriter, r *http.Request) {
 			ErrorResponse(w, http.StatusNotFound, err.Error())
 			return
 		}
+		normalizedIndex, err := repo.UnmarshalJSONSignedListingIndex(listingsBytes)
+		if err != nil {
+			ErrorResponse(w, http.StatusInternalServerError, fmt.Sprintf("failed to parse listing index: %s", err.Error()))
+			return
+		}
+
+		normalizedBytes, err := json.MarshalIndent(normalizedIndex, "", "    ")
+		if err != nil {
+			ErrorResponse(w, http.StatusInternalServerError, fmt.Sprintf("failed to normalize listing index: %s", err.Error()))
+			return
+		}
+
 		w.Header().Set("Cache-Control", fmt.Sprintf("public, max-age=%s, immutable", maxAge))
-		SanitizedResponse(w, string(listingsBytes))
+		SanitizedResponse(w, string(normalizedBytes))
 	}
 }
 
@@ -1386,12 +1469,6 @@ func (i *jsonAPIHandler) GETListing(w http.ResponseWriter, r *http.Request) {
 	urlPath, listingID := path.Split(r.URL.Path)
 	_, peerID := path.Split(urlPath[:len(urlPath)-1])
 	useCache, _ := strconv.ParseBool(r.URL.Query().Get("usecache"))
-	m := jsonpb.Marshaler{
-		EnumsAsInts:  false,
-		EmitDefaults: false,
-		Indent:       "    ",
-		OrigName:     false,
-	}
 	if peerID == "" || strings.ToLower(peerID) == "listing" || peerID == i.node.IPFSIdentityString() {
 		var sl *pb.SignedListing
 		_, err := cid.Decode(listingID)
@@ -1416,22 +1493,23 @@ func (i *jsonAPIHandler) GETListing(w http.ResponseWriter, r *http.Request) {
 			sl.Hash = hash
 		}
 
-		savedCoupons, err := i.node.Datastore.Coupons().Get(sl.Listing.Slug)
-		if err != nil {
-			return
+		rsl := repo.NewSignedListingFromProtobuf(sl)
+
+		if err := rsl.GetListing().UpdateCouponsFromDatastore(i.node.Datastore.Coupons()); err != nil {
+			log.Warningf("updating coupons for listing (%s): %s", rsl.GetSlug(), err.Error())
 		}
-		err = core.AssignMatchingCoupons(savedCoupons, sl)
-		if err != nil {
-			ErrorResponse(w, http.StatusNotFound, "Could not apply coupons to listing.")
+
+		if err := rsl.Normalize(); err != nil {
+			ErrorResponse(w, http.StatusInternalServerError, fmt.Sprintf("normalizing listing: %s", err.Error()))
 			return
 		}
 
-		out, err := m.MarshalToString(sl)
+		out, err := rsl.MarshalJSON()
 		if err != nil {
 			ErrorResponse(w, http.StatusInternalServerError, err.Error())
 			return
 		}
-		SanitizedResponseM(w, out, new(pb.SignedListing))
+		SanitizedResponseM(w, string(out), new(pb.SignedListing))
 		return
 	}
 
@@ -1466,12 +1544,20 @@ func (i *jsonAPIHandler) GETListing(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	sl.Hash = hash
-	out, err := m.MarshalToString(sl)
+
+	rsl := repo.NewSignedListingFromProtobuf(sl)
+
+	if err := rsl.Normalize(); err != nil {
+		ErrorResponse(w, http.StatusInternalServerError, fmt.Sprintf("normalizing listing: %s", err.Error()))
+		return
+	}
+
+	out, err := rsl.MarshalJSON()
 	if err != nil {
 		ErrorResponse(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	SanitizedResponseM(w, out, new(pb.SignedListing))
+	SanitizedResponseM(w, string(out), new(pb.SignedListing))
 }
 
 func (i *jsonAPIHandler) GETProfile(w http.ResponseWriter, r *http.Request) {
@@ -1538,18 +1624,26 @@ func (i *jsonAPIHandler) POSTOrderConfirmation(w http.ResponseWriter, r *http.Re
 		ErrorResponse(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	contract, state, funded, records, _, paymentCoin, err := i.node.Datastore.Sales().GetByOrderId(conf.OrderID)
+
+	order, err := i.node.GetOrder(conf.OrderID)
+	if err != nil {
+		ErrorResponse(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	v5contract := order.Contract
+
+	contract, state, funded, records, _, _, err := i.node.Datastore.Sales().GetByOrderId(conf.OrderID)
 	if err != nil {
 		ErrorResponse(w, http.StatusNotFound, err.Error())
 		return
 	}
 
 	// TODO: Remove once broken contracts are migrated
-	lookupCoin := contract.BuyerOrder.Payment.Coin
-	_, err = repo.LoadCurrencyDefinitions().Lookup(lookupCoin)
+	lookupCoin := v5contract.BuyerOrder.Payment.AmountCurrency.Code
+	_, err = i.node.LookupCurrency(lookupCoin)
 	if err != nil {
 		log.Warningf("invalid BuyerOrder.Payment.Coin (%s) on order (%s)", lookupCoin, conf.OrderID)
-		contract.BuyerOrder.Payment.Coin = paymentCoin.String()
+		//contract.BuyerOrder.Payment.Coin = paymentCoin.String()
 	}
 
 	if state != pb.OrderState_PENDING {
@@ -1561,7 +1655,7 @@ func (i *jsonAPIHandler) POSTOrderConfirmation(w http.ResponseWriter, r *http.Re
 		return
 	}
 	if !conf.Reject {
-		err := i.node.ConfirmOfflineOrder(contract, records)
+		err := i.node.ConfirmOfflineOrder(state, contract, records)
 		if err != nil {
 			ErrorResponse(w, http.StatusInternalServerError, err.Error())
 			return
@@ -1587,18 +1681,23 @@ func (i *jsonAPIHandler) POSTOrderCancel(w http.ResponseWriter, r *http.Request)
 		ErrorResponse(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	contract, state, _, records, _, paymentCoin, err := i.node.Datastore.Purchases().GetByOrderId(can.OrderID)
+	contract, state, _, records, _, _, err := i.node.Datastore.Purchases().GetByOrderId(can.OrderID)
+	if err != nil {
+		ErrorResponse(w, http.StatusNotFound, "order not found")
+		return
+	}
+	v5order, err := repo.ToV5Order(contract.BuyerOrder, nil)
 	if err != nil {
 		ErrorResponse(w, http.StatusNotFound, "order not found")
 		return
 	}
 
 	// TODO: Remove once broken contracts are migrated
-	lookupCoin := contract.BuyerOrder.Payment.Coin
-	_, err = repo.LoadCurrencyDefinitions().Lookup(lookupCoin)
+	lookupCoin := v5order.Payment.AmountCurrency.Code
+	_, err = i.node.LookupCurrency(lookupCoin)
 	if err != nil {
 		log.Warningf("invalid BuyerOrder.Payment.Coin (%s) on order (%s)", lookupCoin, can.OrderID)
-		contract.BuyerOrder.Payment.Coin = paymentCoin.String()
+		//contract.BuyerOrder.Payment.Coin = paymentCoin.String()
 	}
 
 	if !((state == pb.OrderState_PENDING || state == pb.OrderState_PROCESSING_ERROR) && len(records) > 0) || !(state == pb.OrderState_PENDING || state == pb.OrderState_PROCESSING_ERROR) || contract.BuyerOrder.Payment.Method == pb.Order_Payment_MODERATED {
@@ -1639,7 +1738,6 @@ func (i *jsonAPIHandler) POSTResyncBlockchain(w http.ResponseWriter, r *http.Req
 
 func (i *jsonAPIHandler) GETOrder(w http.ResponseWriter, r *http.Request) {
 	_, orderID := path.Split(r.URL.Path)
-
 	resp, err := i.node.GetOrder(orderID)
 	if err != nil {
 		ErrorResponse(w, http.StatusNotFound, "Order not found")
@@ -1689,7 +1787,7 @@ func (i *jsonAPIHandler) POSTRefund(w http.ResponseWriter, r *http.Request) {
 		ErrorResponse(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	contract, state, _, records, _, paymentCoin, err := i.node.Datastore.Sales().GetByOrderId(can.OrderID)
+	contract, state, _, records, _, _, err := i.node.Datastore.Sales().GetByOrderId(can.OrderID)
 	if err != nil {
 		ErrorResponse(w, http.StatusNotFound, "order not found")
 		return
@@ -1700,11 +1798,18 @@ func (i *jsonAPIHandler) POSTRefund(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// TODO: Remove once broken contracts are migrated
-	lookupCoin := contract.BuyerOrder.Payment.Coin
-	_, err = repo.LoadCurrencyDefinitions().Lookup(lookupCoin)
+	order, err := i.node.GetOrder(can.OrderID)
+	if err != nil {
+		ErrorResponse(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	v5contract := order.Contract
+
+	lookupCoin := v5contract.BuyerOrder.Payment.AmountCurrency.Code
+	_, err = i.node.LookupCurrency(lookupCoin)
 	if err != nil {
 		log.Warningf("invalid BuyerOrder.Payment.Coin (%s) on order (%s)", lookupCoin, can.OrderID)
-		contract.BuyerOrder.Payment.Coin = paymentCoin.String()
+		//contract.BuyerOrder.Payment.Coin = paymentCoin.String()
 	}
 
 	err = i.node.RefundOrder(contract, records)
@@ -1741,7 +1846,7 @@ func (i *jsonAPIHandler) GETModerators(w http.ResponseWriter, r *http.Request) {
 		}
 		var mods []string
 		for _, p := range peerInfoList {
-			id, err := core.ExtractIDFromPointer(p)
+			id, err := ipfs.ExtractIDFromPointer(p)
 			if err != nil {
 				continue
 			}
@@ -1809,7 +1914,12 @@ func (i *jsonAPIHandler) GETModerators(w http.ResponseWriter, r *http.Request) {
 		id := r.URL.Query().Get("asyncID")
 		if id == "" {
 			idBytes := make([]byte, 16)
-			rand.Read(idBytes)
+			_, err := rand.Read(idBytes)
+			if err != nil {
+				// TODO: if this happens, len(idBytes) != 16
+				// how to handle this
+				log.Error(err)
+			}
 			id = base58.Encode(idBytes)
 		}
 
@@ -1827,7 +1937,7 @@ func (i *jsonAPIHandler) GETModerators(w http.ResponseWriter, r *http.Request) {
 			foundMu := sync.Mutex{}
 			for p := range peerChan {
 				go func(pi ps.PeerInfo) {
-					pid, err := core.ExtractIDFromPointer(pi)
+					pid, err := ipfs.ExtractIDFromPointer(pi)
 					if err != nil {
 						return
 					}
@@ -1888,18 +1998,25 @@ func (i *jsonAPIHandler) POSTOrderFulfill(w http.ResponseWriter, r *http.Request
 		ErrorResponse(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	contract, state, _, records, _, paymentCoin, err := i.node.Datastore.Sales().GetByOrderId(fulfill.OrderId)
+	contract, state, _, records, _, _, err := i.node.Datastore.Sales().GetByOrderId(fulfill.OrderId)
 	if err != nil {
 		ErrorResponse(w, http.StatusNotFound, "order not found")
 		return
 	}
 
 	// TODO: Remove once broken contracts are migrated
-	lookupCoin := contract.BuyerOrder.Payment.Coin
-	_, err = repo.LoadCurrencyDefinitions().Lookup(lookupCoin)
+	order, err := i.node.GetOrder(fulfill.OrderId)
+	if err != nil {
+		ErrorResponse(w, http.StatusNotFound, "order not found")
+		return
+	}
+	v5contract := order.Contract
+
+	lookupCoin := v5contract.BuyerOrder.Payment.AmountCurrency.Code
+	_, err = i.node.LookupCurrency(lookupCoin)
 	if err != nil {
 		log.Warningf("invalid BuyerOrder.Payment.Coin (%s) on order (%s)", lookupCoin, fulfill.OrderId)
-		contract.BuyerOrder.Payment.Coin = paymentCoin.String()
+		//contract.BuyerOrder.Payment.Coin = paymentCoin.String()
 	}
 
 	if state != pb.OrderState_AWAITING_FULFILLMENT && state != pb.OrderState_PARTIALLY_FULFILLED {
@@ -1929,18 +2046,24 @@ func (i *jsonAPIHandler) POSTOrderComplete(w http.ResponseWriter, r *http.Reques
 		ErrorResponse(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	contract, state, _, records, _, paymentCoin, err := i.node.Datastore.Purchases().GetByOrderId(or.OrderID)
+	contract, state, _, records, _, _, err := i.node.Datastore.Purchases().GetByOrderId(or.OrderID)
+	if err != nil {
+		ErrorResponse(w, http.StatusNotFound, "order not found")
+		return
+	}
+
+	v5order, err := repo.ToV5Order(contract.BuyerOrder, nil)
 	if err != nil {
 		ErrorResponse(w, http.StatusNotFound, "order not found")
 		return
 	}
 
 	// TODO: Remove once broken contracts are migrated
-	lookupCoin := contract.BuyerOrder.Payment.Coin
-	_, err = repo.LoadCurrencyDefinitions().Lookup(lookupCoin)
+	lookupCoin := v5order.Payment.AmountCurrency.Code
+	_, err = i.node.LookupCurrency(lookupCoin)
 	if err != nil {
 		log.Warningf("invalid BuyerOrder.Payment.Coin (%s) on order (%s)", lookupCoin, or.OrderID)
-		contract.BuyerOrder.Payment.Coin = paymentCoin.String()
+		//contract.BuyerOrder.Payment.Coin = paymentCoin.String()
 	}
 
 	if state != pb.OrderState_FULFILLED &&
@@ -2007,15 +2130,15 @@ func (i *jsonAPIHandler) POSTOpenDispute(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	var (
-		isSale      bool
-		contract    *pb.RicardianContract
-		state       pb.OrderState
-		records     []*wallet.TransactionRecord
-		paymentCoin *repo.CurrencyCode
+		isSale   bool
+		contract *pb.RicardianContract
+		state    pb.OrderState
+		records  []*wallet.TransactionRecord
+		//paymentCoin *repo.CurrencyCode
 	)
-	contract, state, _, records, _, paymentCoin, err = i.node.Datastore.Purchases().GetByOrderId(d.OrderID)
+	contract, state, _, records, _, _, err = i.node.Datastore.Purchases().GetByOrderId(d.OrderID)
 	if err != nil {
-		contract, state, _, records, _, paymentCoin, err = i.node.Datastore.Sales().GetByOrderId(d.OrderID)
+		contract, state, _, records, _, _, err = i.node.Datastore.Sales().GetByOrderId(d.OrderID)
 		if err != nil {
 			ErrorResponse(w, http.StatusNotFound, "Order not found")
 			return
@@ -2024,11 +2147,17 @@ func (i *jsonAPIHandler) POSTOpenDispute(w http.ResponseWriter, r *http.Request)
 	}
 
 	// TODO: Remove once broken contracts are migrated
-	lookupCoin := contract.BuyerOrder.Payment.Coin
-	_, err = repo.LoadCurrencyDefinitions().Lookup(lookupCoin)
+	v5order, err := repo.ToV5Order(contract.BuyerOrder, nil)
+	if err != nil {
+		ErrorResponse(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	lookupCoin := v5order.Payment.AmountCurrency.Code
+	_, err = i.node.LookupCurrency(lookupCoin)
 	if err != nil {
 		log.Warningf("invalid BuyerOrder.Payment.Coin (%s) on order (%s)", lookupCoin, d.OrderID)
-		contract.BuyerOrder.Payment.Coin = paymentCoin.String()
+		//contract.BuyerOrder.Payment.Coin = paymentCoin.String()
 	}
 
 	if contract.BuyerOrder.Payment.Method != pb.Order_Payment_MODERATED {
@@ -2107,6 +2236,16 @@ func (i *jsonAPIHandler) GETCase(w http.ResponseWriter, r *http.Request) {
 		ErrorResponse(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+
+	if buyerContract.BuyerOrder.Payment.BigAmount == "" {
+		v5order, err := repo.ToV5Order(buyerContract.BuyerOrder, nil)
+		if err != nil {
+			ErrorResponse(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		buyerContract.BuyerOrder = v5order
+	}
+
 	resp.BuyerContract = buyerContract
 	resp.VendorContract = vendorContract
 	resp.BuyerOpened = buyerOpened
@@ -2137,7 +2276,10 @@ func (i *jsonAPIHandler) GETCase(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	i.node.Datastore.Cases().MarkAsRead(orderID)
+	err = i.node.Datastore.Cases().MarkAsRead(orderID)
+	if err != nil {
+		log.Error(err)
+	}
 	SanitizedResponseM(w, out, new(pb.CaseRespApi))
 }
 
@@ -2153,26 +2295,32 @@ func (i *jsonAPIHandler) POSTReleaseFunds(w http.ResponseWriter, r *http.Request
 		return
 	}
 	var (
-		contract    *pb.RicardianContract
-		state       pb.OrderState
-		records     []*wallet.TransactionRecord
-		paymentCoin *repo.CurrencyCode
+		contract *pb.RicardianContract
+		state    pb.OrderState
+		records  []*wallet.TransactionRecord
+		//paymentCoin *repo.CurrencyCode
 	)
-	contract, state, _, records, _, paymentCoin, err = i.node.Datastore.Purchases().GetByOrderId(rel.OrderID)
+	contract, state, _, records, _, _, err = i.node.Datastore.Purchases().GetByOrderId(rel.OrderID)
 	if err != nil {
-		contract, state, _, records, _, paymentCoin, err = i.node.Datastore.Sales().GetByOrderId(rel.OrderID)
+		contract, state, _, records, _, _, err = i.node.Datastore.Sales().GetByOrderId(rel.OrderID)
 		if err != nil {
 			ErrorResponse(w, http.StatusNotFound, "Order not found")
 			return
 		}
 	}
 
+	v5order, err := repo.ToV5Order(contract.BuyerOrder, nil)
+	if err != nil {
+		ErrorResponse(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
 	// TODO: Remove once broken contracts are migrated
-	lookupCoin := contract.BuyerOrder.Payment.Coin
-	_, err = repo.LoadCurrencyDefinitions().Lookup(lookupCoin)
+	lookupCoin := v5order.Payment.AmountCurrency.Code
+	_, err = i.node.LookupCurrency(lookupCoin)
 	if err != nil {
 		log.Warningf("invalid BuyerOrder.Payment.Coin (%s) on order (%s)", lookupCoin, rel.OrderID)
-		contract.BuyerOrder.Payment.Coin = paymentCoin.String()
+		//contract.BuyerOrder.Payment.Coin = paymentCoin.String()
 	}
 
 	if state == pb.OrderState_DECIDED {
@@ -2193,10 +2341,10 @@ func (i *jsonAPIHandler) POSTReleaseEscrow(w http.ResponseWriter, r *http.Reques
 		rel struct {
 			OrderID string `json:"orderId"`
 		}
-		contract    *pb.RicardianContract
-		state       pb.OrderState
-		records     []*wallet.TransactionRecord
-		paymentCoin *repo.CurrencyCode
+		contract *pb.RicardianContract
+		state    pb.OrderState
+		records  []*wallet.TransactionRecord
+		//paymentCoin *repo.CurrencyCode
 	)
 
 	decoder := json.NewDecoder(r.Body)
@@ -2206,18 +2354,24 @@ func (i *jsonAPIHandler) POSTReleaseEscrow(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	contract, state, _, records, _, paymentCoin, err = i.node.Datastore.Sales().GetByOrderId(rel.OrderID)
+	contract, state, _, records, _, _, err = i.node.Datastore.Sales().GetByOrderId(rel.OrderID)
 	if err != nil {
 		ErrorResponse(w, http.StatusNotFound, "Order not found")
 		return
 	}
 
 	// TODO: Remove once broken contracts are migrated
-	lookupCoin := contract.BuyerOrder.Payment.Coin
-	_, err = repo.LoadCurrencyDefinitions().Lookup(lookupCoin)
+	order, err := i.node.GetOrder(rel.OrderID)
+	if err != nil {
+		ErrorResponse(w, http.StatusBadRequest, "Could not retrieve the order")
+		return
+	}
+
+	lookupCoin := order.Contract.BuyerOrder.Payment.AmountCurrency.Code
+	_, err = i.node.LookupCurrency(lookupCoin)
 	if err != nil {
 		log.Warningf("invalid BuyerOrder.Payment.Coin (%s) on order (%s)", lookupCoin, rel.OrderID)
-		contract.BuyerOrder.Payment.Coin = paymentCoin.String()
+		//contract.BuyerOrder.Payment.Coin = paymentCoin.String()
 	}
 
 	if state != pb.OrderState_PENDING && state != pb.OrderState_FULFILLED && state != pb.OrderState_DISPUTED {
@@ -2528,11 +2682,20 @@ func (i *jsonAPIHandler) POSTMarkChatAsRead(w http.ResponseWriter, r *http.Reque
 		}
 	}
 	if subject != "" {
-		go func() {
-			i.node.Datastore.Purchases().MarkAsRead(subject)
-			i.node.Datastore.Sales().MarkAsRead(subject)
-			i.node.Datastore.Cases().MarkAsRead(subject)
-		}()
+		go func(subject string) {
+			err := i.node.Datastore.Purchases().MarkAsRead(subject)
+			if err != nil {
+				log.Error(err)
+			}
+			err = i.node.Datastore.Sales().MarkAsRead(subject)
+			if err != nil {
+				log.Error(err)
+			}
+			err = i.node.Datastore.Cases().MarkAsRead(subject)
+			if err != nil {
+				log.Error(err)
+			}
+		}(subject)
 	}
 	SanitizedResponse(w, `{}`)
 }
@@ -2771,7 +2934,12 @@ func (i *jsonAPIHandler) POSTFetchProfiles(w http.ResponseWriter, r *http.Reques
 		id := r.URL.Query().Get("asyncID")
 		if id == "" {
 			idBytes := make([]byte, 16)
-			rand.Read(idBytes)
+			_, err := rand.Read(idBytes)
+			if err != nil {
+				// TODO: if this happens, len(idBytes) != 16
+				// how to handle this
+				log.Error(err)
+			}
 			id = base58.Encode(idBytes)
 		}
 
@@ -2842,7 +3010,7 @@ func (i *jsonAPIHandler) GETTransactions(w http.ResponseWriter, r *http.Request)
 	offsetID := r.URL.Query().Get("offsetId")
 	type Tx struct {
 		Txid          string        `json:"txid"`
-		Value         int64         `json:"value"`
+		Value         string        `json:"value"`
 		Address       string        `json:"address"`
 		Status        string        `json:"status"`
 		ErrorMessage  string        `json:"errorMessage"`
@@ -2887,7 +3055,7 @@ func (i *jsonAPIHandler) GETTransactions(w http.ResponseWriter, r *http.Request)
 		if ok {
 			tx.Address = m.Address
 			tx.Memo = m.Memo
-			tx.OrderID = m.OrderID
+			tx.OrderID = m.OrderId
 			tx.Thumbnail = m.Thumbnail
 			tx.CanBumpFee = m.CanBumpFee
 		}
@@ -3146,7 +3314,12 @@ func (i *jsonAPIHandler) POSTBlockNode(w http.ResponseWriter, r *http.Request) {
 			nodes = append(nodes, pid)
 		}
 	}
-	go ipfs.RemoveAll(i.node.IpfsNode, peerID, i.node.IPNSQuorumSize)
+	go func(nd *ipfscore.IpfsNode, peerID string, quorum uint) {
+		err := ipfs.RemoveAll(nd, peerID, quorum)
+		if err != nil {
+			log.Error(err)
+		}
+	}(i.node.IpfsNode, peerID, i.node.IPNSQuorumSize)
 	nodes = append(nodes, peerID)
 	settings.BlockedNodes = &nodes
 	if err := i.node.Datastore.Settings().Put(settings); err != nil {
@@ -3238,7 +3411,7 @@ func (i *jsonAPIHandler) POSTBumpFee(w http.ResponseWriter, r *http.Request) {
 		Txid:       newTxid.String(),
 		Address:    "",
 		Memo:       fmt.Sprintf("Fee bump of %s", txid),
-		OrderID:    "",
+		OrderId:    "",
 		Thumbnail:  "",
 		CanBumpFee: true,
 	}); err != nil {
@@ -3246,25 +3419,33 @@ func (i *jsonAPIHandler) POSTBumpFee(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	type response struct {
-		Txid               string        `json:"txid"`
-		Amount             int64         `json:"amount"`
-		ConfirmedBalance   int64         `json:"confirmedBalance"`
-		UnconfirmedBalance int64         `json:"unconfirmedBalance"`
-		Timestamp          *repo.APITime `json:"timestamp"`
-		Memo               string        `json:"memo"`
+		Txid               string              `json:"txid"`
+		Amount             *repo.CurrencyValue `json:"amount"`
+		ConfirmedBalance   *repo.CurrencyValue `json:"confirmedBalance"`
+		UnconfirmedBalance *repo.CurrencyValue `json:"unconfirmedBalance"`
+		Timestamp          *repo.APITime       `json:"timestamp"`
+		Memo               string              `json:"memo"`
 	}
 	confirmed, unconfirmed := wal.Balance()
+	defn, err := i.node.LookupCurrency(wal.CurrencyCode())
+	if err != nil {
+		ErrorResponse(w, http.StatusInternalServerError, err.Error())
+		return
+	}
 	txn, err := wal.GetTransaction(*newTxid)
 	if err != nil {
 		ErrorResponse(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+	amt0, _ := repo.NewCurrencyValue(txn.Value, defn)
+	amt0.Amount = new(big.Int).Mod(amt0.Amount, big.NewInt(-1))
+
 	t := repo.NewAPITime(txn.Timestamp)
 	resp := &response{
 		Txid:               newTxid.String(),
-		ConfirmedBalance:   confirmed,
-		UnconfirmedBalance: unconfirmed,
-		Amount:             -(txn.Value),
+		ConfirmedBalance:   &repo.CurrencyValue{Currency: defn, Amount: &confirmed.Value},
+		UnconfirmedBalance: &repo.CurrencyValue{Currency: defn, Amount: &unconfirmed.Value},
+		Amount:             amt0,
 		Timestamp:          t,
 		Memo:               fmt.Sprintf("Fee bump of %s", txid),
 	}
@@ -3281,20 +3462,22 @@ func (i *jsonAPIHandler) GETEstimateFee(w http.ResponseWriter, r *http.Request) 
 
 	fl := r.URL.Query().Get("feeLevel")
 	amt := r.URL.Query().Get("amount")
-	amount, err := strconv.Atoi(amt)
-	if err != nil {
-		ErrorResponse(w, http.StatusBadRequest, err.Error())
+	amount, ok := new(big.Int).SetString(amt, 10) //strconv.Atoi(amt)
+	if !ok {
+		ErrorResponse(w, http.StatusBadRequest, "invalid amount")
 		return
 	}
 
 	var feeLevel wallet.FeeLevel
 	switch strings.ToUpper(fl) {
 	case "PRIORITY":
-		feeLevel = wallet.PRIOIRTY
+		feeLevel = wallet.PRIORITY
 	case "NORMAL":
 		feeLevel = wallet.NORMAL
 	case "ECONOMIC":
 		feeLevel = wallet.ECONOMIC
+	case "SUPER_ECONOMIC":
+		feeLevel = wallet.SUPER_ECONOMIC
 	default:
 		ErrorResponse(w, http.StatusBadRequest, "Unknown feeLevel")
 		return
@@ -3306,10 +3489,10 @@ func (i *jsonAPIHandler) GETEstimateFee(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	fee, err := wal.EstimateSpendFee(int64(amount), feeLevel)
+	fee, err := wal.EstimateSpendFee(*amount, feeLevel)
 	if err != nil {
 		switch {
-		case err == wallet.ErrorInsuffientFunds:
+		case err == wallet.ErrInsufficientFunds:
 			ErrorResponse(w, http.StatusBadRequest, `ERROR_INSUFFICIENT_FUNDS`)
 			return
 		case err == wallet.ErrorDustAmount:
@@ -3320,23 +3503,47 @@ func (i *jsonAPIHandler) GETEstimateFee(w http.ResponseWriter, r *http.Request) 
 			return
 		}
 	}
-	fmt.Fprintf(w, `{"estimatedFee": %d}`, fee)
+
+	defn, err := i.node.LookupCurrency(coinType)
+	if err != nil {
+		ErrorResponse(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	resp := &repo.CurrencyValue{Currency: defn, Amount: &fee}
+	ser, err := json.MarshalIndent(resp, "", "    ")
+	if err != nil {
+		ErrorResponse(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	SanitizedResponse(w, string(ser))
 }
 
 func (i *jsonAPIHandler) GETFees(w http.ResponseWriter, r *http.Request) {
 	_, coinType := path.Split(r.URL.Path)
 	type fees struct {
-		Priority uint64 `json:"priority"`
-		Normal   uint64 `json:"normal"`
-		Economic uint64 `json:"economic"`
+		Priority      *repo.CurrencyValue `json:"priority"`
+		Normal        *repo.CurrencyValue `json:"normal"`
+		Economic      *repo.CurrencyValue `json:"economic"`
+		SuperEconomic *repo.CurrencyValue `json:"superEconomic"`
 	}
 	if coinType == "fees" {
 		ret := make(map[string]interface{})
 		for ct, wal := range i.node.Multiwallet {
-			priority := wal.GetFeePerByte(wallet.PRIOIRTY)
+			priority := wal.GetFeePerByte(wallet.PRIORITY)
 			normal := wal.GetFeePerByte(wallet.NORMAL)
 			economic := wal.GetFeePerByte(wallet.ECONOMIC)
-			ret[ct.CurrencyCode()] = fees{Priority: priority, Normal: normal, Economic: economic}
+			superEconomic := wal.GetFeePerByte(wallet.SUPER_ECONOMIC)
+			defn, err := i.node.LookupCurrency(wal.CurrencyCode())
+			if err != nil {
+				ErrorResponse(w, http.StatusInternalServerError, err.Error())
+				return
+			}
+			ret[ct.CurrencyCode()] = fees{
+				Priority:      &repo.CurrencyValue{Currency: defn, Amount: &priority},
+				Normal:        &repo.CurrencyValue{Currency: defn, Amount: &normal},
+				Economic:      &repo.CurrencyValue{Currency: defn, Amount: &economic},
+				SuperEconomic: &repo.CurrencyValue{Currency: defn, Amount: &superEconomic},
+			}
 		}
 		out, err := json.MarshalIndent(ret, "", "    ")
 		if err != nil {
@@ -3351,10 +3558,21 @@ func (i *jsonAPIHandler) GETFees(w http.ResponseWriter, r *http.Request) {
 		ErrorResponse(w, http.StatusBadRequest, "Unknown wallet type")
 		return
 	}
-	priority := wal.GetFeePerByte(wallet.PRIOIRTY)
+	priority := wal.GetFeePerByte(wallet.PRIORITY)
 	normal := wal.GetFeePerByte(wallet.NORMAL)
 	economic := wal.GetFeePerByte(wallet.ECONOMIC)
-	f := fees{Priority: priority, Normal: normal, Economic: economic}
+	superEconomic := wal.GetFeePerByte(wallet.SUPER_ECONOMIC)
+	defn, err := i.node.LookupCurrency(wal.CurrencyCode())
+	if err != nil {
+		ErrorResponse(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	f := fees{
+		Priority:      &repo.CurrencyValue{Currency: defn, Amount: &priority},
+		Normal:        &repo.CurrencyValue{Currency: defn, Amount: &normal},
+		Economic:      &repo.CurrencyValue{Currency: defn, Amount: &economic},
+		SuperEconomic: &repo.CurrencyValue{Currency: defn, Amount: &superEconomic},
+	}
 	out, err := json.MarshalIndent(f, "", "    ")
 	if err != nil {
 		ErrorResponse(w, http.StatusInternalServerError, err.Error())
@@ -3363,9 +3581,32 @@ func (i *jsonAPIHandler) GETFees(w http.ResponseWriter, r *http.Request) {
 	SanitizedResponse(w, string(out))
 }
 
+func (i *jsonAPIHandler) POSTCheckoutBreakdown(w http.ResponseWriter, r *http.Request) {
+	decoder := json.NewDecoder(r.Body)
+	var data repo.PurchaseData
+	err := decoder.Decode(&data)
+	if err != nil {
+		ErrorResponse(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	cb, err := i.node.CheckoutBreakdown(&data)
+	if err != nil {
+		ErrorResponse(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	out, err := json.MarshalIndent(cb, "", "    ")
+	if err != nil {
+		ErrorResponse(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	SanitizedResponse(w, string(out))
+}
+
 func (i *jsonAPIHandler) POSTEstimateTotal(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
-	var data core.PurchaseData
+	var data repo.PurchaseData
 	err := decoder.Decode(&data)
 	if err != nil {
 		ErrorResponse(w, http.StatusBadRequest, err.Error())
@@ -3376,7 +3617,7 @@ func (i *jsonAPIHandler) POSTEstimateTotal(w http.ResponseWriter, r *http.Reques
 		ErrorResponse(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	fmt.Fprintf(w, "%d", int(amount))
+	fmt.Fprintf(w, "%s", amount.String())
 }
 
 func (i *jsonAPIHandler) GETRatings(w http.ResponseWriter, r *http.Request) {
@@ -3549,7 +3790,10 @@ func (i *jsonAPIHandler) POSTFetchRatings(w http.ResponseWriter, r *http.Request
 		id := r.URL.Query().Get("asyncID")
 		if id == "" {
 			idBytes := make([]byte, 16)
-			rand.Read(idBytes)
+			_, err := rand.Read(idBytes)
+			if err != nil {
+				return
+			}
 			id = base58.Encode(idBytes)
 		}
 
@@ -3626,11 +3870,8 @@ func (i *jsonAPIHandler) POSTImportListings(w http.ResponseWriter, r *http.Reque
 	}
 	defer file.Close()
 
-	err = i.node.ImportListings(file)
-	if err != nil {
-		ErrorResponse(w, http.StatusBadRequest, err.Error())
-		return
-	}
+	// TODO: add the import listings function call
+
 	// Republish to IPNS
 	if err := i.node.SeedNode(); err != nil {
 		ErrorResponse(w, http.StatusInternalServerError, err.Error())
@@ -3783,7 +4024,12 @@ func (i *jsonAPIHandler) GETIPNS(w http.ResponseWriter, r *http.Request) {
 		ErrorResponse(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	go ipfs.Resolve(i.node.IpfsNode, pid, time.Minute, i.node.IPNSQuorumSize, false)
+	go func(nd *ipfscore.IpfsNode, pid peer.ID, timeout time.Duration, quorum uint, useCache bool) {
+		_, err := ipfs.Resolve(nd, pid, timeout, quorum, useCache)
+		if err != nil {
+			log.Error(err)
+		}
+	}(i.node.IpfsNode, pid, time.Minute, i.node.IPNSQuorumSize, false)
 	fmt.Fprint(w, string(retBytes))
 }
 
@@ -3863,6 +4109,12 @@ func (i *jsonAPIHandler) POSTTestEmailNotifications(w http.ResponseWriter, r *ht
 		ErrorResponse(w, http.StatusBadRequest, err.Error())
 		return
 	}
+	profile, err := i.node.GetProfile()
+	if err != nil {
+		ErrorResponse(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	settings.OpenBazaarName = profile.Name
 	notifier := smtpNotifier{&settings}
 	err = notifier.notify(repo.TestNotification{})
 	if err != nil {
@@ -3896,6 +4148,35 @@ func (i *jsonAPIHandler) GETPeerInfo(w http.ResponseWriter, r *http.Request) {
 	SanitizedResponse(w, string(out))
 }
 
+// Enable bulk updating prices for your listings by percentage
+func (i *jsonAPIHandler) POSTBulkUpdatePrices(w http.ResponseWriter, r *http.Request) {
+	type BulkUpdatePriceRequest struct {
+		Percentage float64 `json:"percentage"`
+	}
+
+	var bulkUpdate BulkUpdatePriceRequest
+	err := json.NewDecoder(r.Body).Decode(&bulkUpdate)
+	if err != nil {
+		http.Error(w, err.Error(), 400)
+		return
+	}
+
+	// Check for bad input
+	if bulkUpdate.Percentage == 0 {
+		SanitizedResponse(w, `{"success": "true"}`)
+		return
+	}
+
+	log.Infof("Updating all listing prices by %v percent\n", bulkUpdate.Percentage)
+	err = i.node.SetPriceOnListings(bulkUpdate.Percentage)
+	if err != nil {
+		http.Error(w, err.Error(), 400)
+		return
+	}
+
+	SanitizedResponse(w, `{"success": "true"}`)
+}
+
 func (i *jsonAPIHandler) POSTBulkUpdateCurrency(w http.ResponseWriter, r *http.Request) {
 	// Retrieve attribute and values to update
 	type BulkUpdateRequest struct {
@@ -3917,6 +4198,71 @@ func (i *jsonAPIHandler) POSTBulkUpdateCurrency(w http.ResponseWriter, r *http.R
 
 	log.Info("Updating currencies for all listings to: ", bulkUpdate.Currencies)
 	err = i.node.SetCurrencyOnListings(bulkUpdate.Currencies)
+	if err != nil {
+		http.Error(w, err.Error(), 400)
+		return
+	}
+
+	SanitizedResponse(w, `{"success": "true"}`)
+}
+
+func (i *jsonAPIHandler) POSTBulkUpdateTerms(w http.ResponseWriter, r *http.Request) {
+	// Retrieve attribute and values to update
+	type BulkUpdateRequest struct {
+		TermsAndConditions string `json:"termsAndConditions"`
+	}
+
+	var bulkUpdate BulkUpdateRequest
+	err := json.NewDecoder(r.Body).Decode(&bulkUpdate)
+	if err != nil {
+		http.Error(w, err.Error(), 400)
+		return
+	}
+
+	log.Info("Updating terms and conditions for all listings to: ", bulkUpdate.TermsAndConditions)
+	err = i.node.SetTermsAndConditionsOnListings(bulkUpdate.TermsAndConditions)
+	if err != nil {
+		http.Error(w, err.Error(), 400)
+		return
+	}
+
+	SanitizedResponse(w, `{"success": "true"}`)
+}
+
+func (i *jsonAPIHandler) POSTBulkUpdateRefundPolicy(w http.ResponseWriter, r *http.Request) {
+	// Retrieve attribute and values to update
+	type BulkUpdateRequest struct {
+		RefundPolicy string `json:"refundPolicy"`
+	}
+
+	var bulkUpdate BulkUpdateRequest
+	err := json.NewDecoder(r.Body).Decode(&bulkUpdate)
+	if err != nil {
+		http.Error(w, err.Error(), 400)
+		return
+	}
+
+	log.Info("Updating return policy for all listings to: ", bulkUpdate.RefundPolicy)
+	err = i.node.SetRefundPolicyOnListings(bulkUpdate.RefundPolicy)
+	if err != nil {
+		http.Error(w, err.Error(), 400)
+		return
+	}
+
+	SanitizedResponse(w, `{"success": "true"}`)
+}
+
+func (i *jsonAPIHandler) POSTBulkUpdateShippingDetails(w http.ResponseWriter, r *http.Request) {
+	// Retrieve attribute and values to update
+	ld := new(pb.Listing)
+	err := jsonpb.Unmarshal(r.Body, ld)
+	if err != nil {
+		ErrorResponse(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	log.Info("Updating shipping details for all listings")
+	err = i.node.SetShippingDetailsOnListings(ld.ShippingOptions)
 	if err != nil {
 		http.Error(w, err.Error(), 400)
 		return
@@ -4323,4 +4669,27 @@ func (i *jsonAPIHandler) GETScanOfflineMessages(w http.ResponseWriter, r *http.R
 func (i *jsonAPIHandler) GETIsWalletLocked(w http.ResponseWriter, r *http.Request) {
 	SanitizedResponse(w, fmt.Sprintf(`{"isLocked": "%s", "isInitialized": "%s"}`,
 		strconv.FormatBool(i.node.IsWalletLocked()), strconv.FormatBool(i.node.Multiwallet != nil)))
+}
+
+func (i *jsonAPIHandler) POSTHashMessage(w http.ResponseWriter, r *http.Request) {
+	type hashRequest struct {
+		Content string `json:"content"`
+	}
+	var (
+		req hashRequest
+		err = json.NewDecoder(r.Body).Decode(&req)
+	)
+	if err != nil {
+		ErrorResponse(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	messageHash, err := ipfs.EncodeMultihash([]byte(req.Content))
+	if err != nil {
+		ErrorResponse(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	SanitizedResponse(w, fmt.Sprintf(`{"hash": "%s"}`,
+		messageHash.B58String()))
 }

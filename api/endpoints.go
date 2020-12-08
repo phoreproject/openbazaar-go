@@ -91,6 +91,8 @@ func post(i *jsonAPIHandler, path string, w http.ResponseWriter, r *http.Request
 		i.POSTShutdown(w, r)
 	case strings.HasPrefix(path, "/ob/estimatetotal"):
 		i.POSTEstimateTotal(w, r)
+	case strings.HasPrefix(path, "/ob/checkoutbreakdown"):
+		i.POSTCheckoutBreakdown(w, r)
 	case strings.HasPrefix(path, "/ob/fetchratings"):
 		i.POSTFetchRatings(w, r)
 	case strings.HasPrefix(path, "/ob/sales"):
@@ -113,6 +115,14 @@ func post(i *jsonAPIHandler, path string, w http.ResponseWriter, r *http.Request
 		i.POSTPost(w, r)
 	case strings.HasPrefix(path, "/ob/bulkupdatecurrency"):
 		i.POSTBulkUpdateCurrency(w, r)
+	case strings.HasPrefix(path, "/ob/bulkupdatetermsandconditions"):
+		i.POSTBulkUpdateTerms(w, r)
+	case strings.HasPrefix(path, "/ob/bulkupdaterefundpolicy"):
+		i.POSTBulkUpdateRefundPolicy(w, r)
+	case strings.HasPrefix(path, "/ob/bulkupdatereturnpolicy"):
+		i.POSTBulkUpdateRefundPolicy(w, r)
+	case strings.HasPrefix(path, "/ob/bulkupdateshippingoptions"):
+		i.POSTBulkUpdateShippingDetails(w, r)
 	case strings.HasPrefix(path, "/ob/resendordermessage"):
 		i.POSTResendOrderMessage(w, r)
 	case strings.HasPrefix(path, "/manage/initwallet"):
@@ -121,6 +131,10 @@ func post(i *jsonAPIHandler, path string, w http.ResponseWriter, r *http.Request
 		i.POSTUnlockWallet(w, r)
 	case strings.HasPrefix(path, "/manage/lockwallet"):
 		i.POSTLockWallet(w, r)
+	case strings.HasPrefix(path, "/ob/hashmessage"):
+		i.POSTHashMessage(w, r)
+	case strings.HasPrefix(path, "/ob/bulkupdateprices"):
+		i.POSTBulkUpdatePrices(w, r)
 	default:
 		ErrorResponse(w, http.StatusNotFound, "Not Found")
 	}
@@ -135,6 +149,8 @@ func get(i *jsonAPIHandler, path string, w http.ResponseWriter, r *http.Request)
 		i.GETPeers(w, r)
 	case strings.HasPrefix(path, "/ob/config"):
 		i.GETConfig(w, r)
+	case strings.HasPrefix(path, "/wallet/currencies"):
+		i.GETWalletCurrencyDictionary(w, r)
 	case strings.HasPrefix(path, "/wallet/address"):
 		i.GETAddress(w, r)
 	case strings.HasPrefix(path, "/wallet/mnemonic"):

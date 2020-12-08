@@ -69,7 +69,7 @@ func (x *Restore) Execute(args []string) error {
 	}
 
 	// Set repo path
-	repoPath, err := repo.GetRepoPath(x.Testnet)
+	repoPath, err := repo.GetRepoPath(x.Testnet, x.DataDir)
 	if err != nil {
 		return err
 	}

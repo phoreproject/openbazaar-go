@@ -16,6 +16,11 @@ func init() {
 	peer.AdvancedEnableInlining = false
 }
 
+// PubKey wraps IPFS's underlying PubKey dependency
+type PubKey interface {
+	crypto.PubKey
+}
+
 // IdentityFromKey returns IPFS peer identity based on private key
 func IdentityFromKey(privkey []byte) (config.Identity, error) {
 	ident := config.Identity{}
@@ -40,7 +45,10 @@ func IdentityFromKey(privkey []byte) (config.Identity, error) {
 // IdentityKeyFromSeed generates an OpenBazaar seed IPFS key pair
 func IdentityKeyFromSeed(seed []byte, bits int) ([]byte, error) {
 	hm := hmac.New(sha256.New, []byte("OpenBazaar seed"))
-	hm.Write(seed)
+	_, err := hm.Write(seed)
+	if err != nil {
+		return nil, err
+	}
 	reader := bytes.NewReader(hm.Sum(nil))
 	sk, _, err := crypto.GenerateKeyPairWithReader(crypto.Ed25519, bits, reader)
 	if err != nil {

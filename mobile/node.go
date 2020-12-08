@@ -26,6 +26,8 @@ import (
 	ipfslogging "gx/ipfs/QmbkT7eMTyXfpeyB3ZMxxcxg7XH8t6uXp49jqzz4HB7BGF/go-log/writer"
 	"gx/ipfs/Qmc85NSvmSG4Frn9Vb2cBc1rMyULH6D3TNVEfCzSKoUpip/go-multiaddr-net"
 
+	_ "net/http/pprof"
+
 	wi "github.com/OpenBazaar/wallet-interface"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcutil/hdkeychain"
@@ -45,14 +47,12 @@ import (
 	"github.com/phoreproject/pm-go/net/service"
 	"github.com/phoreproject/pm-go/repo"
 	"github.com/phoreproject/pm-go/repo/db"
-	"github.com/phoreproject/pm-go/repo/migrations"
 	apiSchema "github.com/phoreproject/pm-go/schema"
 	"github.com/phoreproject/pm-go/storage/selfhosted"
 	"github.com/phoreproject/pm-go/wallet"
 	lis "github.com/phoreproject/pm-go/wallet/listeners"
 	"github.com/phoreproject/pm-go/wallet/resync"
 	"github.com/tyler-smith/go-bip39"
-	_ "net/http/pprof"
 )
 
 var log = logging.MustGetLogger("mobile")
@@ -71,7 +71,7 @@ type Node struct {
 
 var (
 	fileLogFormat = logging.MustStringFormatter(
-		`%{time:2006-01-02 15:04:05.000} [%{level}] [%{module}/%{shortfunc}] %{message}`,
+		`[Haven] %{time:2006-01-02 15:04:05.000} [%{level}] [%{module}/%{shortfunc}] %{message}`,
 	)
 	publishUnlocked    = false
 	mainLoggingBackend logging.Backend
@@ -123,12 +123,12 @@ func NewNodeWithConfig(config *NodeConfig, password string, mnemonic string) (*N
 	}
 	obFileBackend := logging.NewLogBackend(obLog, "", 0)
 	obFileBackendFormatted := logging.NewBackendFormatter(obFileBackend, fileLogFormat)
-	mainLoggingBackend = logging.SetBackend(obFileBackendFormatted)
+	stdoutBackend := logging.NewLogBackend(os.Stdout, "", 0)
+	stdoutBackendFormatted := logging.NewBackendFormatter(stdoutBackend, fileLogFormat)
+	mainLoggingBackend = logging.SetBackend(obFileBackendFormatted, stdoutBackendFormatted)
 	logging.SetLevel(logging.INFO, "")
 
-	migrations.WalletCoinType = util.ExtendCoinType(config.CoinType)
-
-	sqliteDB, err := initializeRepo(config.RepoPath, "", "", true, time.Now(), config.CoinType)
+	sqliteDB, err := initializeRepo(config.RepoPath, "", "", true, time.Now(), wi.Bitcoin)
 	if err != nil && err != repo.ErrRepoExists {
 		return nil, err
 	}
@@ -164,7 +164,10 @@ func NewNodeWithConfig(config *NodeConfig, password string, mnemonic string) (*N
 
 	// Create user-agent file
 	userAgentBytes := []byte(core.USERAGENT + config.UserAgent)
-	ioutil.WriteFile(path.Join(config.RepoPath, "root", "user_agent"), userAgentBytes, os.ModePerm)
+	err = ioutil.WriteFile(path.Join(config.RepoPath, "root", "user_agent"), userAgentBytes, os.ModePerm)
+	if err != nil {
+		log.Error(err)
+	}
 
 	// IPFS node setup
 	r, err := fsrepo.Open(config.RepoPath)
@@ -219,7 +222,12 @@ func NewNodeWithConfig(config *NodeConfig, password string, mnemonic string) (*N
 	if err != nil {
 		return nil, err
 	}
-	params := chaincfg.MainNetParams
+	var params chaincfg.Params
+	if config.Testnet {
+		params = chaincfg.TestNet3Params
+	} else {
+		params = chaincfg.MainNetParams
+	}
 
 	// Master key setup
 	seed := bip39.NewSeed(mn, "")
@@ -277,7 +285,7 @@ func NewNodeWithConfig(config *NodeConfig, password string, mnemonic string) (*N
 		Datastore:                     sqliteDB,
 		MasterPrivateKey:              mPrivKey,
 		Multiwallet:                   mw,
-		OfflineMessageFailoverTimeout: 5 * time.Second,
+		OfflineMessageFailoverTimeout: 3 * time.Second,
 		PushNodes:                     pushNodes,
 		RepoPath:                      config.RepoPath,
 		UserAgent:                     core.USERAGENT,
@@ -294,6 +302,12 @@ func NewNodeWithConfig(config *NodeConfig, password string, mnemonic string) (*N
 	ncfg.Routing = constructMobileRouting
 
 	node.PublishLock.Lock()
+
+	// assert reserve wallet is available on startup for later usage
+	_, err = node.ReserveCurrencyConverter()
+	if err != nil {
+		return nil, fmt.Errorf("verifying reserve currency converter: %s", err.Error())
+	}
 
 	return &Node{OpenBazaarNode: node, config: *config, ipfsConfig: ncfg, apiConfig: apiConfig, startMtx: sync.Mutex{}}, nil
 }
@@ -313,6 +327,13 @@ func (n *Node) startIPFSNode(repoPath string, config *ipfscore.BuildCfg) (*ipfsc
 	n.cancel = cancel
 
 	ctx := commands.Context{}
+
+	ipfscore.DefaultBootstrapConfig = ipfscore.BootstrapConfig{
+		MinPeerThreshold:  8,
+		Period:            time.Second * 10,
+		ConnectionTimeout: time.Second * 10 / 3,
+	}
+
 	nd, err := ipfscore.NewNode(cctx, config)
 	if err != nil {
 		return nil, ctx, err
@@ -469,9 +490,15 @@ func (n *Node) start() error {
 
 		n.OpenBazaarNode.PublishLock.Unlock()
 		publishUnlocked = true
-		n.OpenBazaarNode.UpdateFollow()
+		err = n.OpenBazaarNode.UpdateFollow()
+		if err != nil {
+			log.Error(err)
+		}
 		if !n.OpenBazaarNode.InitalPublishComplete {
-			n.OpenBazaarNode.SeedNode()
+			err = n.OpenBazaarNode.SeedNode()
+			if err != nil {
+				log.Error(err)
+			}
 		}
 		n.OpenBazaarNode.SetUpRepublisher(republishInterval)
 	}()
@@ -509,8 +536,17 @@ func (n *Node) Restart() error {
 	n.startMtx.Lock()
 	defer n.startMtx.Unlock()
 
+	var wg sync.WaitGroup
+
 	if n.started {
-		return n.stop()
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if err := n.stop(); err != nil {
+				log.Error(err)
+			}
+		}()
+		wg.Wait()
 	}
 
 	// This node has been stopped by the stop command so we need to create

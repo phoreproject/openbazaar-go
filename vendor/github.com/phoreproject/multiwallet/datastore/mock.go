@@ -327,7 +327,7 @@ func (m *MockStxoStore) Delete(stxo wallet.Stxo) error {
 
 type txnStoreEntry struct {
 	txn       []byte
-	value     int
+	value     string
 	height    int
 	timestamp time.Time
 	watchOnly bool
@@ -338,7 +338,7 @@ type MockTxnStore struct {
 	sync.Mutex
 }
 
-func (m *MockTxnStore) Put(tx []byte, txid string, value, height int, timestamp time.Time, watchOnly bool) error {
+func (m *MockTxnStore) Put(tx []byte, txid, value string, height int, timestamp time.Time, watchOnly bool) error {
 	m.Lock()
 	defer m.Unlock()
 	m.txns[txid] = &txnStoreEntry{
@@ -360,7 +360,7 @@ func (m *MockTxnStore) Get(txid chainhash.Hash) (wallet.Txn, error) {
 	}
 	return wallet.Txn{
 		Txid:      txid.String(),
-		Value:     int64(t.value),
+		Value:     t.value,
 		Height:    int32(t.height),
 		Timestamp: t.timestamp,
 		WatchOnly: t.watchOnly,
@@ -375,7 +375,7 @@ func (m *MockTxnStore) GetAll(includeWatchOnly bool) ([]wallet.Txn, error) {
 	for txid, t := range m.txns {
 		txn := wallet.Txn{
 			Txid:      txid,
-			Value:     int64(t.value),
+			Value:     t.value,
 			Height:    int32(t.height),
 			Timestamp: t.timestamp,
 			WatchOnly: t.watchOnly,

@@ -337,7 +337,10 @@ func TestChatDB_MarkAsRead(t *testing.T) {
 	for rows.Next() {
 		var msgID string
 		var read int
-		rows.Scan(&read, &msgID)
+		err = rows.Scan(&read, &msgID)
+		if err != nil {
+			t.Log(err)
+		}
 		if msgID == "33333" && read == 0 {
 			t.Error("Failed to set message as read")
 		}
@@ -459,7 +462,7 @@ func TestChatDB_DeleteConversation(t *testing.T) {
 	stmt.Close()
 }
 
-// https://github.com/OpenBazaar/openbazaar-go/issues/1545
+// https://github.com/phoreproject/pm-go/issues/1545
 func TestChatDB_DeterministicNanosecondOrdering_Issue1545(t *testing.T) {
 	var (
 		numMessages         = 10

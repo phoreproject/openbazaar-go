@@ -19,29 +19,32 @@ type feeCache struct {
 }
 
 type Fees struct {
-	Priority uint64 `json:"priority"`
-	Normal   uint64 `json:"normal"`
-	Economic uint64 `json:"economic"`
+	Priority      uint64 `json:"priority"`
+	Normal        uint64 `json:"normal"`
+	Economic      uint64 `json:"economic"`
+	SuperEconomic uint64 `json:"superEconomic"`
 }
 
 type FeeProvider struct {
-	maxFee      uint64
-	priorityFee uint64
-	normalFee   uint64
-	economicFee uint64
-	feeAPI      string
+	maxFee           uint64
+	priorityFee      uint64
+	normalFee        uint64
+	economicFee      uint64
+	superEconomicFee uint64
+	feeAPI           string
 
 	httpClient httpClient
 
 	cache *feeCache
 }
 
-func NewFeeProvider(maxFee, priorityFee, normalFee, economicFee uint64, feeAPI string, proxy proxy.Dialer) *FeeProvider {
+func NewFeeProvider(maxFee, priorityFee, normalFee, economicFee, superEconomicFee uint64, feeAPI string, proxy proxy.Dialer) *FeeProvider {
 	fp := FeeProvider{
 		maxFee:      maxFee,
 		priorityFee: priorityFee,
 		normalFee:   normalFee,
 		economicFee: economicFee,
+		superEconomicFee: superEconomicFee,
 		feeAPI:      feeAPI,
 		cache:       new(feeCache),
 	}
@@ -78,14 +81,16 @@ func (fp *FeeProvider) GetFeePerByte(feeLevel wallet.FeeLevel) uint64 {
 		fees = fp.cache.fees
 	}
 	switch feeLevel {
-	case wallet.PRIOIRTY:
-		return fp.selectFee(fees.Priority, wallet.PRIOIRTY)
+	case wallet.PRIORITY:
+		return fp.selectFee(fees.Priority, wallet.PRIORITY)
 	case wallet.NORMAL:
-		return fp.selectFee(fees.Normal, wallet.PRIOIRTY)
+		return fp.selectFee(fees.Normal, wallet.PRIORITY)
 	case wallet.ECONOMIC:
-		return fp.selectFee(fees.Economic, wallet.PRIOIRTY)
+		return fp.selectFee(fees.Economic, wallet.PRIORITY)
+	case wallet.SUPER_ECONOMIC:
+		return fp.selectFee(fees.SuperEconomic, wallet.PRIORITY)
 	case wallet.FEE_BUMP:
-		return fp.selectFee(fees.Priority, wallet.PRIOIRTY)
+		return fp.selectFee(fees.Priority, wallet.PRIORITY)
 	default:
 		return fp.normalFee
 	}
@@ -103,7 +108,7 @@ func (fp *FeeProvider) selectFee(fee uint64, feeLevel wallet.FeeLevel) uint64 {
 
 func (fp *FeeProvider) defaultFee(feeLevel wallet.FeeLevel) uint64 {
 	switch feeLevel {
-	case wallet.PRIOIRTY:
+	case wallet.PRIORITY:
 		return fp.priorityFee
 	case wallet.NORMAL:
 		return fp.normalFee
